@@ -13,6 +13,9 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | Optionen | HTTP→HTTPS-Umleitung, WebSockets, Kompression (gzip/zstd) | 1 |
 | Automatische Vorab-Prüfungen | DNS zeigt auf Node, Ziel erreichbar, Domain frei | 1 |
 | TLS über Let's Encrypt | HTTP-01; DNS-01 (z. B. Cloudflare) für Wildcards/Hosts ohne Port 80 | 1 / 3 |
+| Geteilte Wildcard-Zertifikate | Wildcard-Zertifikat (z. B. `*.home.beispiel.de`) einmal per DNS-01 holen und für alle passenden Hosts verwenden, die trotzdem eigene Einstellungen haben. Verrät einzelne Hostnamen nicht über die öffentlichen Certificate-Transparency-Logs | 3b |
+| Zertifikatsübersicht | Alle Zertifikate an einer Stelle (wie bei NPM): Name(n), Aussteller (Let's Encrypt, ZeroSSL, lokal, eigenes), gültig von/bis, Prüfart (HTTP-01/DNS-01), welche Hosts es nutzen, Status (gültig, läuft bald ab, Fehler beim Erneuern), Node; „Bald ablaufende Zertifikate“ in der Übersicht | 3b |
+| Eigene Zertifikate | Zertifikat + Schlüssel hochladen (z. B. von einer Firmen-CA) und Hosts zuordnen; Schlüssel verschlüsselt gespeichert | 3b |
 | Entwurf / Export | Host als Entwurf speichern, Konfiguration als JSON ansehen | 1 |
 | Versionierung | Jede gespeicherte Änderung wird eine Version; Diff „vorher/nachher“ inkl. Caddy-Config-Ausschnitt | 1 |
 | Zurücksetzen | Alte Version wiederherstellen = neue Version, die übertragen wird | 1 |
@@ -23,6 +26,7 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | Feature | Beschreibung | Phase |
 |---|---|---|
 | Zugriffsart pro Host | **Öffentlich** (nur Let's Encrypt) oder **Nur freigegebene Geräte (mTLS)** | 2 |
+| Zugriffsart „Intern“ | Nur aus internen Netzen (LAN, VPN), zentral unter Einstellungen festgelegt; geprüft wird die echte Verbindungs-IP, kein `X-Forwarded-For`. Fremde sehen nichts – die Verbindung wird ohne Antwort abgebrochen. Zertifikat standardmäßig per DNS-01/Wildcard (kein öffentlicher DNS-Eintrag nötig). Optional zusätzlich „nur Admin-Geräte“ per mTLS. Doku zu Split-DNS und NAT-Loopback | 3b |
 | Verhalten ohne Zertifikat | Verbindung ablehnen (TLS-Handshake schlägt fehl) **oder** Hinweisseite „Kein Zugang“ | 2 |
 | Freigaben | An Gruppen und Personen; gelten automatisch für alle Geräte der Person | 2 |
 | Zugriffsmatrix | Gruppe/Person × Dienst, unterscheidet „direkt erlaubt“ und „über Gruppe“; Änderungen gesammelt übertragen oder verwerfen | 2 |
