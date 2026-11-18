@@ -1,6 +1,7 @@
 <script lang="ts">
   import Icon from './Icon.svelte';
   import { icons } from '../icons';
+  import { session } from '../session.svelte';
 
   type NavId = 'main' | 'hosts' | 'users' | 'devices' | 'access' | 'nodes' | 'stats' | 'audit' | 'settings';
 
@@ -12,11 +13,11 @@
 
   const nav: { id: NavId; label: string; href: string; count?: string; d: string }[] = [
     { id: 'main', label: 'Übersicht', href: '#/', d: icons.grid },
-    { id: 'hosts', label: 'Proxy-Hosts', href: '#/hosts', count: '18', d: icons.globe },
-    { id: 'users', label: 'Nutzer', href: '#/users', count: '6', d: icons.users },
-    { id: 'devices', label: 'Geräte', href: '#/devices', count: '7', d: icons.device },
+    { id: 'hosts', label: 'Proxy-Hosts', href: '#/hosts', d: icons.globe },
+    { id: 'users', label: 'Nutzer', href: '#/users', d: icons.users },
+    { id: 'devices', label: 'Geräte', href: '#/devices', d: icons.device },
     { id: 'access', label: 'Zugriff', href: '#/access', d: icons.lock },
-    { id: 'nodes', label: 'Nodes', href: '#/nodes', count: '4', d: icons.server },
+    { id: 'nodes', label: 'Nodes', href: '#/nodes', d: icons.server },
     { id: 'stats', label: 'Statistik', href: '#/stats', d: icons.chart },
     { id: 'audit', label: 'Audit-Log', href: '#/audit', d: icons.clipboard },
     { id: 'settings', label: 'Einstellungen', href: '#/settings', d: icons.sliders }
@@ -44,25 +45,17 @@
     {/each}
   </div>
 
-  <div class="ca">
-    <span class="eyebrow">Zertifizierungsstelle</span>
-    <div class="stack tight">
-      <span class="ca-name">Tesseract Root CA</span>
-      <span class="muted small">offline gespeichert · bis 03/2036</span>
-    </div>
-    <div class="stack tight">
-      <span class="ca-name">Geräte-Intermediate</span>
-      <span class="muted small">signiert Geräte · bis 11/2028</span>
-    </div>
-    <a href="#/settings-ca" class="ca-link">CA verwalten</a>
-  </div>
-
   <div class="brand user">
-    <div class="avatar">AD</div>
-    <div class="stack">
-      <span class="user-name">admin</span>
-      <span class="muted small">Controller v0.4</span>
+    <div class="avatar">{(session.user?.username ?? '?').slice(0, 2).toUpperCase()}</div>
+    <div class="stack grow">
+      <span class="user-name">{session.user?.username ?? 'nicht angemeldet'}</span>
+      <span class="muted small">Controller</span>
     </div>
+    {#if session.user}
+      <button type="button" class="logout" onclick={() => session.logout()} aria-label="Abmelden" title="Abmelden">
+        <Icon d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10" />
+      </button>
+    {/if}
   </div>
 </nav>
 
@@ -96,9 +89,6 @@
   .stack {
     display: flex;
     flex-direction: column;
-  }
-  .stack.tight {
-    gap: 2px;
   }
   .brand-name {
     font-weight: 700;
@@ -145,29 +135,24 @@
     color: var(--text-muted);
     font-variant-numeric: tabular-nums;
   }
-  .ca {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 14px;
-    border: 1px solid #262b35;
-    border-radius: var(--radius-md);
-    background: var(--surface);
+  .grow {
+    flex-grow: 1;
+    min-width: 0;
   }
-  .eyebrow {
-    font-size: 12px;
-    font-weight: 600;
+  .logout {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-input);
+    background: transparent;
     color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
   }
-  .ca-name {
-    font-size: 13px;
-    font-weight: 600;
-  }
-  .ca-link {
-    font-size: 13px;
-    font-weight: 500;
+  .logout:hover {
+    color: var(--text);
   }
   .avatar {
     width: 30px;

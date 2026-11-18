@@ -23,7 +23,6 @@ services:
     command: caddy run --config /etc/caddy/Caddyfile --adapter caddyfile --resume
     environment:
       TESSERACT_DOMAIN: ${TESSERACT_DOMAIN:-localhost}
-      ACME_EMAIL: ${ACME_EMAIL:-}
     ports:
       - "80:80"
       - "443:443"

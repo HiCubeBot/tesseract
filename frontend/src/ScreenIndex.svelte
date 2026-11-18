@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { routes } from './routes';
+  import { routes, pages } from './routes';
 </script>
 
 <main class="index">
@@ -8,12 +8,24 @@
     <h1>Alle Screens</h1>
     <p>Diese Seite erscheint unter <code>#/screens</code> und bei unbekannten Pfaden.</p>
   </header>
+  <h2>Fertige Seiten</h2>
+  <ul>
+    {#each pages.filter((p) => !p.pattern.includes(':')) as p (p.pattern)}
+      <li>
+        <a href={'#/' + p.pattern}>
+          <span class="title">{p.title}</span>
+          <code>#/{p.pattern}</code>
+        </a>
+      </li>
+    {/each}
+  </ul>
+  <h2>Prototyp-Screens aus dem Design</h2>
   <ul>
     {#each routes as r (r.path)}
       <li>
-        <a href={'#/' + r.path}>
+        <a href={'#/design/' + r.path}>
           <span class="title">{r.title}</span>
-          <code>#/{r.path}</code>
+          <code>#/design/{r.path}</code>
         </a>
       </li>
     {/each}
@@ -40,6 +52,10 @@
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.06em;
+  }
+  h2 {
+    margin: 8px 0 0;
+    font-size: 16px;
   }
   h1 {
     margin: 0;

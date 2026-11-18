@@ -5,7 +5,7 @@
 | Image | Quelle | Inhalt |
 |---|---|---|
 | `tesseract` | `Dockerfile` (Repo-Wurzel) | Mehrstufig: baut das Svelte-Frontend (Node 22), installiert das Backend mit uv, Laufzeit auf `python:3.13-slim` als Nicht-Root-Nutzer. Liefert UI unter `/` und API unter `/api`. |
-| `tesseract-caddy` | `docker/caddy/Dockerfile` | Caddy, gebaut mit `xcaddy` inkl. `coraza-caddy` (WAF) und `caddy-dns/cloudflare` (DNS-01). |
+| `tesseract-caddy` | `docker/caddy/Dockerfile` | Caddy 2.11, gebaut mit `xcaddy` inkl. `coraza-caddy` (WAF) und `caddy-dns/cloudflare` (DNS-01). |
 
 ## Compose-Stack
 
@@ -42,7 +42,7 @@ docker compose logs tesseract | grep "Erster Start"
 | Variable | Bedeutung |
 |---|---|
 | `TESSERACT_DOMAIN` | Domain des Controller-UIs (Standard `localhost`) |
-| `ACME_EMAIL` | Kontakt-E-Mail für Let's Encrypt |
+| (Let's-Encrypt-E-Mail) | wird im UI unter Einstellungen gesetzt |
 | `TESSERACT_LOG_LEVEL` | Log-Level des Controllers |
 
 Weitere Controller-Variablen: siehe [backend.md](backend.md#konfiguration).

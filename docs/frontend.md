@@ -2,6 +2,13 @@
 
 Code-Fassung des Designs **„Caddy Control“** – ein Webinterface für alle Caddy-Nodes.
 
+Es gibt zwei Arten von Seiten:
+
+- **Seiten (`pages/`)** – fertig an die API angebunden (ab Phase 1).
+- **Prototyp-Screens (`screens/`)** – 1:1 aus dem Design, mit Beispieldaten. Sie erscheinen
+  für alle Pfade, die noch keine echte Seite haben, mit einem gelben Hinweis „Prototyp“,
+  und bleiben unter `#/design/<pfad>` als Referenz erreichbar.
+
 ## Starten
 
 ```bash
@@ -16,16 +23,21 @@ npm run check      # Typprüfung mit svelte-check
 
 ```
 frontend/src/
-  app.css                 Design-Tokens (Farben, Schrift, Radien) als CSS-Variablen
-  App.svelte              wählt anhand der URL den Screen
-  routes.ts               alle Screens mit Pfad und Titel
-  ScreenIndex.svelte      Übersicht aller Screens (#/screens)
+  app.css                 Design-Tokens + gemeinsame Klassen (.card, .field, .input, .table …)
+  App.svelte              Anmelde-Prüfung, wählt Seite oder Prototyp-Screen
+  routes.ts               echte Seiten (mit Parametern wie hosts/:id) und Prototyp-Screens
+  ScreenIndex.svelte      Übersicht aller Seiten und Screens (#/screens)
   lib/
+    api.ts                API-Client, Typen, Anzeige-Hilfen
+    session.svelte.ts     Anmeldestatus; bei 401 zurück zum Login
+    toast.svelte.ts       kurze Rückmeldungen
+    hosts.ts · nodes.ts   Hilfen für Hosts und das Übertragen an Nodes
     router.svelte.ts      kleiner Hash-Router (#/hosts …), keine Abhängigkeit
     dc.svelte.ts          Brücke für die übernommene Screen-Logik (siehe unten)
     icons.ts              Strich-Icons als SVG-Pfade
     components/           wiederverwendbare Bausteine (idiomatisches Svelte 5, TypeScript)
-  screens/                30 Screens aus dem Canvas
+  pages/                  echte Seiten: Login, Overview, Hosts, HostWizard, HostHistory, Settings, Audit
+  screens/                30 Prototyp-Screens aus dem Canvas
 ```
 
 ### Komponenten (`frontend/src/lib/components`)
@@ -47,6 +59,10 @@ frontend/src/
 | `EmptyState` | Leerer Zustand | `icon`, `title`, `text`, `actionLabel`, `actionHref` |
 | `ConfirmDialog` | Bestätigung durch Eintippen | `title`, `text`, `word`, `confirmLabel`, `onConfirm`, `onCancel` |
 | `PageHeader` | Seitenkopf mit Aktionen | `title`, `subtitle`, `crumb`, `primaryLabel`, `secondaryLabel` … |
+| `AppShell` | Seitenrahmen mit Sidebar | `active`, Inhalt als Kinder |
+| `HostForm` | Felder eines Hosts (Domain, Node, Ziel, Optionen) | `bind:value`, `nodes`, `compact` |
+| `CheckList` | Ergebnis der Vorab-Prüfungen | `checks`, `busy` |
+| `Toasts` | Rückmeldungen unten rechts (einmal in `App.svelte`) | – |
 
 Alle zusammen siehst du unter **`#/kit`**.
 
@@ -74,10 +90,21 @@ Beim Ausbau einer Seite empfiehlt sich:
 
 ## Routen
 
-`#/` Übersicht · `#/login` · `#/hosts` · `#/host-security` · `#/host-history` · `#/host-new-1..3` ·
-`#/users` · `#/devices` · `#/access` · `#/invite-1..4` (+ `-3m`, `-4m` fürs Handy) · `#/nodes` ·
-`#/stats`, `#/stats-traffic`, `#/stats-usage`, `#/logs` · `#/audit` ·
-`#/settings`, `#/settings-integrations`, `#/settings-ca`, `#/settings-notify`, `#/settings-metrics`, `#/settings-backup` ·
-`#/kit` · `#/screens`
+**Echte Seiten (Phase 1):** `#/login` · `#/` Übersicht · `#/hosts` · `#/hosts/new` ·
+`#/hosts/:id` (Bearbeiten-Panel) · `#/hosts/:id/history` · `#/settings` · `#/audit`
 
-Alle Daten sind Beispieldaten aus dem Mockup – es gibt noch kein Backend.
+Die alten Pfade `#/host-new-1..3` leiten auf `#/hosts/new` um.
+
+**Prototyp-Screens:** `#/host-security` · `#/users` · `#/devices` · `#/access` ·
+`#/invite-1..4` (+ `-3m`, `-4m` fürs Handy) · `#/nodes` · `#/stats`, `#/stats-traffic`,
+`#/stats-usage`, `#/logs` · `#/settings-integrations`, `#/settings-ca`, `#/settings-notify`,
+`#/settings-metrics`, `#/settings-backup` · `#/kit` – jeweils auch unter `#/design/…`,
+dort auch die Originale der fertigen Seiten (z. B. `#/design/hosts`).
+
+Alle Seiten außer `#/login` verlangen eine Anmeldung.
+
+## Neue Seite anbinden
+
+1. Seite unter `pages/` anlegen, `AppShell` als Rahmen, Daten über `api` aus `lib/api.ts`.
+2. In `routes.ts` unter `pages` eintragen – sie hat dann Vorrang vor dem Prototyp-Screen.
+3. Der Prototyp bleibt unter `#/design/<pfad>` als Vorlage erhalten.

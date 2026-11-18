@@ -1,22 +1,11 @@
 # Start-Konfiguration für den allerersten Start. Danach überträgt der Controller
 # die komplette Config als JSON über die Admin-API, und Caddy startet mit --resume
-# immer mit dem zuletzt geladenen Stand.
+# immer mit dem zuletzt geladenen Stand. Let's-Encrypt-E-Mail und WAF setzt der Controller.
 {
 	# Admin-API nur im internen Docker-Netz erreichbar – NICHT nach außen veröffentlichen.
 	admin 0.0.0.0:2019
-	order coraza_waf first
-	email {$ACME_EMAIL}
 }
 
 {$TESSERACT_DOMAIN:localhost} {
-	coraza_waf {
-		load_owasp_crs
-		directives `
-			Include @coraza.conf-recommended
-			Include @crs-setup.conf.example
-			Include @owasp_crs/*.conf
-			SecRuleEngine DetectionOnly
-		`
-	}
 	reverse_proxy tesseract:8000
 }

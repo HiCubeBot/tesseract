@@ -1,10 +1,11 @@
 # syntax=docker/dockerfile:1
 
 # ---------- 1. Frontend bauen ----------
-FROM node:22-alpine AS frontend
+# Debian statt Alpine: Rollups nativer Parser scheitert an musls kleinem Thread-Stack
+FROM node:22-bookworm-slim AS frontend
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
-RUN npm install --no-audit --no-fund
+RUN npm ci --no-audit --no-fund
 COPY frontend/ ./
 RUN npm run build
 

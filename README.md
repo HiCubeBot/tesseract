@@ -13,8 +13,8 @@ mit **mTLS statt VPN** und eingebauter **Coraza WAF**.
 - **Einladungen per Link**: Gäste registrieren ihr Gerät selbst und installieren das Zertifikat
   mit einer Schritt-für-Schritt-Anleitung.
 
-> Status: **Phase 0 – Fundament.** Das UI-Design liegt als klickbarer Prototyp vor, das Backend
-> ist ein Gerüst. Siehe [Roadmap](docs/roadmap.md).
+> Status: **Phase 1 fertig** – Proxy-Hosts mit Let's Encrypt für einen Caddy, mit Versionen,
+> Audit-Log und Admin-Login. Bereiche ohne Funktion zeigt das UI als Prototyp. Siehe [Roadmap](docs/roadmap.md).
 
 ## Projektstruktur
 
@@ -40,7 +40,11 @@ docker compose up -d --build
 ```
 
 Danach ist das UI unter `https://<TESSERACT_DOMAIN>` erreichbar (lokal: `https://localhost`),
-die API-Doku unter `/api/docs`.
+die API-Doku unter `/api/docs`. Das Admin-Passwort steht beim ersten Start im Log:
+
+```bash
+docker compose logs tesseract | grep "Erster Start"
+```
 
 ### Entwicklung
 

@@ -42,12 +42,13 @@ async def sync_nodes_on_start(
     database: Database, settings: Settings, transport: Any = None
 ) -> None:
     """Überträgt beim Start die Config an alle Nodes. Caddy startet evtl. später –
-    daher einige Versuche mit Pause."""
+    daher Versuche mit wachsender Pause (insgesamt gut 2 Minuten)."""
     import asyncio
 
     from tesseract.services import apply_node
 
-    for attempt in range(10):
+    attempts = 20
+    for attempt in range(attempts):
         with database.sessionmaker() as db:
             nodes = db.scalars(select(Node)).all()
             errors = [
@@ -59,7 +60,7 @@ async def sync_nodes_on_start(
         if not errors:
             log.info("Config an alle Nodes übertragen")
             return
-        if attempt == 9:
+        if attempt == attempts - 1:
             log.error("Config konnte nicht übertragen werden: %s", "; ".join(errors))
             return
-        await asyncio.sleep(3)
+        await asyncio.sleep(min(2 + attempt, 10))

@@ -1,4 +1,4 @@
-// Alle Screens aus dem Design-Canvas „Caddy Control“ – Reihenfolge wie auf dem Canvas.
+// Echte Seiten (pages/) und die Screens aus dem Design-Canvas „Caddy Control“ (screens/).
 import type { Component } from "svelte";
 import Login from "./screens/Login.svelte";
 import Main from "./screens/Main.svelte";
@@ -31,6 +31,48 @@ import SettingsMetrics from "./screens/SettingsMetrics.svelte";
 import SettingsBackup from "./screens/SettingsBackup.svelte";
 import Kit from "./screens/Kit.svelte";
 
+import LoginPage from "./pages/Login.svelte";
+import OverviewPage from "./pages/Overview.svelte";
+import HostsPage from "./pages/Hosts.svelte";
+import HostWizardPage from "./pages/HostWizard.svelte";
+import HostHistoryPage from "./pages/HostHistory.svelte";
+import SettingsPage from "./pages/Settings.svelte";
+import AuditPage from "./pages/Audit.svelte";
+
+export interface Page {
+  /** Muster ohne "#/", Parameter mit ":" – z. B. "hosts/:id/history" */
+  pattern: string;
+  title: string;
+  component: Component<any>;
+  /** ohne Anmeldung erreichbar */
+  public?: boolean;
+}
+
+/** Fertig angebundene Seiten (Phase 1). Sie haben Vorrang vor den Prototyp-Screens. */
+export const pages: Page[] = [
+  { pattern: "login", title: "Anmelden", component: LoginPage, public: true },
+  { pattern: "", title: "Übersicht", component: OverviewPage },
+  { pattern: "hosts", title: "Proxy-Hosts", component: HostsPage },
+  { pattern: "hosts/new", title: "Host anlegen", component: HostWizardPage },
+  { pattern: "hosts/:id", title: "Proxy-Hosts", component: HostsPage },
+  { pattern: "hosts/:id/history", title: "Host · Verlauf", component: HostHistoryPage },
+  { pattern: "settings", title: "Einstellungen", component: SettingsPage },
+  { pattern: "audit", title: "Audit-Log", component: AuditPage },
+];
+
+export function matchPage(path: string): { page: Page; params: Record<string, string> } | null {
+  const parts = path.split("/").filter(Boolean);
+  for (const page of pages) {
+    const pp = page.pattern.split("/").filter(Boolean);
+    if (pp.length !== parts.length) continue;
+    const params: Record<string, string> = {};
+    if (pp.every((seg, i) => (seg.startsWith(":") ? ((params[seg.slice(1)] = parts[i]), true) : seg === parts[i]))) {
+      return { page, params };
+    }
+  }
+  return null;
+}
+
 export interface Route {
   /** Hash-Pfad ohne "#/" – leer = Übersicht */
   path: string;
@@ -38,6 +80,7 @@ export interface Route {
   component: Component<any>;
 }
 
+/** Prototyp-Screens aus dem Design – auch unter #/design/<pfad> erreichbar. */
 export const routes: Route[] = [
   { path: "login", title: "Login", component: Login },
   { path: "", title: "Übersicht", component: Main },
@@ -72,4 +115,10 @@ export const routes: Route[] = [
 ];
 
 /** Alternative Pfade */
-export const aliases: Record<string, string> = { main: "", uebersicht: "" };
+export const aliases: Record<string, string> = {
+  main: "",
+  uebersicht: "",
+  "host-new-1": "hosts/new",
+  "host-new-2": "hosts/new",
+  "host-new-3": "hosts/new",
+};

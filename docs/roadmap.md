@@ -5,8 +5,8 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 
 | Phase | Name | Ergebnis |
 |---|---|---|
-| 0 | Fundament | Projektstruktur, Docker, Doku – **aktuell** |
-| 1 | Proxy-Manager (Single-Node) | Ersetzt NPM für einen lokalen Caddy |
+| 0 | Fundament | Projektstruktur, Docker, Doku – **fertig** |
+| 1 | Proxy-Manager (Single-Node) | Ersetzt NPM für einen lokalen Caddy – **fertig** |
 | 2 | mTLS & Identitäten | Private Dienste ohne VPN, Einladungen |
 | 3 | WAF & Zugriffsschutz | Coraza, IP-Filter, Authelia |
 | 4 | Multi-Node | Agent, mehrere Server, auch hinter NAT |
@@ -24,7 +24,8 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 - [x] Backend-Gerüst mit uv + FastAPI (`backend/`), Health-Endpunkt, Tests
 - [x] Dockerfile (Frontend + Backend in einem Image), Caddy-Image mit Coraza, `compose.yaml`
 - [x] Dokumentation in `docs/`, Featureliste, Roadmap
-- [ ] Git-Repository, CI (Lint, Tests, `svelte-check`, Image-Build)
+- [x] Git-Repository
+- [ ] CI (Lint, Tests, `svelte-check`, Image-Build)
 - [ ] Architekturentscheidungen aus [architecture.md](architecture.md#offene-entscheidungen) treffen
 
 **Fertig, wenn:** `docker compose up` startet Controller + Caddy, UI und `/api/health` sind erreichbar.
@@ -33,15 +34,20 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 
 **Ziel:** Funktionsgleich mit den Kernfunktionen von NPM – für einen Caddy im selben Compose-Stack.
 
-- Datenbank (SQLite) mit Migrationen, Datenmodell für Hosts und Config-Versionen
-- Admin-Login (Passwort, Sitzung 30 Tage), `tesseract admin reset` auf der Kommandozeile
-- Proxy-Hosts anlegen/bearbeiten/löschen über den 3-Schritte-Assistenten
-- Optionen: HTTP→HTTPS, WebSockets, Kompression; TLS über Let's Encrypt (HTTP-01)
-- Vorab-Prüfungen (DNS, Erreichbarkeit des Ziels)
-- Caddy-JSON-Config erzeugen und über die Admin-API übertragen
-- Versionierung jeder Änderung, Diff-Ansicht, Zurücksetzen
-- Basis-Audit-Log (wer hat was geändert)
-- Frontend: Screens Übersicht, Hosts, Host anlegen, Verlauf, Einstellungen/Allgemein an die API anbinden
+- [x] Datenbank (SQLite) mit Migrationen, Datenmodell für Hosts und Config-Versionen
+- [x] Admin-Login (Passwort, Sitzung 12 h / 30 Tage), `tesseract admin reset` auf der Kommandozeile
+- [x] Proxy-Hosts anlegen/bearbeiten/löschen über den 3-Schritte-Assistenten, Entwürfe
+- [x] Optionen: HTTP→HTTPS, WebSockets, Kompression; TLS über Let's Encrypt (HTTP-01)
+- [x] Vorab-Prüfungen (Domain frei, DNS, Erreichbarkeit des Ziels)
+- [x] Caddy-JSON-Config erzeugen und über die Admin-API übertragen, Sync-Status pro Node
+- [x] Versionierung jeder Änderung, Diff-Ansicht, Zurücksetzen
+- [x] Basis-Audit-Log (wer hat was geändert)
+- [x] Frontend: Übersicht, Hosts, Host anlegen, Verlauf, Einstellungen/Allgemein, Audit-Log an die API angebunden
+
+Offen / bewusst verschoben:
+- Coraza-WAF in der erzeugten Config (auch für die Controller-Domain) → Phase 3
+- Erreichbarkeit des Ziels wird vom Controller aus geprüft, nicht vom Node → Phase 4 (Agent)
+- Upstream-HTTPS mit selbstsigniertem Zertifikat (`insecure_skip_verify`) fehlt noch
 
 **Fertig, wenn:** Ein öffentlicher Host mit gültigem Let's-Encrypt-Zertifikat lässt sich komplett
 über das UI anlegen, ändern und auf eine alte Version zurücksetzen.
