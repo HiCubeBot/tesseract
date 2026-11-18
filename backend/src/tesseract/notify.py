@@ -46,6 +46,7 @@ EVENTS: dict[str, tuple[str, str, tuple[str, ...]]] = {
     "enrollment": ("Gerät möchte sich registrieren", "info", ("enrollment_requested",)),
     "node_join": ("Agent möchte beitreten", "info", ("node_join_requested",)),
     "code_wrong": ("Falscher Einladungscode", "warn", ("enrollment_code_wrong",)),
+    "backup_failed": ("Sicherung fehlgeschlagen", "critical", ("backup_failed",)),
 }
 ACTION_EVENT = {a: ev for ev, (_, _, actions) in EVENTS.items() for a in actions}
 
@@ -140,6 +141,8 @@ def describe(e: AuditEntry) -> str:
         return f"{e.target} – im Controller freigeben"
     if a == "node_join_requested":
         return f"Node {e.target} ({d.get('hostname') or '?'}) – Fingerabdruck vergleichen"
+    if a == "backup_failed":
+        return f"Sicherung fehlgeschlagen: {d.get('error', '?')}"
     if a == "enrollment_code_wrong":
         return f"Einladung für {e.target} von {e.ip or '?'}"
     return f"{e.action} {e.target}".strip()

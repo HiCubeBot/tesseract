@@ -71,6 +71,8 @@ class Settings(BaseSettings):
     access_log_path: Path | None = None
     # Optionale GeoIP-Datenbank (MaxMind GeoLite2-Country o. ä., .mmdb) für Länder in Logs/Statistik
     geoip_db: Path | None = None
+    # Ordner für lokale Sicherungen; leer = data_dir/backups
+    backup_dir: Path | None = None
     # Hintergrundaufgaben (Auto-Sperre); in Tests aus
     background_tasks: bool = True
 

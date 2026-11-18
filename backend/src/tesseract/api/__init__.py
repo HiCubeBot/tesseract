@@ -7,6 +7,7 @@ from tesseract.api import (
     agent,
     audit,
     auth,
+    backups,
     bans,
     ca,
     certificates,
@@ -45,3 +46,4 @@ api_router.include_router(logs.router)
 api_router.include_router(stats.router)
 api_router.include_router(metrics.router)
 api_router.include_router(notify.router)
+api_router.include_router(backups.router)

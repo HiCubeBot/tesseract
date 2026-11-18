@@ -521,7 +521,12 @@ export const ACTION_LABELS: Record<string, string> = {
   node_drift_overwritten: 'Abweichung überschrieben',
   node_drift_accepted: 'Abweichung übernommen',
   node_offline: 'Node offline',
-  node_online: 'Node wieder online'
+  node_online: 'Node wieder online',
+  backup_created: 'Sicherung erstellt',
+  backup_failed: 'Sicherung fehlgeschlagen',
+  backup_tested: 'Sicherung getestet',
+  backup_downloaded: 'Sicherung heruntergeladen',
+  backup_restored: 'Sicherung wiederhergestellt'
 };
 
 // ---------- Phase 2: CA, Personen, Geräte ----------

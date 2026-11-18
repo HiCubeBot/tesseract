@@ -61,6 +61,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             from tesseract.notify import watch as notify_watch
 
             tasks.append(asyncio.create_task(notify_watch(app.state.db, app.state.notifier)))
+            from tesseract.backup import watch as backup_watch
+
+            tasks.append(asyncio.create_task(backup_watch(app)))
         yield
         for task in tasks:
             task.cancel()
@@ -86,6 +89,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.caddy_transport = None
     # Benachrichtigungen (ntfy, Webhook) – in Tests ein MockTransport
     app.state.notify_transport = None
+    # Sicherungen: S3-Ziel in Tests als MockTransport; Sperre fürs Wiederherstellen
+    app.state.backup_transport = None
+    app.state.restore_lock = asyncio.Lock()
     app.include_router(api_router, prefix="/api")
     # Prometheus erwartet /metrics an der Wurzel
     from tesseract.api.metrics import public as metrics_public
