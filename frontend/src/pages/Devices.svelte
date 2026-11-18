@@ -67,6 +67,17 @@
     }
   }
 
+  async function remove(d: Device) {
+    if (!confirm(`„${d.name}“ von ${d.person_name} endgültig löschen?`)) return;
+    try {
+      await api.del(`/devices/${d.id}`);
+      toasts.show('ok', `„${d.name}“ gelöscht.`);
+      await load();
+    } catch (e) {
+      toasts.show('bad', e instanceof Error ? e.message : String(e));
+    }
+  }
+
   const shortFp = (fp: string) => fp.slice(0, 11) + ' … ' + fp.slice(-5);
 </script>
 
@@ -141,8 +152,10 @@
                 {#if expiresSoon(d)}<StatusPill tone="warn" label="läuft bald ab" />{:else}<StatusPill tone={st.tone} label={st.label} />{/if}
               </td>
               <td class="right">
-                {#if d.status !== 'revoked'}
+                {#if d.status === 'active'}
                   <Button variant="ghost" size="sm" label="Sperren" onClick={() => (revoke = d)} />
+                {:else}
+                  <Button variant="ghost" size="sm" label="Löschen" onClick={() => remove(d)} />
                 {/if}
               </td>
             </tr>

@@ -39,8 +39,19 @@
   }
   .side {
     flex: 1 1 240px;
+    display: flex;
     background: var(--sidebar);
     border-right: 1px solid var(--border);
+  }
+  /* Breit genug für die Seitenleiste neben dem Inhalt: über die volle Höhe, mitlaufend */
+  @media (min-width: 820px) {
+    .side {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      align-self: flex-start;
+      overflow-y: auto;
+    }
   }
   main {
     flex: 999 1 560px;

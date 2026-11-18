@@ -391,6 +391,25 @@ def revoke(
     return device_out(d)
 
 
+@router.delete("/devices/{device_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_device(device_id: int, db: DB, actor: CurrentActor) -> None:
+    """Gerät endgültig entfernen – nur, wenn es gesperrt oder abgelaufen ist.
+    Aktive Geräte erst sperren, damit ihr Zertifikat sicher nirgends mehr gilt."""
+    d: Device = _get(db, Device, device_id, "Gerät")
+    if d.status == "active":
+        raise HTTPException(status.HTTP_409_CONFLICT, "Aktive Geräte erst sperren, dann löschen")
+    audit.record(
+        db,
+        actor=actor.name,
+        action="device_deleted",
+        target=f"{d.person.name} · {d.name}",
+        details={"serial": d.serial, "fingerprint": d.fingerprint, "status": d.status},
+        ip=actor.ip,
+    )
+    db.delete(d)
+    db.commit()
+
+
 @router.get("/devices/revoked.csv")
 def revoked_csv(db: DB, _: CurrentActor) -> Response:
     buf = io.StringIO()

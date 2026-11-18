@@ -73,6 +73,7 @@
 <style>
   .sidebar {
     width: 100%;
+    min-height: 100%;
     padding: 18px 14px;
     display: flex;
     flex-direction: column;
@@ -149,6 +150,12 @@
   .grow {
     flex-grow: 1;
     min-width: 0;
+  }
+  /* Profil und Abmelden ganz unten in der Seitenleiste */
+  .user {
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
   }
   .logout {
     width: 36px;

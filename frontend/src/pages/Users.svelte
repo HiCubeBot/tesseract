@@ -207,6 +207,17 @@
     }
   }
 
+  async function deleteDevice(id: number, name: string) {
+    if (!confirm(`„${name}“ endgültig löschen? Das Gerät verschwindet auch aus der Liste der gesperrten Geräte.`)) return;
+    try {
+      await api.del(`/devices/${id}`);
+      toasts.show('ok', `„${name}“ gelöscht.`);
+      await load();
+    } catch (err) {
+      toasts.show('bad', err instanceof Error ? err.message : String(err));
+    }
+  }
+
   async function addGroup(e: SubmitEvent) {
     e.preventDefault();
     try {
@@ -440,8 +451,10 @@
                   </span>
                   <span class="spacer"></span>
                   {#if expiresSoon(d)}<StatusPill tone="warn" label="läuft bald ab" />{:else}<StatusPill tone={st.tone} label={st.label} />{/if}
-                  {#if d.status !== 'revoked'}
+                  {#if d.status === 'active'}
                     <Button variant="ghost" size="sm" label="Sperren" onClick={() => (revokeId = d.id)} />
+                  {:else}
+                    <Button variant="ghost" size="sm" label="Löschen" onClick={() => deleteDevice(d.id, d.name)} />
                   {/if}
                 </li>
                 {#if revokeId === d.id}

@@ -110,3 +110,19 @@ def test_disabled_person_cannot_get_device(auth_client: TestClient) -> None:
 
 def test_secret_key_file_created(auth_client: TestClient, settings) -> None:
     assert (settings.data_dir / "secret.key").exists()
+
+
+def test_delete_only_after_revoke(auth_client: TestClient) -> None:
+    _setup_ca(auth_client)
+    p = _person(auth_client)
+    dev = auth_client.post(f"/api/persons/{p['id']}/devices", json={"name": "Pixel"}).json()[
+        "device"
+    ]
+    r = auth_client.delete(f"/api/devices/{dev['id']}")
+    assert r.status_code == 409 and "erst sperren" in r.json()["detail"]
+    auth_client.post(f"/api/devices/{dev['id']}/revoke", json={})
+    assert auth_client.delete(f"/api/devices/{dev['id']}").status_code == 204
+    assert auth_client.get("/api/devices").json() == []
+    assert auth_client.get(f"/api/persons/{p['id']}").json()["devices"] == []
+    assert auth_client.get("/api/audit").json()[0]["action"] == "device_deleted"
+    assert auth_client.delete(f"/api/devices/{dev['id']}").status_code == 404
