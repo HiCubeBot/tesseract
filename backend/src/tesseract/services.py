@@ -11,6 +11,7 @@ from tesseract.caddy.config import AreaSpec, HostSpec, NodeSpec, build_config, c
 from tesseract.config import Settings
 from tesseract.db.models import (
     Ban,
+    CustomCert,
     Device,
     Group,
     Host,
@@ -49,6 +50,7 @@ SNAPSHOT_FIELDS = (
     "authelia",
     "tls_challenge",
     "internal",
+    "custom_cert",
     "areas",
     "enabled",
     "draft",
@@ -161,7 +163,7 @@ def area_snapshot(db: Session, area: HostArea) -> dict[str, Any]:
 
 
 def snapshot(host: Host) -> dict[str, Any]:
-    special = {"node", "paths", "grants", "ip_lists", "areas"}
+    special = {"node", "paths", "grants", "ip_lists", "areas", "custom_cert"}
     data = {f: getattr(host, f) for f in SNAPSHOT_FIELDS if f not in special}
     data["node"] = host.node.name
     data["paths"] = [p.path for p in host.paths]
@@ -169,6 +171,8 @@ def snapshot(host: Host) -> dict[str, Any]:
     session = Session.object_session(host)
     data["ip_lists"] = ip_list_names(session, list(host.ip_list_ids or [])) if session else []
     data["areas"] = [area_snapshot(session, a) for a in host.areas] if session else []
+    cert = session.get(CustomCert, host.custom_cert_id) if session and host.custom_cert_id else None
+    data["custom_cert"] = cert.name if cert else None
     return {f: data[f] for f in SNAPSHOT_FIELDS}
 
 
@@ -214,6 +218,12 @@ def apply_snapshot(db: Session, host: Host, snap: dict[str, Any]) -> list[str]:
                 host.node_id = node.id
         elif f == "paths":
             set_paths(host, list(snap["paths"]))
+        elif f == "custom_cert":
+            name = snap["custom_cert"]
+            cid = db.scalar(select(CustomCert.id).where(CustomCert.name == name)) if name else None
+            if name and cid is None:
+                missing.append(f"Zertifikat {name}")
+            host.custom_cert_id = cid
         elif f == "areas":
             areas = []
             for i, a in enumerate(snap["areas"]):
@@ -380,6 +390,7 @@ def host_spec(
         tls_challenge=getattr(host, "tls_challenge", "http"),
         areas=tuple(areas or ()),
         internal=bool(getattr(host, "internal", False)),
+        custom_cert=getattr(host, "custom_cert_id", None),
     )
 
 
@@ -421,6 +432,27 @@ def active_bans(db: Session) -> list[str]:
         select(Ban.ip).where(Ban.lifted_at.is_(None), Ban.expires_at > now).order_by(Ban.ip)
     )
     return list(dict.fromkeys(ips))
+
+
+CUSTOM_KEY_CONTEXT = "custom-cert-key"
+
+
+def custom_cert_material(
+    db: Session, settings: Settings, hosts: list[Host]
+) -> list[tuple[int, str, str]]:
+    """Nur Zertifikate, die von Hosts dieses Nodes genutzt werden (Schlüssel entschlüsselt)."""
+    ids = sorted({h.custom_cert_id for h in hosts if h.custom_cert_id})
+    if not ids:
+        return []
+    from tesseract.secretbox import load_secretbox
+
+    box = load_secretbox(settings)
+    return [
+        (c.id, c.cert_pem, box.decrypt(c.key_enc, CUSTOM_KEY_CONTEXT).decode())
+        for c in db.scalars(
+            select(CustomCert).where(CustomCert.id.in_(ids)).order_by(CustomCert.id)
+        )
+    ]
 
 
 def cloudflare_token(db: Session, settings: Settings) -> str:
@@ -466,6 +498,7 @@ def node_config(db: Session, node: Node, settings: Settings) -> dict[str, Any]:
             resolve_ranges(db, general["internal_networks"], general["internal_list_ids"])
         ),
         wildcard_certs=tuple(general["wildcard_certs"]),
+        custom_certs=tuple(custom_cert_material(db, settings, hosts)),
         waf_log_file=settings.caddy_waf_log,
     )
     return build_config(spec)

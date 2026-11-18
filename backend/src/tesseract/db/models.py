@@ -104,6 +104,10 @@ class Host(Base):
     tls_challenge: Mapped[str] = mapped_column(String(8), default="http")
     # Nur aus internen Netzen (LAN/VPN) erreichbar – alle anderen: Verbindung abbrechen
     internal: Mapped[bool] = mapped_column(default=False)
+    # Eigenes Zertifikat statt automatisch (Let's Encrypt/Caddy-CA)
+    custom_cert_id: Mapped[int | None] = mapped_column(
+        ForeignKey("custom_certs.id", ondelete="SET NULL")
+    )
     # Entwürfe werden gespeichert, aber nicht an Caddy übertragen
     draft: Mapped[bool] = mapped_column(default=False)
     enabled: Mapped[bool] = mapped_column(default=True)
@@ -395,3 +399,24 @@ class Ban(Base):
     created_by: Mapped[str] = mapped_column(String(64), default="system")
     lifted_at: Mapped[datetime | None]
     lifted_by: Mapped[str | None] = mapped_column(String(64))
+
+
+# ---------- Phase 3b: Eigene Zertifikate ----------
+
+
+class CustomCert(Base):
+    """Hochgeladenes Zertifikat (z. B. von einer Firmen-CA). Schlüssel verschlüsselt."""
+
+    __tablename__ = "custom_certs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(64), unique=True)
+    # Zertifikat inkl. Zwischenzertifikaten (PEM)
+    cert_pem: Mapped[str]
+    key_enc: Mapped[str]
+    names: Mapped[list[str]] = mapped_column(JSON, default=list)
+    issuer: Mapped[str] = mapped_column(String(255), default="")
+    fingerprint: Mapped[str] = mapped_column(String(64))
+    not_before: Mapped[datetime]
+    not_after: Mapped[datetime]
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)

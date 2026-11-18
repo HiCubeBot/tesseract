@@ -9,7 +9,7 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 | 1 | Proxy-Manager (Single-Node) | Ersetzt NPM für einen lokalen Caddy – **fertig** |
 | 2 | mTLS & Identitäten | Private Dienste ohne VPN, Einladungen – **fertig** |
 | 3 | WAF & Zugriffsschutz | Coraza, IP-Filter, Authelia – **fertig** |
-| 3b | Interne Dienste & Zertifikate | Zugriffsart „Intern“, Wildcard-Zertifikate, Zertifikatsübersicht |
+| 3b | Interne Dienste & Zertifikate | Zugriffsart „Intern“, Wildcard-Zertifikate, Zertifikatsübersicht – **fertig** |
 | 4 | Multi-Node | Agent, mehrere Server, auch hinter NAT |
 | 5 | Beobachtbarkeit | Logs, Statistik, Audit, Metriken, Benachrichtigungen |
 | 6 | Betrieb & Release | Backup, CA-Rotation, Härtung, v1.0 |
@@ -103,14 +103,13 @@ zur automatischen IP-Sperre.
 **Ziel:** Der Proxy als zentrale Stelle auch für rein interne Dienste (Grafana im Homelab
 & Co.) – mit allen Zertifikaten im Blick.
 
-- Zugriffsart **„Intern“**: nur aus zentral festgelegten internen Netzen (LAN, VPN), echte
-  Verbindungs-IP, Abbruch ohne Antwort für alle anderen, optional zusätzlich Admin-Geräte
-- **Geteilte Wildcard-Zertifikate** per DNS-01 für alle passenden Hosts (keine einzelnen
-  Hostnamen in den Certificate-Transparency-Logs)
-- **Zertifikatsübersicht** wie bei NPM: Aussteller, Laufzeit, Prüfart, nutzende Hosts,
-  Status, bald ablaufende Zertifikate in der Übersicht
-- **Eigene Zertifikate** hochladen und Hosts zuordnen
-- Doku: Split-DNS, NAT-Loopback, Docker und echte Client-IP
+- [x] Zugriffsart **„Nur aus internen Netzen“**: zentral festgelegte Netze (LAN, VPN), echte
+  Verbindungs-IP, Abbruch ohne Antwort für alle anderen, kombinierbar mit mTLS; interne Namen
+  (`.lan`, `.home.arpa` …) bekommen ein Zertifikat aus Caddys eigener CA
+- [x] **Geteilte Wildcard-Zertifikate** per DNS-01 für alle passenden Hosts
+- [x] **Zertifikatsübersicht** wie bei NPM (direkt bei Caddy ausgelesen), bald ablaufende in der Übersicht
+- [x] **Eigene Zertifikate** hochladen, Hosts zuordnen, erneuern
+- [x] Doku: Split-DNS, NAT-Loopback, Docker und echte Client-IP
 
 **Fertig, wenn:** `grafana.home.beispiel.de` ist im LAN und per VPN erreichbar, von außen
 bricht die Verbindung ab, das Zertifikat ist das gemeinsame Wildcard-Zertifikat, und die

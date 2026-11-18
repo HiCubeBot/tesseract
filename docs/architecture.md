@@ -192,6 +192,17 @@ dass sie später durch den Agent ersetzt werden kann („Node-Treiber“: lokal 
 - Ergebnis 5 Minuten zwischengespeichert, „Neu prüfen“ erzwingt das Auslesen.
 - `GET /api/certificates[?refresh=true]`
 
+## Eigene Zertifikate (Phase 3b)
+
+- Hochladen von Zertifikat (PEM, mit Kette) und unverschlüsseltem Schlüssel; geprüft wird,
+  dass der Schlüssel zum Zertifikat passt. Der Schlüssel liegt AES-GCM-verschlüsselt in der DB
+  und wird nie ausgeliefert; in der Config-Anzeige geschwärzt.
+- Pro Host wählbar. Caddy bekommt das Zertifikat per `tls.certificates.load_pem` mit Tag
+  `tesseract-custom-<id>`, eine TLS-Richtlinie per SNI mit `certificate_selection.any_tag`,
+  und der Host steht in `skip_certificates` (kein automatisches Zertifikat).
+- „Erneuern“ ersetzt Zertifikat und Schlüssel und überträgt sofort; benutzte Zertifikate
+  lassen sich nicht löschen. Die Übersicht kennzeichnet sie als „Eigenes · Name“.
+
 ## Offene Entscheidungen
 
 | Thema | Optionen | Notiz |

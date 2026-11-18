@@ -9,6 +9,7 @@
     api,
     coveringWildcard,
     type CAStatus,
+    type CustomCert,
     type Check,
     type GeneralSettings,
     type Group,
@@ -37,6 +38,8 @@
   let dnsAvailable = $state(false);
   let internalAvailable = $state(false);
   let wildcards = $state<string[]>([]);
+  let customCerts = $state<CustomCert[]>([]);
+  api.get<CustomCert[]>('/custom-certs').then((c) => (customCerts = c), () => {});
 
   api.get<NodeInfo[]>('/nodes').then((n) => {
     nodes = n;
@@ -162,7 +165,7 @@
   {#if step === 1}
     <div class="layout">
       <section class="card main" aria-label="Domain und Ziel">
-        <HostForm bind:value={host} {nodes} {dnsAvailable} {wildcards} />
+        <HostForm bind:value={host} {nodes} {dnsAvailable} {wildcards} {customCerts} />
       </section>
       <aside class="card side" aria-label="Automatische Prüfungen">
         <h2>Vorab geprüft</h2>

@@ -14,6 +14,7 @@
     api,
     formatDate,
     type CAStatus,
+    type CustomCert,
     type GeneralSettings,
     type Group,
     type Host,
@@ -37,6 +38,8 @@
   let dnsAvailable = $state(false);
   let internalAvailable = $state(false);
   let wildcards = $state<string[]>([]);
+  let customCerts = $state<CustomCert[]>([]);
+  api.get<CustomCert[]>('/custom-certs').then((c) => (customCerts = c), () => {});
   let loaded = $state(false);
   let loadError = $state('');
   let filter = $state(0);
@@ -234,7 +237,7 @@
           <Alert tone="warn" title="Entwurf" text="Dieser Host ist gespeichert, aber noch nicht an Caddy übertragen." />
         {/if}
 
-        <HostForm bind:value={edit} {nodes} {dnsAvailable} {wildcards} compact />
+        <HostForm bind:value={edit} {nodes} {dnsAvailable} {wildcards} {customCerts} compact />
         <div class="divider"></div>
         <AccessForm bind:value={edit} {groups} {persons} {caConfigured} {internalAvailable} compact />
 

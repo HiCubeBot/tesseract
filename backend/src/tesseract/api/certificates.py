@@ -12,7 +12,7 @@ from sqlalchemy import select
 from tesseract import pki
 from tesseract.caddy.config import covering_wildcard
 from tesseract.certs import explain, issuer_label, probe_all, status, tls_address
-from tesseract.db.models import Host, Node
+from tesseract.db.models import CustomCert, Host, Node
 from tesseract.deps import DB, AppSettings, CurrentActor
 from tesseract.services import get_general
 
@@ -31,7 +31,7 @@ class CertificateOut(BaseModel):
     days_left: int
     status: Literal["ok", "soon", "expired"]
     # wie es geholt wird
-    source: Literal["http-01", "dns-01", "wildcard", "lokal", "unbekannt"]
+    source: Literal["http-01", "dns-01", "wildcard", "lokal", "eigenes", "unbekannt"]
     hosts: list[str]
     node: str
 
@@ -71,6 +71,7 @@ def _collect(db, settings) -> Overview:
     hosts = {
         h.domain: h for h in db.scalars(select(Host).where(Host.enabled, Host.draft.is_(False)))
     }
+    own = {c.fingerprint: c.name for c in db.scalars(select(CustomCert))}
     certificates: dict[str, CertificateOut] = {}
     errors: list[ProbeError] = []
     for node in db.scalars(select(Node).order_by(Node.name)):
@@ -89,7 +90,7 @@ def _collect(db, settings) -> Overview:
                 )
                 continue
             c = p.cert
-            label = issuer_label(c)
+            label = f"Eigenes · {own[c.fingerprint]}" if c.fingerprint in own else issuer_label(c)
             entry = certificates.get(c.fingerprint)
             host_name = p.name if not p.name.startswith("tesseract-probe.") else None
             if entry is None:
@@ -110,6 +111,9 @@ def _collect(db, settings) -> Overview:
             if host_name and host_name not in entry.hosts:
                 entry.hosts.append(host_name)
     for entry in certificates.values():
+        if entry.issuer.startswith("Eigenes"):
+            entry.source = "eigenes"
+            continue
         entry.source = _source(entry.issuer, [*entry.names, *entry.hosts], hosts, wild)  # type: ignore[assignment]
     ordered = sorted(certificates.values(), key=lambda c: c.not_after)
     return Overview(checked_at=utcnow(), certificates=ordered, errors=errors)

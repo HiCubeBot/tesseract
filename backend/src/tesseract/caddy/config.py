@@ -81,6 +81,8 @@ class HostSpec:
     areas: tuple[AreaSpec, ...] = ()
     # Nur aus internen Netzen – alle anderen: Verbindung ohne Antwort abbrechen
     internal: bool = False
+    # Eigenes Zertifikat (ID aus custom_certs) statt automatisch
+    custom_cert: int | None = None
 
     @property
     def needs_client_auth(self) -> bool:
@@ -99,7 +101,7 @@ class HostSpec:
 
     @property
     def wants_tls_policy(self) -> bool:
-        return self.needs_client_auth or self.ask_client_cert
+        return self.needs_client_auth or self.ask_client_cert or self.custom_cert is not None
 
     @property
     def strict(self) -> bool:
@@ -141,6 +143,8 @@ class NodeSpec:
     internal_networks: tuple[str, ...] = ()
     # Geteilte Wildcard-Zertifikate (per DNS-01), z. B. "*.home.example.org"
     wildcard_certs: tuple[str, ...] = ()
+    # Eigene Zertifikate: (ID, Zertifikat-PEM inkl. Kette, Schlüssel-PEM)
+    custom_certs: tuple[tuple[int, str, str], ...] = ()
     # Datei, in die Caddy WAF-Treffer schreibt (Pfad im Caddy-Container); leer = aus
     waf_log_file: str = ""
     # Geräte-Zwischenzertifikat (DER, Base64) – Vertrauensanker für Client-Zertifikate
@@ -467,7 +471,17 @@ def host_route(
     }
 
 
+def custom_tag(cert_id: int) -> str:
+    return f"tesseract-custom-{cert_id}"
+
+
 def tls_policy(host: HostSpec, ca_der_b64: str) -> JSON:
+    policy: JSON = {"match": {"sni": [host.domain]}}
+    if host.custom_cert is not None:
+        # genau dieses hochgeladene Zertifikat ausliefern
+        policy["certificate_selection"] = {"any_tag": [custom_tag(host.custom_cert)]}
+    if not (host.needs_client_auth or host.ask_client_cert) or not ca_der_b64:
+        return policy
     client_auth: JSON = {
         "ca": {"provider": "inline", "trusted_ca_certs": [ca_der_b64]},
         "mode": "verify_if_given",
@@ -484,7 +498,8 @@ def tls_policy(host: HostSpec, ca_der_b64: str) -> JSON:
                     ],
                 }
             ]
-    return {"match": {"sni": [host.domain]}, "client_authentication": client_auth}
+    policy["client_authentication"] = client_auth
+    return policy
 
 
 def _redirect_route(domain: str) -> JSON:
@@ -638,7 +653,8 @@ def build_config(spec: NodeSpec) -> JSON:
         "automatic_https": {"disable_redirects": True},
     }
     wild = spec.wildcard_certs if spec.cloudflare_token else ()
-    covered = [
+    own = [h.domain for h in hosts if h.custom_cert is not None]
+    covered = own + [
         h.domain for h in hosts if is_public_name(h.domain) and covering_wildcard(h.domain, wild)
     ]
     if covered:
@@ -651,7 +667,10 @@ def build_config(spec: NodeSpec) -> JSON:
             server["trusted_proxies"] = proxies
             server["client_ip_headers"] = ["X-Forwarded-For"]
     policy_hosts += [h for h in hosts if h.wants_tls_policy]
-    if policy_hosts and spec.client_ca_der_b64:
+    # Client-Zertifikate gehen nur mit CA; eigene Zertifikate auch ohne
+    if not spec.client_ca_der_b64:
+        policy_hosts = [h for h in policy_hosts if h.custom_cert is not None]
+    if policy_hosts:
         https_server["tls_connection_policies"] = [
             *(tls_policy(h, spec.client_ca_der_b64) for h in policy_hosts),
             {},  # alle übrigen Hosts: ohne Client-Zertifikat
@@ -669,8 +688,17 @@ def build_config(spec: NodeSpec) -> JSON:
         },
     }
 
-    tls = tls_automation(spec, hosts)
-    if tls is not None:
+    tls = tls_automation(spec, [h for h in hosts if h.custom_cert is None])
+    if spec.custom_certs:
+        tls = tls or {}
+        tls["certificates"] = {
+            **tls.get("certificates", {}),
+            "load_pem": [
+                {"certificate": cert, "key": key, "tags": [custom_tag(cid)]}
+                for cid, cert, key in spec.custom_certs
+            ],
+        }
+    if tls:
         config["apps"]["tls"] = tls
     if spec.waf_log_file:
         # Eigene Logdatei nur für WAF-Treffer – liest der Controller für die Auto-Sperre
@@ -698,6 +726,8 @@ def redact(config: JSON) -> JSON:
     """Kopie ohne Geheimnisse – für die Anzeige im UI."""
     raw = json.dumps(config)
     data = json.loads(raw)
+    for loaded in data.get("apps", {}).get("tls", {}).get("certificates", {}).get("load_pem", []):
+        loaded["key"] = "***"
     for policy in data.get("apps", {}).get("tls", {}).get("automation", {}).get("policies", []):
         for issuer in policy.get("issuers", []):
             provider = issuer.get("challenges", {}).get("dns", {}).get("provider")

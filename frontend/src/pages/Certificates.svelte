@@ -6,6 +6,7 @@
   import Alert from '../lib/components/Alert.svelte';
   import EmptyState from '../lib/components/EmptyState.svelte';
   import Icon from '../lib/components/Icon.svelte';
+  import CustomCerts from '../lib/components/CustomCerts.svelte';
   import { api, formatAgo, formatDay, type CertificateOverview } from '../lib/api';
 
   let data = $state<CertificateOverview | null>(null);
@@ -38,6 +39,7 @@
     'dns-01': 'DNS-01',
     wildcard: 'Wildcard (DNS-01)',
     lokal: 'Caddy-CA',
+    eigenes: 'hochgeladen',
     unbekannt: '–'
   };
 
@@ -140,10 +142,12 @@
       </table>
     </div>
     <p class="muted small">
-      Caddy erneuert Zertifikate automatisch rund 30 Tage vor Ablauf. „Läuft bald ab“ (unter 21 Tagen) heißt meist:
+      Caddy erneuert Let's-Encrypt-Zertifikate automatisch rund 30 Tage vor Ablauf. „Läuft bald ab“ (unter 21 Tagen) heißt meist:
       die Erneuerung klappt nicht – Port 80, DNS oder Cloudflare-Token prüfen.
     </p>
   {/if}
+
+  <CustomCerts onChange={() => load(true)} />
 </AppShell>
 
 <style>

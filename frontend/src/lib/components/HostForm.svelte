@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { coveringWildcard, type HostInput, type NodeInfo } from '../api';
+  import { coveringWildcard, type CustomCert, type HostInput, type NodeInfo } from '../api';
 
   interface Props {
     value: HostInput;
@@ -10,9 +10,18 @@
     dnsAvailable?: boolean;
     /** geteilte Wildcard-Zertifikate aus den Einstellungen */
     wildcards?: string[];
+    /** hochgeladene eigene Zertifikate */
+    customCerts?: CustomCert[];
   }
 
-  let { value = $bindable(), nodes, compact = false, dnsAvailable = false, wildcards = [] }: Props = $props();
+  let {
+    value = $bindable(),
+    nodes,
+    compact = false,
+    dnsAvailable = false,
+    wildcards = [],
+    customCerts = []
+  }: Props = $props();
   const covered = $derived(dnsAvailable ? coveringWildcard(value.domain, wildcards) : null);
   const wildcard = $derived(value.domain.trim().startsWith('*.'));
   // Wildcard geht nur per DNS-01
@@ -38,7 +47,24 @@
     />
   </label>
 
-  {#if covered}
+  {#if customCerts.length}
+    <label class="field" for="{id}-custom">
+      Zertifikat
+      <select
+        id="{id}-custom"
+        class="input"
+        value={value.custom_cert_id === null ? '' : String(value.custom_cert_id)}
+        onchange={(e) => (value.custom_cert_id = e.currentTarget.value ? Number(e.currentTarget.value) : null)}
+      >
+        <option value="">automatisch (Let's Encrypt / Caddy)</option>
+        {#each customCerts as c (c.id)}<option value={String(c.id)}>Eigenes: {c.name} ({c.names.join(', ')})</option>{/each}
+      </select>
+    </label>
+  {/if}
+
+  {#if value.custom_cert_id !== null}
+    <!-- eigenes Zertifikat: keine Prüfart nötig -->
+  {:else if covered}
     <div class="field">
       Zertifikat
       <span class="wild">Geteiltes Wildcard-Zertifikat <code class="mono">{covered}</code> – kein eigenes nötig</span>

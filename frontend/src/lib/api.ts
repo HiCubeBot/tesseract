@@ -105,6 +105,7 @@ export interface Host {
   authelia: boolean;
   tls_challenge: 'http' | 'dns';
   internal: boolean;
+  custom_cert_id: number | null;
   wildcard_cert: string | null;
   areas: (AreaInput & { id: number })[];
   paths: string[];
@@ -136,6 +137,18 @@ export interface AreaInput {
 }
 export type IpMode = 'off' | 'block' | 'allow';
 
+export interface CustomCert {
+  id: number;
+  name: string;
+  names: string[];
+  issuer: string;
+  fingerprint: string;
+  not_before: string;
+  not_after: string;
+  used_by: string[];
+  created_at: string;
+}
+
 export interface CertificateInfo {
   fingerprint: string;
   names: string[];
@@ -145,7 +158,7 @@ export interface CertificateInfo {
   not_after: string;
   days_left: number;
   status: 'ok' | 'soon' | 'expired';
-  source: 'http-01' | 'dns-01' | 'wildcard' | 'lokal' | 'unbekannt';
+  source: 'http-01' | 'dns-01' | 'wildcard' | 'lokal' | 'eigenes' | 'unbekannt';
   hosts: string[];
   node: string;
 }
@@ -374,6 +387,7 @@ export const FIELD_LABELS: Record<string, string> = {
   authelia: 'Login über Authelia',
   tls_challenge: 'Zertifikats-Prüfung',
   internal: 'Nur intern',
+  custom_cert: 'Eigenes Zertifikat',
   areas: 'Bereiche',
   enabled: 'Aktiv',
   draft: 'Entwurf'

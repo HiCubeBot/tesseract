@@ -11,7 +11,16 @@ from sqlalchemy.orm import Session
 from tesseract import audit, checks
 from tesseract.api.iplists import normalize_networks
 from tesseract.caddy.config import covering_wildcard, host_route, is_public_name
-from tesseract.db.models import Group, Host, HostArea, HostVersion, IpList, Node, Person
+from tesseract.db.models import (
+    CustomCert,
+    Group,
+    Host,
+    HostArea,
+    HostVersion,
+    IpList,
+    Node,
+    Person,
+)
 from tesseract.deps import DB, AppSettings, CurrentActor
 from tesseract.services import (
     add_version,
@@ -145,6 +154,7 @@ class HostIn(BaseModel):
     authelia: bool = False
     tls_challenge: Literal["http", "dns"] = "http"
     internal: bool = False
+    custom_cert_id: int | None = None
     areas: list[AreaIn] = Field(default_factory=list, max_length=20)
     enabled: bool = True
     draft: bool = False
@@ -231,6 +241,7 @@ class HostOut(BaseModel):
     authelia: bool
     tls_challenge: str
     internal: bool
+    custom_cert_id: int | None
     # Geteiltes Wildcard-Zertifikat, das diesen Host abdeckt (sonst None)
     wildcard_cert: str | None
     areas: list[AreaOut]
@@ -351,7 +362,9 @@ def _check_grants(db: Session, body: HostIn) -> None:
             status.HTTP_409_CONFLICT,
             "Erst unter Einstellungen › Integrationen die internen Netze festlegen",
         )
-    covered = covering_wildcard(body.domain, general["wildcard_certs"])
+    if body.custom_cert_id is not None and db.get(CustomCert, body.custom_cert_id) is None:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Zertifikat unbekannt")
+    covered = covering_wildcard(body.domain, general["wildcard_certs"]) or body.custom_cert_id
     if (
         body.internal
         and body.tls_challenge == "http"
@@ -362,7 +375,11 @@ def _check_grants(db: Session, body: HostIn) -> None:
             status.HTTP_409_CONFLICT,
             "Interne Hosts sind von außen nicht erreichbar – das Zertifikat braucht DNS-01",
         )
-    if body.tls_challenge == "dns" and not general["cloudflare_token_enc"]:
+    if (
+        body.tls_challenge == "dns"
+        and not general["cloudflare_token_enc"]
+        and not body.custom_cert_id
+    ):
         raise HTTPException(
             status.HTTP_409_CONFLICT,
             "Für DNS-01 erst unter Einstellungen › Integrationen den Cloudflare-Token eintragen",
