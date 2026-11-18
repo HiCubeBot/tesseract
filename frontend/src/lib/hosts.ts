@@ -11,6 +11,10 @@ export function emptyHost(nodeId = 0): HostInput {
     force_https: true,
     compression: false,
     access: 'public',
+    no_cert_action: 'reject',
+    paths: [],
+    grant_group_ids: [],
+    grant_person_ids: [],
     enabled: true,
     draft: false
   };
@@ -27,6 +31,10 @@ export function toInput(h: Host): HostInput {
     force_https: h.force_https,
     compression: h.compression,
     access: h.access,
+    no_cert_action: h.no_cert_action,
+    paths: [...h.paths],
+    grant_group_ids: h.grants.filter((g) => g.kind === 'group').map((g) => g.id),
+    grant_person_ids: h.grants.filter((g) => g.kind === 'person').map((g) => g.id),
     enabled: h.enabled,
     draft: h.draft
   };
@@ -41,4 +49,13 @@ export function hostStatus(h: Host): { tone: 'ok' | 'warn' | 'neutral'; label: s
   if (h.draft) return { tone: 'warn', label: 'Entwurf' };
   if (!h.enabled) return { tone: 'neutral', label: 'deaktiviert' };
   return { tone: 'ok', label: 'aktiv' };
+}
+
+/** Kurzbeschreibung des Zugriffs für Listen */
+export function accessLabel(h: Host): string {
+  if (h.access === 'mtls') {
+    const base = `${h.granted_persons} Personen · ${h.allowed_devices} Geräte`;
+    return h.paths.length ? `${base} · ${h.paths.length} Pfad(e) öffentlich` : base;
+  }
+  return h.paths.length ? `${h.paths.length} Pfad(e) nur mit Zertifikat` : 'Öffentlich';
 }

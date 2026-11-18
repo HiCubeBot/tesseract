@@ -80,6 +80,11 @@ export interface Host {
   force_https: boolean;
   compression: boolean;
   access: 'public' | 'mtls';
+  no_cert_action: 'reject' | 'hint';
+  paths: string[];
+  grants: GrantRef[];
+  granted_persons: number;
+  allowed_devices: number;
   enabled: boolean;
   draft: boolean;
   version: number;
@@ -87,10 +92,28 @@ export interface Host {
   updated_at: string;
 }
 
-export type HostInput = Omit<Host, 'id' | 'node' | 'version' | 'created_at' | 'updated_at'> & {
+export interface GrantRef {
+  kind: 'group' | 'person';
+  id: number;
+  name: string;
+}
+
+export type HostInput = Omit<
+  Host,
+  'id' | 'node' | 'version' | 'created_at' | 'updated_at' | 'grants' | 'granted_persons' | 'allowed_devices'
+> & {
   node_id: number;
+  grant_group_ids: number[];
+  grant_person_ids: number[];
   comment?: string;
 };
+
+export interface AccessMatrix {
+  hosts: { id: number; domain: string; access: 'public' | 'mtls'; paths: string[] }[];
+  groups: { id: number; name: string; members: number[] }[];
+  persons: { id: number; name: string; disabled: boolean; group_ids: number[] }[];
+  grants: { host_id: number; kind: 'group' | 'person'; id: number }[];
+}
 
 export interface ApplyResult {
   ok: boolean;
@@ -189,11 +212,17 @@ export const FIELD_LABELS: Record<string, string> = {
   force_https: 'HTTP → HTTPS',
   compression: 'Kompression',
   access: 'Zugriff',
+  no_cert_action: 'Ohne Zertifikat',
+  paths: 'Pfade',
+  grants: 'Freigegeben für',
   enabled: 'Aktiv',
   draft: 'Entwurf'
 };
 
 export function formatValue(v: unknown): string {
+  if (Array.isArray(v)) return v.length ? v.map(formatValue).join(', ') : '–';
+  if (v === 'reject') return 'Verbindung ablehnen';
+  if (v === 'hint') return 'Hinweisseite';
   if (v === true) return 'an';
   if (v === false) return 'aus';
   if (v === 'public') return 'Öffentlich';
@@ -222,7 +251,8 @@ export const ACTION_LABELS: Record<string, string> = {
   person_updated: 'Person geändert',
   person_deleted: 'Person gelöscht',
   device_issued: 'Gerätezertifikat ausgestellt',
-  device_revoked: 'Gerät gesperrt'
+  device_revoked: 'Gerät gesperrt',
+  access_changed: 'Zugriff geändert'
 };
 
 // ---------- Phase 2: CA, Personen, Geräte ----------

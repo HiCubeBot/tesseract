@@ -84,8 +84,10 @@ class Host(Base):
     websockets: Mapped[bool] = mapped_column(default=True)
     force_https: Mapped[bool] = mapped_column(default=True)
     compression: Mapped[bool] = mapped_column(default=False)
-    # "public" in Phase 1; "mtls" ab Phase 2
+    # "public" oder "mtls"
     access: Mapped[str] = mapped_column(String(16), default="public")
+    # Verhalten ohne gültiges Zertifikat: "reject" (TLS-Handshake scheitert) oder "hint"
+    no_cert_action: Mapped[str] = mapped_column(String(16), default="reject")
     # Entwürfe werden gespeichert, aber nicht an Caddy übertragen
     draft: Mapped[bool] = mapped_column(default=False)
     enabled: Mapped[bool] = mapped_column(default=True)
@@ -97,6 +99,11 @@ class Host(Base):
     versions: Mapped[list["HostVersion"]] = relationship(
         back_populates="host", cascade="all, delete-orphan", order_by="HostVersion.version"
     )
+    # Pfade mit abweichendem Zugriff: bei "public" geschützt, bei "mtls" öffentlich
+    paths: Mapped[list["HostPath"]] = relationship(
+        cascade="all, delete-orphan", order_by="HostPath.position"
+    )
+    grants: Mapped[list["HostGrant"]] = relationship(cascade="all, delete-orphan")
 
 
 class HostVersion(Base):
@@ -230,3 +237,30 @@ class Device(Base):
         if self.not_after <= utcnow():
             return "expired"
         return "active"
+
+
+# ---------- Phase 2: Zugriff auf Hosts ----------
+
+
+class HostPath(Base):
+    __tablename__ = "host_paths"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    host_id: Mapped[int] = mapped_column(ForeignKey("hosts.id", ondelete="CASCADE"))
+    path: Mapped[str] = mapped_column(String(255))
+    position: Mapped[int] = mapped_column(default=0)
+
+
+class HostGrant(Base):
+    """Freigabe eines Hosts für eine Gruppe oder eine Person (genau eins von beiden)."""
+
+    __tablename__ = "host_grants"
+    __table_args__ = (UniqueConstraint("host_id", "group_id", "person_id"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    host_id: Mapped[int] = mapped_column(ForeignKey("hosts.id", ondelete="CASCADE"))
+    group_id: Mapped[int | None] = mapped_column(ForeignKey("groups.id", ondelete="CASCADE"))
+    person_id: Mapped[int | None] = mapped_column(ForeignKey("persons.id", ondelete="CASCADE"))
+
+    group: Mapped[Group | None] = relationship()
+    person: Mapped[Person | None] = relationship()

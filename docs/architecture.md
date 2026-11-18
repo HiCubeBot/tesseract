@@ -64,15 +64,31 @@ dass sie später durch den Agent ersetzt werden kann („Node-Treiber“: lokal 
 - **Nodes:** Agent verbindet sich ausgehend per mTLS; die Caddy-Admin-API ist nie öffentlich.
 - **Audit-Log:** append-only, Einträge über Prüfsummen verkettet.
 
+## mTLS in Caddy (umgesetzt in Phase 2)
+
+| Fall | TLS-Richtlinie (per SNI) | HTTP-Ebene |
+|---|---|---|
+| Ganzer Host geschützt, „Verbindung ablehnen“ | `require_and_verify` + Leaf-Verifier mit allen freigegebenen Geräte-Zertifikaten → gesperrte Geräte scheitern im Handshake | zusätzlich Fingerabdruck-Prüfung |
+| Ganzer Host geschützt, „Hinweisseite“ | `verify_if_given` | ohne freigegebenes Zertifikat 403 + Hinweisseite |
+| Öffentlicher Host mit geschützten Pfaden | `verify_if_given` | nur die Pfade verlangen ein freigegebenes Zertifikat (403) |
+| Geschützter Host mit öffentlichen Pfaden | `verify_if_given` | alles außer den Pfaden verlangt ein Zertifikat |
+
+- Vertrauensanker ist das Geräte-Zwischenzertifikat (`trusted_ca_certs`); dazu immer eine
+  leere Catch-all-Richtlinie für alle übrigen Hosts.
+- Die Freigabeliste = aktive Geräte nicht gesperrter Personen, die direkt oder über eine
+  Gruppe freigegeben sind. Sie wird bei jedem neuen, gesperrten oder abgelaufenen Gerät und
+  jeder Änderung an Personen/Gruppen neu erzeugt und übertragen. Eine CRL ist dadurch nicht nötig.
+- Geschützte Hosts werden auf Port 80 immer auf HTTPS umgeleitet.
+- Pfade werden von Caddys `path`-Matcher verglichen (ohne Groß-/Kleinschreibung, normalisiert);
+  `/admin` deckt automatisch `/admin/*` ab.
+- Schlüssel der Geräte erzeugt der Controller beim Ausstellen und liefert sie als `.p12`
+  mit Einmal-Passwort aus – gespeichert wird nur das Zertifikat.
+
 ## Offene Entscheidungen
 
 | Thema | Optionen | Notiz |
 |---|---|---|
 | Datenbank / ORM | SQLite + SQLModel oder SQLAlchemy 2 + Alembic | SQLite reicht für den Controller, Backup einfach. |
-| Per-Host-Freigabe bei mTLS | a) Caddy `client_auth` mit Liste erlaubter Leaf-Zertifikate je Host · b) gemeinsamer CA-Pool + Matcher auf Fingerabdruck/Subject | Design deutet a) an („Liste wird ergänzt und neu übertragen“). Widerruf über Entfernen aus der Liste; Caddy hat keine native CRL-Prüfung. |
-| Hinweisseite „Kein Zugang“ | `client_auth mode verify_if_given` + Matcher, sonst `require_and_verify` | Nur bei „ablehnen“ scheitert bereits der Handshake. |
-| Zugriff pro Pfad | `client_auth mode verify_if_given` für den ganzen Host + `path`-Matcher, der für geschützte Pfade ein gültiges Client-Zertifikat (Fingerabdruck in der Freigabeliste) verlangt, sonst `403`/Hinweisseite | TLS kennt den Pfad noch nicht, daher kein Handshake-Abbruch pro Pfad. Browser fragt evtl. auch auf öffentlichen Pfaden nach einem Zertifikat (optional anbietbar). Pfad-Normalisierung beachten (`/Admin`, `//admin`, `%2F`), damit sich Schutz nicht umgehen lässt. |
-| Schlüsselerzeugung auf dem Gerät | WebCrypto + CSR im Browser vs. serverseitig erzeugtes PKCS#12 / `.mobileconfig` | iOS/Android benötigen meist ein Profil/PKCS#12. |
 | Agent-Protokoll | WebSocket über mTLS vs. gRPC vs. Long-Polling | WebSocket passt zu FastAPI. |
 | Log-Speicher | SQLite, DuckDB oder externe Lösung (Loki) | Abhängig vom erwarteten Volumen. |
 | Admin-Passkey | WebAuthn zusätzlich/alternativ zum Passwort | Design zeigt „per Passkey“ im Audit-Log. |

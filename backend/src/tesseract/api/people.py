@@ -329,7 +329,15 @@ def list_devices(db: DB, _: CurrentActor) -> list[DeviceOut]:
 
 
 @router.post("/persons/{person_id}/devices", status_code=status.HTTP_201_CREATED)
-def issue(person_id: int, body: IssueIn, db: DB, box: Box, actor: CurrentActor) -> IssueOut:
+def issue(
+    person_id: int,
+    body: IssueIn,
+    request: Request,
+    db: DB,
+    box: Box,
+    actor: CurrentActor,
+    settings: AppSettings,
+) -> IssueOut:
     """Stellt direkt ein Zertifikat aus (z. B. für das eigene Admin-Gerät).
     Die .p12 wird genau einmal ausgeliefert; der Schlüssel wird nicht gespeichert."""
     p: Person = _get(db, Person, person_id, "Person")
@@ -347,6 +355,8 @@ def issue(person_id: int, body: IssueIn, db: DB, box: Box, actor: CurrentActor) 
         ip=actor.ip,
     )
     db.commit()
+    # Neues Gerät → Freigabelisten der Hosts ergänzen und neu übertragen
+    _reapply(request, db, settings)
     return IssueOut(
         device=device_out(issued.device),
         filename=issued.filename,

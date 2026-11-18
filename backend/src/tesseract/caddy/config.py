@@ -5,6 +5,14 @@ Aufbau:
   HTTP→HTTPS-Umleitung ist aus – das regelt der Server `http` pro Host.
 - Server `http` (:80): pro Host Umleitung auf HTTPS oder direkt der Proxy.
   ACME-HTTP-01-Prüfungen beantwortet Caddy auf diesem Port selbst.
+
+mTLS (Phase 2):
+- Pro geschütztem Host eine TLS-Verbindungsrichtlinie (per SNI) mit der Geräte-CA.
+  "require_and_verify" + Liste erlaubter Zertifikate, wenn der ganze Host geschützt ist
+  und ohne Zertifikat abgelehnt werden soll → gesperrte Geräte scheitern im Handshake.
+  Sonst "verify_if_given" (Hinweisseite, Zugriff pro Pfad).
+- Zusätzlich prüft eine Sperr-Route auf HTTP-Ebene den Fingerabdruck des
+  Client-Zertifikats gegen die Freigabeliste – auch pro Pfad.
 """
 
 import hashlib
@@ -14,6 +22,8 @@ from dataclasses import dataclass, field
 from typing import Any
 
 JSON = dict[str, Any]
+
+FINGERPRINT = "{http.request.tls.client.fingerprint}"
 
 
 @dataclass(frozen=True)
@@ -28,6 +38,21 @@ class HostSpec:
     websockets: bool = True
     force_https: bool = True
     compression: bool = False
+    access: str = "public"  # "public" | "mtls"
+    no_cert_action: str = "reject"  # "reject" | "hint"
+    # bei "public": geschützte Pfade · bei "mtls": öffentliche Pfade
+    paths: tuple[str, ...] = ()
+    # erlaubte Geräte: (Fingerabdruck SHA-256 hex, Zertifikat als PEM)
+    allowed: tuple[tuple[str, str], ...] = ()
+
+    @property
+    def needs_client_auth(self) -> bool:
+        return self.access == "mtls" or bool(self.paths)
+
+    @property
+    def strict(self) -> bool:
+        """Ganzer Host geschützt, ohne Zertifikat den Handshake ablehnen."""
+        return self.access == "mtls" and not self.paths and self.no_cert_action == "reject"
 
 
 @dataclass(frozen=True)
@@ -37,6 +62,27 @@ class NodeSpec:
     controller_domain: str = ""
     controller_upstream: str = ""
     acme_email: str = ""
+    # Geräte-Zwischenzertifikat (DER, Base64) – Vertrauensanker für Client-Zertifikate
+    client_ca_der_b64: str = ""
+
+
+HINT_PAGE = """<!doctype html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kein Zugang</title>
+<style>
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+background:#0e1014;color:#e7e9ee;font:15px/1.6 Inter,system-ui,sans-serif;padding:24px}
+main{max-width:440px;padding:28px;border:1px solid #232833;border-radius:12px;background:#161920}
+h1{margin:0 0 8px;font-size:22px}p{margin:0 0 10px;color:#a0a7b4}code{color:#c9ced8}
+</style></head>
+<body><main><h1>Kein Zugang</h1>
+<p>Dieser Dienst ist nur von freigegebenen Geräten aus erreichbar.</p>
+<p>Dein Gerät hat kein passendes Zertifikat. Wende dich an die Person,
+die dich eingeladen hat.</p>
+<p><code>{http.request.host}</code></p>
+</main></body></html>
+"""
 
 
 def is_public_name(domain: str) -> bool:
@@ -66,9 +112,59 @@ def _proxy(host: HostSpec) -> JSON:
     return handler
 
 
+def path_patterns(paths: tuple[str, ...] | list[str]) -> list[str]:
+    """`/admin` deckt auch `/admin/…` ab; Muster mit `*` bleiben, wie sie sind."""
+    out: list[str] = []
+    for p in paths:
+        p = "/" + p.strip().lstrip("/")
+        if "*" in p:
+            out.append(p)
+            continue
+        base = p.rstrip("/") or "/"
+        out.append(base)
+        out.append("/*" if base == "/" else base + "/*")
+    return list(dict.fromkeys(out))
+
+
+def _deny(host: HostSpec) -> JSON:
+    if host.no_cert_action == "hint":
+        return {
+            "handler": "static_response",
+            "status_code": 403,
+            "headers": {
+                "Content-Type": ["text/html; charset=utf-8"],
+                "Cache-Control": ["no-store"],
+            },
+            "body": HINT_PAGE,
+        }
+    return {"handler": "static_response", "status_code": 403, "body": "Kein Zugang"}
+
+
+def gate_route(host: HostSpec) -> JSON | None:
+    """Sperrt geschützte Anfragen ohne freigegebenes Client-Zertifikat."""
+    if not host.needs_client_auth:
+        return None
+    fingerprints = [fp for fp, _ in host.allowed] or ["-"]
+    negations: list[JSON] = [{"vars": {FINGERPRINT: fingerprints}}]
+    patterns = path_patterns(host.paths)
+    matcher: JSON
+    if host.access == "mtls":
+        # alles geschützt außer den öffentlichen Pfaden
+        if patterns:
+            negations.append({"path": patterns})
+        matcher = {"not": negations}
+    else:
+        # nur die gelisteten Pfade geschützt
+        matcher = {"not": negations, "path": patterns}
+    return {"match": [matcher], "handle": [_deny(host)], "terminal": True}
+
+
 def host_handlers(host: HostSpec) -> list[JSON]:
     """Die Handler-Kette eines Hosts (ohne Host-Matcher)."""
     routes: list[JSON] = []
+    gate = gate_route(host)
+    if gate is not None:
+        routes.append(gate)
     if not host.websockets:
         routes.append(
             {
@@ -100,6 +196,25 @@ def host_route(host: HostSpec) -> JSON:
         "handle": host_handlers(host),
         "terminal": True,
     }
+
+
+def tls_policy(host: HostSpec, ca_der_b64: str) -> JSON:
+    client_auth: JSON = {
+        "ca": {"provider": "inline", "trusted_ca_certs": [ca_der_b64]},
+        "mode": "verify_if_given",
+    }
+    if host.strict:
+        client_auth["mode"] = "require_and_verify"
+        if host.allowed:
+            client_auth["verifiers"] = [
+                {
+                    "verifier": "leaf",
+                    "leaf_certs_loaders": [
+                        {"loader": "pem", "certificates": [pem for _, pem in host.allowed]}
+                    ],
+                }
+            ]
+    return {"match": {"sni": [host.domain]}, "client_authentication": client_auth}
 
 
 def _redirect_route(domain: str) -> JSON:
@@ -141,23 +256,32 @@ def build_config(spec: NodeSpec) -> JSON:
 
     for host in hosts:
         https_routes.append(host_route(host))
-        if host.force_https:
+        # Geschützte Hosts nie unverschlüsselt ausliefern (über HTTP gibt es kein Zertifikat)
+        if host.force_https or host.needs_client_auth:
             http_routes.append(_redirect_route(host.domain))
         else:
             route = host_route(host)
             route["@id"] = f"host-{host.id}-http"
             http_routes.append(route)
 
+    https_server: JSON = {
+        "listen": [":443"],
+        "routes": https_routes,
+        "automatic_https": {"disable_redirects": True},
+    }
+    protected = [h for h in hosts if h.needs_client_auth]
+    if protected and spec.client_ca_der_b64:
+        https_server["tls_connection_policies"] = [
+            *(tls_policy(h, spec.client_ca_der_b64) for h in protected),
+            {},  # alle übrigen Hosts: ohne Client-Zertifikat
+        ]
+
     config: JSON = {
         "admin": {"listen": spec.admin_listen},
         "apps": {
             "http": {
                 "servers": {
-                    "https": {
-                        "listen": [":443"],
-                        "routes": https_routes,
-                        "automatic_https": {"disable_redirects": True},
-                    },
+                    "https": https_server,
                     "http": {"listen": [":80"], "routes": http_routes},
                 }
             }

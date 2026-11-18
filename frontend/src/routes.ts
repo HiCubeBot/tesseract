@@ -41,6 +41,7 @@ import AuditPage from "./pages/Audit.svelte";
 import UsersPage from "./pages/Users.svelte";
 import DevicesPage from "./pages/Devices.svelte";
 import SettingsCAPage from "./pages/SettingsCA.svelte";
+import AccessPage from "./pages/Access.svelte";
 
 export interface Page {
   /** Muster ohne "#/", Parameter mit ":" – z. B. "hosts/:id/history" */
@@ -64,6 +65,7 @@ export const pages: Page[] = [
   { pattern: "users", title: "Nutzer", component: UsersPage },
   { pattern: "users/:id", title: "Nutzer", component: UsersPage },
   { pattern: "devices", title: "Geräte", component: DevicesPage },
+  { pattern: "access", title: "Zugriffsmatrix", component: AccessPage },
   { pattern: "settings-ca", title: "Einstellungen · Zertifizierungsstelle", component: SettingsCAPage },
 ];
 

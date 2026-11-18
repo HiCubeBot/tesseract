@@ -10,15 +10,19 @@ from sqlalchemy.orm import Session
 
 from tesseract import audit, checks
 from tesseract.caddy.config import host_route
-from tesseract.db.models import Host, HostVersion, Node
+from tesseract.db.models import Group, Host, HostVersion, Node, Person
 from tesseract.deps import DB, AppSettings, CurrentActor
 from tesseract.services import (
     add_version,
+    allowed_devices,
     apply_node,
     apply_snapshot,
     diff,
     get_general,
+    granted_persons,
     host_spec,
+    set_grants,
+    set_paths,
     snapshot,
 )
 
@@ -26,6 +30,8 @@ router = APIRouter(prefix="/hosts", tags=["hosts"])
 
 _LABEL = r"(?!-)[a-z0-9-]{1,63}(?<!-)"
 DOMAIN_RE = re.compile(rf"^(?=.{{1,253}}$)({_LABEL}\.)*{_LABEL}$")
+PATH_RE = re.compile(r"^/[A-Za-z0-9/_\-.~%*]*$")
+MAX_PATHS = 32
 
 
 def normalize_domain(value: str) -> str:
@@ -59,10 +65,30 @@ class HostIn(BaseModel):
     websockets: bool = True
     force_https: bool = True
     compression: bool = False
-    access: Literal["public"] = "public"  # "mtls" folgt in Phase 2
+    access: Literal["public", "mtls"] = "public"
+    no_cert_action: Literal["reject", "hint"] = "reject"
+    # bei "public": diese Pfade nur mit Zertifikat · bei "mtls": diese Pfade öffentlich
+    paths: list[str] = Field(default_factory=list, max_length=MAX_PATHS)
+    grant_group_ids: list[int] = Field(default_factory=list)
+    grant_person_ids: list[int] = Field(default_factory=list)
     enabled: bool = True
     draft: bool = False
     comment: str = Field("", max_length=255)
+
+    @field_validator("paths")
+    @classmethod
+    def _paths(cls, v: list[str]) -> list[str]:
+        out = []
+        for p in v:
+            p = p.strip()
+            if not p:
+                continue
+            if not p.startswith("/"):
+                p = "/" + p
+            if len(p) > 255 or not PATH_RE.match(p):
+                raise ValueError(f"Ungültiger Pfad: {p}")
+            out.append(p)
+        return list(dict.fromkeys(out))
 
     @field_validator("domain")
     @classmethod
@@ -88,6 +114,12 @@ class NodeRef(BaseModel):
     name: str
 
 
+class GrantRef(BaseModel):
+    kind: Literal["group", "person"]
+    id: int
+    name: str
+
+
 class HostOut(BaseModel):
     id: int
     domain: str
@@ -99,6 +131,11 @@ class HostOut(BaseModel):
     force_https: bool
     compression: bool
     access: str
+    no_cert_action: str
+    paths: list[str]
+    grants: list[GrantRef]
+    granted_persons: int
+    allowed_devices: int
     enabled: bool
     draft: bool
     version: int
@@ -132,11 +169,47 @@ class VersionDetail(VersionOut):
     previous_route: dict[str, Any] | None
 
 
-def _out(host: Host) -> HostOut:
-    return HostOut.model_validate(
-        {**{c: getattr(host, c) for c in HostOut.model_fields if c != "node"}, "node": host.node},
-        from_attributes=True,
+_COMPUTED = {"node", "paths", "grants", "granted_persons", "allowed_devices"}
+
+
+def _out(db: Session, host: Host) -> HostOut:
+    grants = [
+        GrantRef(kind="group", id=g.group.id, name=g.group.name)
+        if g.group is not None
+        else GrantRef(kind="person", id=g.person.id, name=g.person.name)
+        for g in host.grants
+        if g.group is not None or g.person is not None
+    ]
+    grants.sort(key=lambda g: (g.kind != "group", g.name.lower()))
+    data = {c: getattr(host, c) for c in HostOut.model_fields if c not in _COMPUTED}
+    return HostOut(
+        **data,
+        node=NodeRef(id=host.node.id, name=host.node.name),
+        paths=[p.path for p in host.paths],
+        grants=grants,
+        granted_persons=len(granted_persons(db, host)),
+        allowed_devices=len(allowed_devices(db, host)),
     )
+
+
+def _check_grants(db: Session, body: HostIn) -> None:
+    for model, ids, what in (
+        (Group, body.grant_group_ids, "Gruppe"),
+        (Person, body.grant_person_ids, "Person"),
+    ):
+        for i in ids:
+            if db.get(model, i) is None:
+                raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"{what} {i} unbekannt")
+
+
+_RELATIONS = {"comment", "paths", "grant_group_ids", "grant_person_ids"}
+
+
+def _assign(host: Host, body: HostIn) -> None:
+    for k, v in body.model_dump(exclude=_RELATIONS).items():
+        setattr(host, k, v)
+    set_paths(host, body.paths)
+    set_grants(host, body.grant_group_ids, body.grant_person_ids)
 
 
 def _get_host(db: Session, host_id: int) -> Host:
@@ -173,7 +246,7 @@ def _apply(request: Request, db: Session, nodes: set[int], settings: Any) -> App
 
 @router.get("")
 def list_hosts(db: DB, _: CurrentActor) -> list[HostOut]:
-    return [_out(h) for h in db.scalars(select(Host).order_by(Host.domain))]
+    return [_out(db, h) for h in db.scalars(select(Host).order_by(Host.domain))]
 
 
 @router.post("/check")
@@ -199,7 +272,7 @@ def run_checks(body: CheckIn, db: DB, _: CurrentActor, settings: AppSettings) ->
 @router.post("/preview")
 def preview_route(body: HostIn, _: CurrentActor) -> dict[str, Any]:
     """Caddy-Route, wie sie für diesen Host erzeugt würde."""
-    return host_route(host_spec(body, host_id=0))
+    return host_route(host_spec(body, host_id=0, paths=body.paths))
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -207,8 +280,10 @@ def create_host(
     body: HostIn, request: Request, db: DB, actor: CurrentActor, settings: AppSettings
 ) -> HostSaved:
     _get_node(db, body.node_id)
+    _check_grants(db, body)
     _ensure_free(db, body.domain, None, settings.controller_domain)
-    host = Host(**body.model_dump(exclude={"comment"}), version=1)
+    host = Host(version=1)
+    _assign(host, body)
     db.add(host)
     add_version(db, host, actor=actor.name, comment=body.comment or "Angelegt")
     audit.record(
@@ -226,12 +301,12 @@ def create_host(
         else _apply(request, db, {host.node_id}, settings)
     )
     db.commit()
-    return HostSaved(host=_out(host), apply=result)
+    return HostSaved(host=_out(db, host), apply=result)
 
 
 @router.get("/{host_id}")
 def get_host(host_id: int, db: DB, _: CurrentActor) -> HostOut:
-    return _out(_get_host(db, host_id))
+    return _out(db, _get_host(db, host_id))
 
 
 @router.put("/{host_id}")
@@ -245,16 +320,17 @@ def update_host(
 ) -> HostSaved:
     host = _get_host(db, host_id)
     _get_node(db, body.node_id)
+    _check_grants(db, body)
     _ensure_free(db, body.domain, host.id, settings.controller_domain)
     before = snapshot(host)
     old_node = host.node_id
-    for k, v in body.model_dump(exclude={"comment"}).items():
-        setattr(host, k, v)
+    _assign(host, body)
     db.flush()
-    db.refresh(host, ["node"])
+    db.refresh(host, ["node", "paths", "grants"])
     changes = diff(before, snapshot(host))
     if not changes:
-        return HostSaved(host=_out(host), apply=ApplyResult(ok=True, skipped=True))
+        db.rollback()
+        return HostSaved(host=_out(db, host), apply=ApplyResult(ok=True, skipped=True))
     host.version += 1
     add_version(db, host, actor=actor.name, comment=body.comment)
     audit.record(
@@ -268,7 +344,7 @@ def update_host(
     db.commit()
     result = _apply(request, db, {old_node, host.node_id}, settings)
     db.commit()
-    return HostSaved(host=_out(host), apply=result)
+    return HostSaved(host=_out(db, host), apply=result)
 
 
 @router.delete("/{host_id}")
@@ -310,8 +386,11 @@ def list_versions(host_id: int, db: DB, _: CurrentActor) -> list[VersionOut]:
 
 
 def _route_for(snap: dict[str, Any], host_id: int) -> dict[str, Any]:
-    fields = {k: snap[k] for k in snap if k not in {"node", "access", "enabled", "draft"}}
-    return host_route(host_spec(HostIn.model_construct(**fields), host_id=host_id))
+    """Route eines alten Stands (ohne Geräteliste – die ändert sich laufend)."""
+    fields = {k: snap[k] for k in snap if k not in {"node", "enabled", "draft", "grants"}}
+    paths = list(fields.pop("paths", []))
+    spec = host_spec(HostIn.model_construct(**fields), host_id=host_id, paths=paths)
+    return host_route(spec)
 
 
 @router.get("/{host_id}/versions/{version}")
@@ -348,7 +427,7 @@ def restore_version(
         raise HTTPException(status.HTTP_409_CONFLICT, "Das ist bereits die laufende Version")
     _ensure_free(db, old.snapshot["domain"], host.id, settings.controller_domain)
     old_node = host.node_id
-    apply_snapshot(db, host, old.snapshot)
+    missing = apply_snapshot(db, host, old.snapshot)
     host.version += 1
     add_version(db, host, actor=actor.name, comment=f"Zurückgesetzt auf Version {version}")
     audit.record(
@@ -356,10 +435,10 @@ def restore_version(
         actor=actor.name,
         action="host_restored",
         target=host.domain,
-        details={"from_version": version, "version": host.version},
+        details={"from_version": version, "version": host.version, "missing_grants": missing},
         ip=actor.ip,
     )
     db.commit()
     result = _apply(request, db, {old_node, host.node_id}, settings)
     db.commit()
-    return HostSaved(host=_out(host), apply=result)
+    return HostSaved(host=_out(db, host), apply=result)

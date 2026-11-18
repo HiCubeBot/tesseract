@@ -9,7 +9,19 @@ from sqlalchemy.orm import Session
 from tesseract.caddy.client import CaddyClient, CaddyError
 from tesseract.caddy.config import HostSpec, NodeSpec, build_config, config_hash
 from tesseract.config import Settings
-from tesseract.db.models import Host, HostVersion, Node, Setting, utcnow
+from tesseract.db.models import (
+    Device,
+    Group,
+    Host,
+    HostGrant,
+    HostPath,
+    HostVersion,
+    Node,
+    Person,
+    PersonGroup,
+    Setting,
+    utcnow,
+)
 
 # Felder, die eine Host-Version ausmachen (Reihenfolge = Anzeige im Verlauf)
 SNAPSHOT_FIELDS = (
@@ -22,6 +34,9 @@ SNAPSHOT_FIELDS = (
     "force_https",
     "compression",
     "access",
+    "no_cert_action",
+    "paths",
+    "grants",
     "enabled",
     "draft",
 )
@@ -50,15 +65,28 @@ def set_general(db: Session, value: dict[str, Any]) -> dict[str, Any]:
 # ---------- Versionen ----------
 
 
+def grant_labels(host: Host) -> list[str]:
+    labels = []
+    for g in host.grants:
+        if g.group is not None:
+            labels.append(f"Gruppe {g.group.name}")
+        elif g.person is not None:
+            labels.append(g.person.name)
+    return sorted(labels)
+
+
 def snapshot(host: Host) -> dict[str, Any]:
-    data = {f: getattr(host, f) for f in SNAPSHOT_FIELDS if f != "node"}
+    special = {"node", "paths", "grants"}
+    data = {f: getattr(host, f) for f in SNAPSHOT_FIELDS if f not in special}
     data["node"] = host.node.name
+    data["paths"] = [p.path for p in host.paths]
+    data["grants"] = grant_labels(host)
     return {f: data[f] for f in SNAPSHOT_FIELDS}
 
 
 def add_version(db: Session, host: Host, *, actor: str, comment: str = "") -> HostVersion:
     db.flush()
-    db.refresh(host, ["node"])
+    db.refresh(host, ["node", "paths", "grants"])
     version = HostVersion(
         host_id=host.id, version=host.version, snapshot=snapshot(host), actor=actor, comment=comment
     )
@@ -76,20 +104,98 @@ def diff(before: dict[str, Any] | None, after: dict[str, Any]) -> list[dict[str,
     ]
 
 
-def apply_snapshot(db: Session, host: Host, snap: dict[str, Any]) -> None:
+def set_paths(host: Host, paths: list[str]) -> None:
+    host.paths = [HostPath(path=p, position=i) for i, p in enumerate(paths)]
+
+
+def set_grants(host: Host, group_ids: list[int], person_ids: list[int]) -> None:
+    host.grants = [HostGrant(group_id=g) for g in dict.fromkeys(group_ids)] + [
+        HostGrant(person_id=p) for p in dict.fromkeys(person_ids)
+    ]
+
+
+def apply_snapshot(db: Session, host: Host, snap: dict[str, Any]) -> list[str]:
+    """Setzt den Host auf einen alten Stand. Gibt Freigaben zurück, die es nicht mehr gibt."""
+    missing: list[str] = []
     for f in SNAPSHOT_FIELDS:
+        if f not in snap:
+            continue
         if f == "node":
             node = db.scalar(select(Node).where(Node.name == snap["node"]))
             if node is not None:
                 host.node_id = node.id
-        elif f in snap:
+        elif f == "paths":
+            set_paths(host, list(snap["paths"]))
+        elif f == "grants":
+            group_ids, person_ids = [], []
+            for label in snap["grants"]:
+                if label.startswith("Gruppe "):
+                    g = db.scalar(select(Group).where(Group.name == label[len("Gruppe ") :]))
+                    if g is not None:
+                        group_ids.append(g.id)
+                        continue
+                else:
+                    p = db.scalar(select(Person).where(Person.name == label))
+                    if p is not None:
+                        person_ids.append(p.id)
+                        continue
+                missing.append(label)
+            set_grants(host, group_ids, person_ids)
+        else:
             setattr(host, f, snap[f])
+    return missing
+
+
+# ---------- Freigaben ----------
+
+
+def granted_persons(db: Session, host: Host) -> list[Person]:
+    """Alle nicht gesperrten Personen, die direkt oder über eine Gruppe freigegeben sind."""
+    group_ids = [g.group_id for g in host.grants if g.group_id is not None]
+    person_ids = {g.person_id for g in host.grants if g.person_id is not None}
+    if group_ids:
+        person_ids |= set(
+            db.scalars(select(PersonGroup.person_id).where(PersonGroup.group_id.in_(group_ids)))
+        )
+    if not person_ids:
+        return []
+    return list(
+        db.scalars(
+            select(Person)
+            .where(Person.id.in_(person_ids), Person.disabled.is_(False))
+            .order_by(Person.name)
+        )
+    )
+
+
+def allowed_devices(db: Session, host: Host) -> list[Device]:
+    persons = granted_persons(db, host)
+    if not persons:
+        return []
+    return list(
+        db.scalars(
+            select(Device)
+            .where(
+                Device.person_id.in_([p.id for p in persons]),
+                Device.revoked_at.is_(None),
+                Device.not_after > utcnow(),
+            )
+            .order_by(Device.id)
+        )
+    )
 
 
 # ---------- Caddy ----------
 
 
-def host_spec(host: Host | Any, host_id: int = 0) -> HostSpec:
+def host_spec(
+    host: Host | Any,
+    host_id: int = 0,
+    allowed: list[Device] | None = None,
+    paths: list[str] | None = None,
+) -> HostSpec:
+    if paths is None:
+        paths = [p.path for p in host.paths] if isinstance(host, Host) else []
     return HostSpec(
         id=host_id or getattr(host, "id", 0) or 0,
         domain=host.domain,
@@ -99,7 +205,19 @@ def host_spec(host: Host | Any, host_id: int = 0) -> HostSpec:
         websockets=host.websockets,
         force_https=host.force_https,
         compression=host.compression,
+        access=getattr(host, "access", "public"),
+        no_cert_action=getattr(host, "no_cert_action", "reject"),
+        paths=tuple(paths),
+        allowed=tuple((d.fingerprint, d.cert_pem) for d in (allowed or [])),
     )
+
+
+def client_ca_der_b64(db: Session) -> str:
+    from tesseract import pki
+    from tesseract.identity import active_authority
+
+    inter = active_authority(db, "intermediate")
+    return pki.der_b64(pki.load_cert(inter.cert_pem)) if inter else ""
 
 
 def node_config(db: Session, node: Node, settings: Settings) -> dict[str, Any]:
@@ -109,10 +227,11 @@ def node_config(db: Session, node: Node, settings: Settings) -> dict[str, Any]:
     general = get_general(db)
     spec = NodeSpec(
         admin_listen=settings.caddy_admin_listen,
-        hosts=[host_spec(h) for h in hosts],
+        hosts=[host_spec(h, allowed=allowed_devices(db, h)) for h in hosts],
         controller_domain=settings.controller_domain,
         controller_upstream=settings.controller_upstream,
         acme_email=general["acme_email"],
+        client_ca_der_b64=client_ca_der_b64(db),
     )
     return build_config(spec)
 

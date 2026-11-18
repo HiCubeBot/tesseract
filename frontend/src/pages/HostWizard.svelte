@@ -4,8 +4,17 @@
   import Alert from '../lib/components/Alert.svelte';
   import HostForm from '../lib/components/HostForm.svelte';
   import CheckList from '../lib/components/CheckList.svelte';
-  import Icon from '../lib/components/Icon.svelte';
-  import { api, type Check, type HostInput, type HostSaved, type NodeInfo } from '../lib/api';
+  import AccessForm from '../lib/components/AccessForm.svelte';
+  import {
+    api,
+    type CAStatus,
+    type Check,
+    type Group,
+    type HostInput,
+    type HostSaved,
+    type NodeInfo,
+    type Person
+  } from '../lib/api';
   import { emptyHost, upstreamLabel } from '../lib/hosts';
   import { reportApply } from '../lib/nodes';
   import { router } from '../lib/router.svelte';
@@ -20,10 +29,26 @@
   let saving = $state(false);
   let showJson = $state(false);
 
+  let groups = $state<Group[]>([]);
+  let persons = $state<Person[]>([]);
+  let caConfigured = $state(false);
+
   api.get<NodeInfo[]>('/nodes').then((n) => {
     nodes = n;
     if (!host.node_id && n.length) host.node_id = n[0].id;
   });
+  Promise.all([api.get<Group[]>('/groups'), api.get<Person[]>('/persons'), api.get<CAStatus>('/ca')]).then(
+    ([g, p, c]) => {
+      groups = g;
+      persons = p;
+      caConfigured = c.configured;
+    }
+  );
+
+  const grantNames = $derived([
+    ...groups.filter((g) => host.grant_group_ids.includes(g.id)).map((g) => `Gruppe ${g.name}`),
+    ...persons.filter((p) => host.grant_person_ids.includes(p.id)).map((p) => p.name)
+  ]);
 
   const steps = ['Domain & Ziel', 'Zugriff', 'Prüfen & übertragen'];
 
@@ -139,24 +164,7 @@
   {:else if step === 2}
     <section class="card" aria-labelledby="access-title">
       <h2 id="access-title">Wer darf zugreifen?</h2>
-      <div class="access-grid" role="radiogroup" aria-labelledby="access-title">
-        <label class="access on">
-          <span class="access-head">
-            <Icon name="globe" size={18} />
-            <strong>Öffentlich</strong>
-            <input type="radio" name="access" value="public" bind:group={host.access} />
-          </span>
-          <span class="muted">Jeder mit der Adresse. Server-Zertifikat von Let's Encrypt, sonst keine Hürde.</span>
-        </label>
-        <label class="access disabled" aria-disabled="true">
-          <span class="access-head">
-            <Icon name="lock" size={18} />
-            <strong>Nur freigegebene Geräte (mTLS)</strong>
-            <input type="radio" name="access" value="mtls" disabled />
-          </span>
-          <span class="muted">Ohne gültiges Geräte-Zertifikat kommt keine Verbindung zustande. Kommt mit Phase 2.</span>
-        </label>
-      </div>
+      <AccessForm bind:value={host} {groups} {persons} {caConfigured} />
     </section>
     <footer class="row">
       <Button variant="secondary" label="Zurück" onClick={() => goTo(1)} />
@@ -171,7 +179,18 @@
           <dt>Domain</dt><dd class="mono">{domain}</dd>
           <dt>Ziel</dt><dd class="mono">{upstreamLabel(host)}</dd>
           <dt>Node</dt><dd>{nodeName}</dd>
-          <dt>Zugriff</dt><dd>Öffentlich · {localName ? 'lokales Zertifikat von Caddy' : "Let's Encrypt"}</dd>
+          <dt>Zertifikat</dt><dd>{localName ? 'lokales Zertifikat von Caddy' : "Let's Encrypt"}</dd>
+          <dt>Zugriff</dt>
+          <dd>
+            {host.access === 'mtls' ? 'Nur mit Zertifikat' : 'Öffentlich'}
+            {#if host.paths.length}
+              · {host.access === 'mtls' ? 'öffentlich' : 'geschützt'}: <span class="mono">{host.paths.join(', ')}</span>
+            {/if}
+          </dd>
+          {#if host.access === 'mtls' || host.paths.length}
+            <dt>Freigegeben für</dt><dd>{grantNames.join(', ') || 'niemand'}</dd>
+            <dt>Ohne Zertifikat</dt><dd>{host.no_cert_action === 'hint' ? 'Hinweisseite' : 'Verbindung ablehnen'}</dd>
+          {/if}
           <dt>Optionen</dt>
           <dd>
             {[
@@ -282,43 +301,6 @@
   }
   .side {
     flex: 1 1 320px;
-  }
-  .access-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 12px;
-  }
-  .access {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 16px;
-    border-radius: var(--radius-md);
-    background: var(--bg);
-    border: 1px solid var(--border-input);
-    cursor: pointer;
-    font-size: 14px;
-    line-height: 1.5;
-  }
-  .access.on {
-    border-color: var(--accent);
-    background: rgba(139, 124, 246, 0.1);
-  }
-  .access.disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-  }
-  .access-head {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .access-head strong {
-    flex: 1;
-  }
-  .access input {
-    margin: 0;
-    accent-color: var(--accent);
   }
   .summary {
     margin: 0;

@@ -8,9 +8,20 @@
   import EmptyState from '../lib/components/EmptyState.svelte';
   import ConfirmDialog from '../lib/components/ConfirmDialog.svelte';
   import HostForm from '../lib/components/HostForm.svelte';
+  import AccessForm from '../lib/components/AccessForm.svelte';
   import Icon from '../lib/components/Icon.svelte';
-  import { api, formatDate, type Host, type HostInput, type HostSaved, type NodeInfo } from '../lib/api';
-  import { hostStatus, toInput, upstreamLabel } from '../lib/hosts';
+  import {
+    api,
+    formatDate,
+    type CAStatus,
+    type Group,
+    type Host,
+    type HostInput,
+    type HostSaved,
+    type NodeInfo,
+    type Person
+  } from '../lib/api';
+  import { accessLabel, hostStatus, toInput, upstreamLabel } from '../lib/hosts';
   import { reportApply } from '../lib/nodes';
   import { router } from '../lib/router.svelte';
   import { toasts } from '../lib/toast.svelte';
@@ -19,6 +30,9 @@
 
   let hosts = $state<Host[]>([]);
   let nodes = $state<NodeInfo[]>([]);
+  let groups = $state<Group[]>([]);
+  let persons = $state<Person[]>([]);
+  let caConfigured = $state(false);
   let loaded = $state(false);
   let loadError = $state('');
   let filter = $state(0);
@@ -35,7 +49,15 @@
 
   async function load() {
     try {
-      [hosts, nodes] = await Promise.all([api.get<Host[]>('/hosts'), api.get<NodeInfo[]>('/nodes')]);
+      let ca: CAStatus;
+      [hosts, nodes, groups, persons, ca] = await Promise.all([
+        api.get<Host[]>('/hosts'),
+        api.get<NodeInfo[]>('/nodes'),
+        api.get<Group[]>('/groups'),
+        api.get<Person[]>('/persons'),
+        api.get<CAStatus>('/ca')
+      ]);
+      caConfigured = ca.configured;
       loadError = '';
     } catch (e) {
       loadError = e instanceof Error ? e.message : String(e);
@@ -55,13 +77,15 @@
   const counts = $derived({
     all: hosts.length,
     live: hosts.filter((h) => !h.draft && h.enabled).length,
-    draft: hosts.filter((h) => h.draft).length
+    draft: hosts.filter((h) => h.draft).length,
+    mtls: hosts.filter((h) => h.access === 'mtls').length
   });
 
   const visible = $derived(
     hosts.filter((h) => {
       if (filter === 1 && (h.draft || !h.enabled)) return false;
-      if (filter === 2 && !h.draft) return false;
+      if (filter === 2 && h.access !== 'mtls') return false;
+      if (filter === 3 && !h.draft) return false;
       if (nodeFilter && h.node.id !== nodeFilter) return false;
       const q = query.trim().toLowerCase();
       return !q || h.domain.includes(q) || upstreamLabel(h).includes(q);
@@ -104,7 +128,7 @@
 <AppShell active="hosts">
   <PageHeader
     title="Proxy-Hosts"
-    subtitle="Öffentlich mit Let's Encrypt – geschützte Hosts (mTLS) folgen mit Phase 2."
+    subtitle="Öffentlich mit Let's Encrypt – oder nur für freigegebene Geräte (mTLS)."
     primaryLabel="Host anlegen"
     primaryHref="#/hosts/new"
   />
@@ -114,7 +138,7 @@
   <div class="row">
     <SegmentedControl
       groupLabel="Status filtern"
-      options={[`Alle · ${counts.all}`, `Aktiv · ${counts.live}`, `Entwürfe · ${counts.draft}`]}
+      options={[`Alle · ${counts.all}`, `Aktiv · ${counts.live}`, `mTLS · ${counts.mtls}`, `Entwürfe · ${counts.draft}`]}
       bind:selected={filter}
     />
     <label class="search">
@@ -163,7 +187,12 @@
                   <td class="mono muted small">{upstreamLabel(h)}</td>
                   <td class="muted">{h.node.name}</td>
                   <td>
-                    <span class="access"><Icon name="globe" size={13} strokeWidth={2.2} />Öffentlich</span>
+                    {#if h.access === 'mtls'}
+                      <span class="access mtls"><Icon name="lock" size={13} strokeWidth={2.2} />mTLS</span>
+                    {:else}
+                      <span class="access"><Icon name="globe" size={13} strokeWidth={2.2} />Öffentlich</span>
+                    {/if}
+                    <span class="muted tiny block">{accessLabel(h)}</span>
                   </td>
                   <td><StatusPill tone={st.tone} label={st.label} /></td>
                 </tr>
@@ -191,6 +220,8 @@
         {/if}
 
         <HostForm bind:value={edit} {nodes} compact />
+        <div class="divider"></div>
+        <AccessForm bind:value={edit} {groups} {persons} {caConfigured} compact />
 
         <span class="muted small">Zuletzt geändert {formatDate(selected.updated_at)}</span>
 
@@ -307,6 +338,20 @@
   }
   .small {
     font-size: 13px;
+  }
+  .tiny {
+    font-size: 11px;
+  }
+  .block {
+    display: block;
+    margin-top: 4px;
+  }
+  .divider {
+    border-top: 1px solid var(--border);
+  }
+  .access.mtls {
+    color: #c9c1ff;
+    background: rgba(139, 124, 246, 0.16);
   }
   .access {
     display: inline-flex;
