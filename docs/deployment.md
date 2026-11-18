@@ -83,6 +83,21 @@ docker build -t tesseract-agent:dev agent
 
 - Der Node braucht nur **ausgehend** HTTPS zur Controller-Domain. Ports 80/443 öffnet er
   nur für die eigenen Hosts.
-- Damit WAF-Treffer der Nodes für die Auto-Sperre zählen, muss der Controller
-  `TESSERACT_CADDY_WAF_LOG` gesetzt haben (im Compose-Stack schon so). Derselbe Pfad landet in
-  der Config jedes Nodes, und der Agent liest ihn über `TESSERACT_AGENT_WAF_LOG`.
+- Damit WAF-Treffer und Zugriffe der Nodes in Logs, Statistik und Auto-Sperre ankommen, muss
+  der Controller `TESSERACT_CADDY_WAF_LOG` und `TESSERACT_CADDY_ACCESS_LOG` gesetzt haben (im
+  Compose-Stack schon so). Dieselben Pfade landen in der Config jedes Nodes; der Agent liest
+  sie über `TESSERACT_AGENT_WAF_LOG` und `TESSERACT_AGENT_ACCESS_LOG`.
+
+## GeoIP (optional)
+
+Für Länder in Logs und Statistik eine lokale Datenbank einbinden, z. B. DB-IP „IP to Country
+Lite“ oder MaxMind GeoLite2-Country (`.mmdb`, Lizenz beachten). Es geht keine Anfrage nach außen.
+
+```yaml
+services:
+  tesseract:
+    environment:
+      TESSERACT_GEOIP_DB: /geoip/country.mmdb
+    volumes:
+      - ./geoip:/geoip:ro
+```

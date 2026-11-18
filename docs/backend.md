@@ -43,6 +43,10 @@ backend/
     identity.py           CA einrichten, Geräte ausstellen und sperren
     secretbox.py          Verschlüsselung von Geheimnissen (AES-GCM) mit dem Hauptschlüssel
     nodes.py              Nodes mit Agent: Beitritt, Status, Abweichung, Modul-Erkennung
+    logs.py               Zugriffs-/WAF-Logs einlesen, WAF zuordnen, GeoIP, Suche
+    stats.py              Statistik aus den Logs
+    metrics.py            Prometheus-Text, grafana.py: Dashboard
+    notify.py             Benachrichtigungen (ntfy, Webhook, E-Mail)
     checks.py             Vorab-Prüfungen (Domain frei, DNS, Ziel erreichbar)
     caddy/
       config.py           erzeugt die komplette Caddy-JSON-Config eines Nodes
@@ -163,6 +167,22 @@ Ablauf und Agent-Seite: [agent.md](agent.md).
 letzten Kontakt, Versionen, Module, Beitrittsstand und Abweichung. Lokale Nodes prüft eine
 Hintergrundaufgabe alle 30 s (laufende Config, alle 10 Min. die Module).
 
+## Beobachtbarkeit (Phase 5)
+
+| Methode & Pfad | Zweck |
+|---|---|
+| `GET /api/logs?q=&filter=&limit=&before_id=&after_id=` | Logs, neueste zuerst; `after_id` für Live |
+| `GET /api/logs/{id}` · `POST /api/logs/{id}/exclude` | Details (Host, IP heute) · Regeln als Ausnahme am Host |
+| `GET /api/stats/security\|traffic\|usage?range=24h\|7d\|30d&node=` | Statistik |
+| `GET /api/audit?kind=admin\|system\|guest\|agent` · `/api/audit/verify` · `/api/audit/export.csv` | Audit-Log, Kettenprüfung, CSV |
+| `GET/PUT /api/settings/observability` · `POST …/token` · `GET …/grafana.json` | Logs-Aufbewahrung, Metriken, Token, Dashboard |
+| `GET /metrics` | Prometheus (an der Wurzel, Schutz siehe Einstellungen) |
+| `GET/PUT /api/settings/notify` · `POST /api/settings/notify/test` | Benachrichtigungen |
+
+Filtersyntax der Logs: `host:git status:403 status:5xx ip:198.51.100.7 ip:198.51.100.0/24
+reason:waf rule:942100 node:pi method:POST device:iphone country:DE` und freier Text.
+Filter: `all`, `denied`, `mtls`, `waf`, `ip`.
+
 ## Datenbank & Migrationen
 
 Schema ändern:
@@ -196,7 +216,10 @@ Alle Einstellungen kommen aus Umgebungsvariablen oder einer `.env` im Arbeitsver
 | `TESSERACT_SECRET_KEY` | – | Hauptschlüssel (Base64, 32 Byte); leer = `secret.key` im Datenverzeichnis |
 | `TESSERACT_CADDY_WAF_LOG` | – | Pfad im Caddy-Container für WAF-Treffer (Auto-Sperre) |
 | `TESSERACT_WAF_LOG_PATH` | – | Pfad, unter dem der Controller dieselbe Datei liest |
-| `TESSERACT_BACKGROUND_TASKS` | `true` | Hintergrundaufgaben (Auto-Sperre, Prüfung lokaler Nodes) |
+| `TESSERACT_CADDY_ACCESS_LOG` | – | Pfad im Caddy-Container für das Zugriffs-Log (Logs, Statistik, Metriken) |
+| `TESSERACT_ACCESS_LOG_PATH` | – | Pfad, unter dem der Controller dieselbe Datei liest |
+| `TESSERACT_GEOIP_DB` | – | Optionale GeoIP-Datenbank (`.mmdb`, z. B. GeoLite2-Country, DB-IP Lite) |
+| `TESSERACT_BACKGROUND_TASKS` | `true` | Hintergrundaufgaben (Auto-Sperre, Logs, Prüfung lokaler Nodes, Benachrichtigungen) |
 | `TESSERACT_COOKIE_SECURE` | `true` | Session-Cookie nur über HTTPS |
 | `TESSERACT_SESSION_HOURS` | `12` | Session-Dauer ohne „angemeldet bleiben“ |
 | `TESSERACT_SESSION_REMEMBER_DAYS` | `30` | Session-Dauer mit „angemeldet bleiben“ |

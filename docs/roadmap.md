@@ -11,7 +11,7 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 | 3 | WAF & Zugriffsschutz | Coraza, IP-Filter, Authelia – **fertig** |
 | 3b | Interne Dienste & Zertifikate | Zugriffsart „Intern“, Wildcard-Zertifikate, Zertifikatsübersicht – **fertig** |
 | 4 | Multi-Node | Agent, mehrere Server, auch hinter NAT – **fertig** |
-| 5 | Beobachtbarkeit | Logs, Statistik, Audit, Metriken, Benachrichtigungen |
+| 5 | Beobachtbarkeit | Logs, Statistik, Audit, Metriken, Benachrichtigungen – **fertig** |
 | 6 | Betrieb & Release | Backup, CA-Rotation, Härtung, v1.0 |
 | – | Backlog | Niedrige Priorität, ohne festen Zeitpunkt |
 
@@ -139,8 +139,8 @@ Offen / bewusst verschoben:
 - „Änderung übernehmen“ übernimmt die Abweichung nicht in die Hosts des Controllers, sie
   gilt nur bis zur nächsten Übertragung
 - Erreichbarkeit des Ziels wird weiter vom Controller aus geprüft, nicht vom Node → Backlog
-- Zertifikatsübersicht liest nur den lokalen Caddy → Phase 5
-- Zugriffs-Logs der Nodes (nicht nur WAF-Treffer) puffern und sammeln → Phase 5
+- Zertifikatsübersicht liest nur den lokalen Caddy → Backlog
+- Zugriffs-Logs der Nodes (nicht nur WAF-Treffer) puffern und sammeln → in Phase 5 erledigt
 - Node-Zertifikat verlängern (gilt 2 Jahre) → Phase 6
 
 **Fertig, wenn:** Ein Raspberry Pi hinter NAT tritt bei, bekommt Hosts zugewiesen, und eine
@@ -150,12 +150,24 @@ lokale Änderung auf dem Pi wird im UI als Abweichung angezeigt.
 
 **Ziel:** Sehen, was passiert.
 
-- Zentrale Log-Sammlung von allen Nodes (Zugriffs- und WAF-Logs), Live-Ansicht, Such-Syntax
-- Statistik: Sicherheit, Traffic & Leistung, Nutzung; lokale GeoIP-Datenbank
-- Aktionen aus Logs (IP sperren, Ausnahme anlegen)
-- Unveränderliches Audit-Log mit verketteten Prüfsummen, CSV-Export
-- Prometheus-Endpunkt inkl. Node-Metriken, Grafana-Dashboard
-- Benachrichtigungen per E-Mail, Webhook, ntfy mit Bündelung und Ruhezeiten
+- [x] Zentrale Log-Sammlung von allen Nodes (Zugriffs- und WAF-Logs, Agent puffert und liefert
+  nach), Live-Ansicht, Such-Syntax, Grund jeder Ablehnung, WAF-Regel pro Anfrage, Gerät
+- [x] Statistik: Sicherheit, Traffic & Leistung, Nutzung; lokale GeoIP-Datenbank (optional)
+- [x] Aktionen aus Logs (IP sperren, Ausnahme anlegen, alle Einträge einer IP)
+- [x] Unveränderliches Audit-Log mit verketteten Prüfsummen, Prüfung, Filter, CSV-Export
+- [x] Prometheus-Endpunkt inkl. Node- und Caddy-Metriken, Grafana-Dashboard
+- [x] Benachrichtigungen per E-Mail, Webhook, ntfy mit Bündelung und Ruhezeiten
+
+Offen / bewusst verschoben:
+- Herkunftskarte: Länder erscheinen als Liste, eine Weltkarte fehlt (bräuchte Kartendaten)
+- Abgelehnte TLS-Handshakes (strenges mTLS) stehen nicht im Zugriffs-Log – Caddy schreibt dafür
+  keine Anfrage; sichtbar sind nur 403 der Hinweisseite und der Pfad-Regeln
+- Anomalie-Score: Coraza schreibt ihn bei OWASP CRS 4 nicht ins Log, er wird nur gezeigt, wenn
+  vorhanden
+- Logs liegen in SQLite (Standard 14 Tage); für sehr viel Verkehr wäre ein eigener Speicher
+  (DuckDB, Loki) besser → Backlog
+- Zertifikatsübersicht weiterhin nur für den lokalen Caddy → Backlog
+- Ablauf-Erinnerungen für Zertifikate und Geräte als Benachrichtigung → Phase 6
 
 **Fertig, wenn:** Ein blockierter Angriff erscheint live in den Logs, in der Statistik und als
 ntfy-Meldung.

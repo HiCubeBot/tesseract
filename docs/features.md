@@ -80,17 +80,17 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | Agent | Erzeugt eigene Schlüssel, baut mTLS-Verbindung zum Controller auf (Long-Polling über HTTPS); kein offener Admin-Port, funktioniert hinter NAT | 4 |
 | Config-Abweichung | Erkennt lokale Änderungen (Diff pro Host) – „Mit Controller überschreiben“ oder „Änderung übernehmen“ (gilt bis zur nächsten Übertragung) | 4 |
 | Modul-Übersicht | Welche Caddy-Module (Coraza, DNS Cloudflare) je Node vorhanden sind, Warnung bei fehlenden; Sperren der betroffenen Features folgt | 4 |
-| Offline-Pufferung | Ohne Controller läuft Caddy mit dem letzten Stand weiter; WAF-Treffer puffert der Agent und liefert sie nach (Zugriffs-Logs ab Phase 5) | 4 |
+| Offline-Pufferung | Ohne Controller läuft Caddy mit dem letzten Stand weiter; Zugriffs- und WAF-Logs puffert der Agent und liefert sie nach | 4 / 5 |
 
 ## 7. Statistik & Logs
 
 | Feature | Beschreibung | Phase |
 |---|---|---|
-| Sicherheit | Abgelehnte Anfragen pro Stunde, Coraza-Angriffsarten, Top-IPs, Herkunftskarte (lokale GeoIP-DB) | 5 |
+| Sicherheit | Abgelehnte Anfragen pro Stunde, Coraza-Angriffsarten, Top-IPs, Herkunft nach Land (lokale GeoIP-DB; Weltkarte folgt) | 5 |
 | Traffic & Leistung | Anfragen, Datenmenge, Antwortzeiten (Median/p95), 5xx-Fehler, Erreichbarkeit, Hosts im Vergleich | 5 |
 | Nutzung | Wer nutzt was (Person × Dienst), Geräte-Aktivität, Heatmap Wochentag × Uhrzeit | 5 |
-| Logs | Live-Ansicht, Suche mit Filtersyntax (`host:git status:403 ip:…`), Detailansicht mit Regel, Anomalie-Score | 5 |
-| Aktionen aus Logs | IP sperren (in Liste), Ausnahme für Fehlalarm anlegen, alle Einträge einer IP | 5 |
+| Logs | Live-Ansicht, Suche mit Filtersyntax (`host:git status:403 ip:…`), Detailansicht mit Regel und Meldung, Anomalie-Score (wenn Coraza ihn schreibt), Grund jeder Ablehnung | 5 |
+| Aktionen aus Logs | IP sperren (24 h, alle Nodes), Ausnahme für Fehlalarm anlegen, alle Einträge einer IP | 5 |
 | Filter | Zeitraum (24 h / 7 / 30 Tage), Node | 5 |
 
 ## 8. Audit-Log
@@ -99,7 +99,7 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 |---|---|---|
 | Protokoll | Jede Änderung und jeder abgewiesene Zugriff – wer, wann, was, von welchem Gerät/IP | 1 (Basis) / 5 |
 | Unveränderlich | Einträge nicht bearbeit-/löschbar, Prüfsumme verkettet mit dem vorherigen Eintrag | 5 |
-| Filter & Export | Suche, Filter nach Akteur (Admin, System, Gäste), CSV-Export | 5 |
+| Filter & Export | Suche, Filter nach Akteur (Admins, System, Gäste, Agents), CSV-Export, Prüfung der Kette | 5 |
 
 ## 9. Einstellungen
 

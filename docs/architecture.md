@@ -228,10 +228,37 @@ der sich ausgehend beim Controller meldet und die Config abholt – siehe
 - WAF-Treffer der Agents laufen in dieselbe Auto-Sperre (`app.state.autoban`) wie die des
   lokalen Caddy; Sperren gehen an alle Nodes.
 
+## Beobachtbarkeit (Phase 5)
+
+- **Zugriffs-Log:** Caddy schreibt pro Node `tesseract_access` als JSON (ohne Controller-Domain,
+  `skip_hosts`). Jede Sperr-Route trägt per `log_append` ihren Grund ein (`tesseract_reason`:
+  `ip`, `ban`, `mtls`, `internal`, `websocket`, `authelia`). In der erzeugten Config steht dazu
+  ein Marker, den `build_config` auflöst – ohne Zugriffs-Log bleibt die Config unverändert.
+- **WAF-Zuordnung:** Coraza schreibt pro Regel eine Zeile mit `[id …] [msg …] [unique_id …]`
+  und bei einer Blockade „WAF rule violation detected“. Gruppiert nach `unique_id` und über
+  Client-IP + URI (± 5 s) dem Zugriffs-Eintrag zugeordnet; Zwischenstand 60 s nach Eingang.
+- **Sammeln:** lokaler Node über gemeinsames Volume (`TESSERACT_ACCESS_LOG_PATH`), andere
+  Nodes über `POST /api/agent/logs` (Agent puffert auf der Platte, höchstens 200 000 Zeilen).
+  Gespeichert in `log_entries` (SQLite), gelöscht nach `logs_days`. Geräte über die
+  Seriennummer des Client-Zertifikats, Länder aus einer optionalen `.mmdb`.
+- **Statistik** rechnet direkt auf `log_entries`; Zeitreihen als UTC-Stunden, das Frontend
+  fasst sie in Ortszeit zusammen.
+- **Audit-Kette:** `hash = SHA-256(vorheriger hash + Inhalt)`, nachträglich in ID-Reihenfolge
+  versiegelt (Hintergrund, Abruf, Start). SQLite-Trigger verbieten Ändern/Löschen
+  versiegelter Einträge. Achtung: eine Migration, die `audit_log` per batch neu anlegt, muss
+  die Trigger wieder anlegen.
+- **Metriken:** Zähler im Speicher beim Einlesen der Logs (setzen beim Neustart zurück – für
+  Prometheus normal), Zustand aus der DB, Caddy-Metriken mit Label `node` (lokal beim Abruf,
+  Agents mit dem Status). `/metrics` steht an der Wurzel und ist auf der Controller-Domain
+  freigegeben; den Schutz (Token, Admin-Zertifikat, IP über `X-Forwarded-For` von Caddy) prüft
+  der Controller.
+- **Benachrichtigungen:** Quelle ist das Audit-Log (Cursor in den Einstellungen). Wechsel
+  online/offline der Nodes werden dafür als `node_offline`/`node_online` protokolliert.
+
 ## Offene Entscheidungen
 
 | Thema | Optionen | Notiz |
 |---|---|---|
 | Datenbank / ORM | SQLite + SQLModel oder SQLAlchemy 2 + Alembic | SQLite reicht für den Controller, Backup einfach. |
-| Log-Speicher | SQLite, DuckDB oder externe Lösung (Loki) | Abhängig vom erwarteten Volumen. |
+| Log-Speicher | SQLite (umgesetzt), DuckDB oder Loki | Phase 5 nutzt SQLite mit Aufbewahrung (14 Tage); bei viel Verkehr wechseln. |
 | Admin-Passkey | WebAuthn zusätzlich/alternativ zum Passwort | Design zeigt „per Passkey“ im Audit-Log. |
