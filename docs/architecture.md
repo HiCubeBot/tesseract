@@ -71,6 +71,7 @@ dass sie später durch den Agent ersetzt werden kann („Node-Treiber“: lokal 
 | Datenbank / ORM | SQLite + SQLModel oder SQLAlchemy 2 + Alembic | SQLite reicht für den Controller, Backup einfach. |
 | Per-Host-Freigabe bei mTLS | a) Caddy `client_auth` mit Liste erlaubter Leaf-Zertifikate je Host · b) gemeinsamer CA-Pool + Matcher auf Fingerabdruck/Subject | Design deutet a) an („Liste wird ergänzt und neu übertragen“). Widerruf über Entfernen aus der Liste; Caddy hat keine native CRL-Prüfung. |
 | Hinweisseite „Kein Zugang“ | `client_auth mode verify_if_given` + Matcher, sonst `require_and_verify` | Nur bei „ablehnen“ scheitert bereits der Handshake. |
+| Zugriff pro Pfad | `client_auth mode verify_if_given` für den ganzen Host + `path`-Matcher, der für geschützte Pfade ein gültiges Client-Zertifikat (Fingerabdruck in der Freigabeliste) verlangt, sonst `403`/Hinweisseite | TLS kennt den Pfad noch nicht, daher kein Handshake-Abbruch pro Pfad. Browser fragt evtl. auch auf öffentlichen Pfaden nach einem Zertifikat (optional anbietbar). Pfad-Normalisierung beachten (`/Admin`, `//admin`, `%2F`), damit sich Schutz nicht umgehen lässt. |
 | Schlüsselerzeugung auf dem Gerät | WebCrypto + CSR im Browser vs. serverseitig erzeugtes PKCS#12 / `.mobileconfig` | iOS/Android benötigen meist ein Profil/PKCS#12. |
 | Agent-Protokoll | WebSocket über mTLS vs. gRPC vs. Long-Polling | WebSocket passt zu FastAPI. |
 | Log-Speicher | SQLite, DuckDB oder externe Lösung (Loki) | Abhängig vom erwarteten Volumen. |

@@ -26,6 +26,7 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | Freigaben | An Gruppen und Personen; gelten automatisch für alle Geräte der Person | 2 |
 | Zugriffsmatrix | Gruppe/Person × Dienst, unterscheidet „direkt erlaubt“ und „über Gruppe“; Änderungen gesammelt übertragen oder verwerfen | 2 |
 | Automatische Aktualisierung | Neues Gerät einer Person → Freigabelisten werden ergänzt und neu übertragen | 2 |
+| Zugriff pro Pfad | Pfade eines Hosts einzeln öffentlich oder per mTLS schützen, z. B. `/api/*` frei aus dem Internet, `/admin/*` nur für freigegebene Geräte. Zwei Modi: **Blacklist** (Host öffentlich, gelistete Pfade nur per mTLS) oder **Whitelist** (Host per mTLS, gelistete Pfade öffentlich). Eigene Freigaben pro Pfad möglich (z. B. `/admin/*` nur für Gruppe Admin). Ohne Zertifikat gibt es dort `403` bzw. die Hinweisseite – ein abgelehnter TLS-Handshake ist pro Pfad technisch nicht möglich | 2 |
 
 ## 3. Personen, Gruppen & Geräte
 
@@ -59,7 +60,7 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 |---|---|---|
 | Coraza WAF | Aus / Nur protokollieren / Blockieren; OWASP Core Rule Set; Paranoia-Level | 3 |
 | Regel-Ausnahmen | Pro Host für Fehlalarme, direkt aus einem Log-Eintrag anlegbar | 3 |
-| Host-Bereiche | Pfade mit abweichenden Regeln (z. B. `/api/*`, `/.well-known/*`) | 3 |
+| Host-Bereiche | Pfade mit abweichenden Regeln (z. B. `/api/*`, `/.well-known/*`): WAF, IP-Filter, Authelia – baut auf „Zugriff pro Pfad“ (2.) auf | 3 |
 | IP-Filter | Modus Sperren / Nur erlauben; IP, CIDR oder benannte IP-Liste | 3 |
 | Auto-Sperre | z. B. IP für 24 h sperren nach 20 WAF-Treffern in 10 Min. | 3 |
 | Authelia als Host-Middleware | Optional pro Host: Caddy fragt vor dem Dienst per `forward_auth` eine bestehende Authelia-Instanz. Nutzer, Regeln und Zwei-Faktor pflegt man in Authelia selbst; Tesseract richtet nur die Weiterleitung ein. Schützt nur Hosts, nicht die Tesseract-Oberfläche (siehe Admin-SSO unter 10.) | 3 |

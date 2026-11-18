@@ -54,12 +54,15 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 - Personen, Gruppen, Geräte; ein Client-Zertifikat pro Gerät
 - Zugriffsart pro Host (Öffentlich / mTLS) und Verhalten ohne Zertifikat (ablehnen / Hinweisseite)
 - Freigaben an Gruppen und Personen, Zugriffsmatrix
+- Zugriff pro Pfad: einzelne Pfade per mTLS schützen oder freigeben (Black-/Whitelist), z. B. API öffentlich, Admin-Oberfläche nur per mTLS
 - Sperren und Verlängern von Geräten, Widerrufsliste
 - Einladungsfluss: Link + QR + separater Bestätigungscode, Admin-Freigabe, Installationsanleitungen je Plattform
 - Admin-UI selbst nur mit Admin-Gerätezertifikat (+ Passwort/Passkey)
 
 **Fertig, wenn:** Ein eingeladener Gast registriert ein iPhone und einen Laptop, erreicht genau die
 freigegebenen Dienste, und nach dem Sperren eines Geräts schlägt dessen TLS-Handshake fehl.
+Bei einem Host mit öffentlicher `/api/*` und geschütztem `/admin/*` antwortet die API ohne
+Zertifikat, `/admin/*` nur mit.
 
 ## Phase 3 – WAF & Zugriffsschutz
 
