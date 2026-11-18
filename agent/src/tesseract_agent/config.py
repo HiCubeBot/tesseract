@@ -19,7 +19,8 @@ class Settings:
     caddy_admin_url: str = "http://caddy:2019"
     # Adresse, die in die erzeugte Config geschrieben wird – muss zur caddy_admin_url passen
     caddy_admin_listen: str = "0.0.0.0:2019"
-    # WAF-Log von Caddy (gemeinsames Volume); leer = keine Treffer melden
+    # Logs von Caddy (gemeinsames Volume); leer = nicht melden
+    access_log: Path | None = None
     waf_log: Path | None = None
     # Eigene CA-Datei, falls das Zertifikat des Controllers nicht öffentlich vertraut ist
     controller_ca: Path | None = None
@@ -39,6 +40,7 @@ class Settings:
             join_token=get("JOIN_TOKEN"),
             caddy_admin_url=get("CADDY_ADMIN_URL", "http://caddy:2019").rstrip("/"),
             caddy_admin_listen=get("CADDY_ADMIN_LISTEN", "0.0.0.0:2019"),
+            access_log=Path(p) if (p := get("ACCESS_LOG")) else None,
             waf_log=Path(p) if (p := get("WAF_LOG")) else None,
             controller_ca=Path(p) if (p := get("CONTROLLER_CA")) else None,
             caddy_bin=get("CADDY_BIN"),
@@ -63,6 +65,7 @@ class Settings:
 
     @property
     def buffer_file(self) -> Path:
+        # Name aus Agent 0.1 beibehalten – ein alter Puffer wird so noch geliefert
         return self.data_dir / "waf-buffer.jsonl"
 
 
@@ -80,8 +83,9 @@ class State:
     agent_token: str = ""
     loaded_hash: str = ""
     force: int = 0
-    # Lesestand im WAF-Log (Nachliefern nach einem Neustart)
+    # Lesestand in den Logs (Nachliefern nach einem Neustart)
     waf_offset: int | None = None
+    access_offset: int | None = None
     extra: dict[str, Any] = field(default_factory=dict)
 
     @property

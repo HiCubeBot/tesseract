@@ -12,6 +12,9 @@ services:
       # WAF-Treffer für die Auto-Sperre: Caddy schreibt, der Controller liest
       TESSERACT_CADDY_WAF_LOG: /var/log/tesseract/waf.log
       TESSERACT_WAF_LOG_PATH: /var/log/tesseract/waf.log
+      # Zugriffs-Log für die zentrale Log-Ansicht und Statistik
+      TESSERACT_CADDY_ACCESS_LOG: /var/log/tesseract/access.log
+      TESSERACT_ACCESS_LOG_PATH: /var/log/tesseract/access.log
     volumes:
       - tesseract-data:/data
       - caddy-logs:/var/log/tesseract:ro

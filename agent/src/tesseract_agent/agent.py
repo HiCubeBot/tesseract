@@ -4,8 +4,8 @@
            geladen. Caddy rollt bei Fehlern selbst zurück; ohne Controller läuft der letzte
            Stand weiter.
 - Status:  alle 30 s (und nach jedem Laden) – laufende Config (Abweichung), Module, Version.
-- WAF:     neue Treffer aus Caddys WAF-Log landen erst in einem Puffer auf der Platte und
-           werden nachgeliefert, sobald der Controller erreichbar ist.
+- Logs:    neue Zeilen aus Caddys Zugriffs- und WAF-Log landen erst in einem Puffer auf der
+           Platte und werden nachgeliefert, sobald der Controller erreichbar ist.
 """
 
 import base64
@@ -37,13 +37,12 @@ MODULE_PROBES: dict[str, str] = {
     "http.handlers.waf": "{\n\torder coraza_waf first\n}\n:1 {\n\tcoraza_waf\n}\n",
     "dns.providers.cloudflare": ":1 {\n\ttls {\n\t\tdns cloudflare probe\n\t}\n}\n",
 }
-VIOLATION = "WAF rule violation detected"
 LONG_POLL = 25
 HEARTBEAT = 30.0
 MODULES_EVERY = 600.0
-WAF_EVERY = 5.0
-WAF_BATCH = 1000
-WAF_BUFFER_MAX = 50_000
+LOGS_EVERY = 5.0
+LOG_BATCH = 1000
+LOG_BUFFER_MAX = 200_000
 
 
 class AgentError(Exception):
@@ -111,56 +110,75 @@ def caddy_version(binary: str) -> str | None:
     return first or None
 
 
-# ---------- WAF-Log ----------
+# ---------- Logs ----------
 
 
-class WafShipper:
-    """Liest neue Zeilen aus dem WAF-Log in einen Puffer und liefert sie aus."""
+def _tail(path: Path | None, offset: int | None) -> tuple[list[str], int | None]:
+    """Neue vollständige Zeilen ab `offset`. Erster Aufruf (None) springt ans Ende."""
+    if path is None:
+        return [], offset
+    try:
+        size = path.stat().st_size
+    except FileNotFoundError:
+        return [], offset
+    if offset is None:
+        return [], size
+    if size < offset:
+        offset = 0  # rotiert
+    if size == offset:
+        return [], offset
+    with path.open("rb") as f:
+        f.seek(offset)
+        data = f.read(8 * 1024 * 1024)
+    cut = data.rfind(b"\n") + 1
+    lines = [x for x in data[:cut].decode("utf-8", "replace").splitlines() if x.strip()]
+    return lines, offset + cut
 
-    def __init__(self, log_path: Path | None, buffer: Path) -> None:
-        self.log_path = log_path
+
+class LogShipper:
+    """Liest neue Zeilen aus Zugriffs- und WAF-Log in einen Puffer auf der Platte und liefert
+    sie aus. Ist der Controller weg, bleibt der Puffer liegen (höchstens LOG_BUFFER_MAX Zeilen,
+    die ältesten fallen zuerst weg)."""
+
+    def __init__(self, access_log: Path | None, waf_log: Path | None, buffer: Path) -> None:
+        self.access_log = access_log
+        self.waf_log = waf_log
         self.buffer = buffer
 
     def collect(self, state: State) -> int:
-        """Neue Treffer in den Puffer schreiben. Gibt die Anzahl zurück."""
-        if self.log_path is None:
-            return 0
-        try:
-            size = self.log_path.stat().st_size
-        except FileNotFoundError:
-            return 0
-        if state.waf_offset is None:
-            # Erster Start: nur Neues melden
-            state.waf_offset = size
-            return 0
-        if size < state.waf_offset:
-            state.waf_offset = 0  # rotiert
-        if size == state.waf_offset:
-            return 0
-        with self.log_path.open("rb") as f:
-            f.seek(state.waf_offset)
-            data = f.read(8 * 1024 * 1024)
-        cut = data.rfind(b"\n") + 1
-        state.waf_offset += cut
-        hits = [
-            line for line in data[:cut].decode("utf-8", "replace").splitlines() if VIOLATION in line
-        ]
-        if hits:
+        access, state.access_offset = _tail(self.access_log, state.access_offset)
+        waf, state.waf_offset = _tail(self.waf_log, state.waf_offset)
+        items = [json.dumps({"k": "a", "l": x}) for x in access]
+        items += [json.dumps({"k": "w", "l": x}) for x in waf]
+        if items:
             self.buffer.parent.mkdir(parents=True, exist_ok=True)
             with self.buffer.open("a", encoding="utf-8") as f:
-                f.writelines(h + "\n" for h in hits)
+                f.writelines(i + "\n" for i in items)
             self._trim()
-        return len(hits)
+        return len(items)
 
     def _trim(self) -> None:
-        lines = self.pending()
-        if len(lines) > WAF_BUFFER_MAX:
-            self._write(lines[-WAF_BUFFER_MAX:])
+        lines = self._raw()
+        if len(lines) > LOG_BUFFER_MAX:
+            self._write(lines[-LOG_BUFFER_MAX:])
 
-    def pending(self) -> list[str]:
+    def _raw(self) -> list[str]:
         if not self.buffer.exists():
             return []
         return [x for x in self.buffer.read_text(encoding="utf-8").splitlines() if x]
+
+    @staticmethod
+    def _decode(raw: str) -> tuple[str, str]:
+        try:
+            item = json.loads(raw)
+            if isinstance(item, dict) and "k" in item:
+                return item["k"], item["l"]
+        except ValueError:
+            pass
+        return "w", raw  # Puffer von Agent 0.1: nur WAF-Zeilen
+
+    def pending(self) -> list[tuple[str, str]]:
+        return [self._decode(x) for x in self._raw()]
 
     def _write(self, lines: list[str]) -> None:
         tmp = self.buffer.with_suffix(".tmp")
@@ -169,12 +187,13 @@ class WafShipper:
 
     def ship(self, send) -> int:
         """Puffer in Paketen senden; was nicht ankommt, bleibt liegen."""
-        lines = self.pending()
+        raw = self._raw()
         sent = 0
-        while sent < len(lines):
-            send(lines[sent : sent + WAF_BATCH])
-            sent = min(sent + WAF_BATCH, len(lines))
-            self._write(lines[sent:])
+        while sent < len(raw):
+            batch = [self._decode(x) for x in raw[sent : sent + LOG_BATCH]]
+            send([line for k, line in batch if k == "a"], [line for k, line in batch if k == "w"])
+            sent = min(sent + LOG_BATCH, len(raw))
+            self._write(raw[sent:])
         return sent
 
 
@@ -192,7 +211,7 @@ class Agent:
         self.state = State.load(settings.state_file)
         self._controller_transport = controller_transport
         self.caddy = Caddy(settings.caddy_admin_url, caddy_transport)
-        self.waf = WafShipper(settings.waf_log, settings.buffer_file)
+        self.logs = LogShipper(settings.access_log, settings.waf_log, settings.buffer_file)
         self.lock = threading.Lock()
         self.wake = threading.Event()
         self.stop = threading.Event()
@@ -362,17 +381,17 @@ class Agent:
         if r.status_code != 200:
             raise AgentError(f"Status senden fehlgeschlagen ({r.status_code}): {_detail(r)}")
 
-    def send_waf(self, lines: list[str]) -> None:
+    def send_logs(self, access: list[str], waf: list[str]) -> None:
         with self._http(with_cert=True) as c:
-            r = c.post("/api/agent/waf", json={"lines": lines})
+            r = c.post("/api/agent/logs", json={"access": access, "waf": waf})
         if r.status_code != 200:
-            raise AgentError(f"WAF-Treffer senden fehlgeschlagen ({r.status_code})")
+            raise AgentError(f"Logs senden fehlgeschlagen ({r.status_code})")
 
-    def waf_round(self) -> int:
+    def logs_round(self) -> int:
         with self.lock:
-            self.waf.collect(self.state)
+            self.logs.collect(self.state)
             self.state.save(self.settings.state_file)
-        return self.waf.ship(self.send_waf)
+        return self.logs.ship(self.send_logs)
 
     # --- Schleifen ---
 
@@ -406,7 +425,7 @@ class Agent:
                 daemon=True,
             ),
             threading.Thread(
-                target=self._loop, args=("waf", self.waf_round, WAF_EVERY), daemon=True
+                target=self._loop, args=("logs", self.logs_round, LOGS_EVERY), daemon=True
             ),
         ]
         for t in threads:

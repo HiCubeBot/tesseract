@@ -43,6 +43,8 @@ services:
       TESSERACT_AGENT_CADDY_ADMIN_URL: http://caddy:2019
       # WAF-Treffer für die Auto-Sperre (Pfad muss zu TESSERACT_CADDY_WAF_LOG des Controllers passen)
       TESSERACT_AGENT_WAF_LOG: /var/log/tesseract/waf.log
+      # Zugriffs-Log für Logs und Statistik (Pfad wie TESSERACT_CADDY_ACCESS_LOG des Controllers)
+      TESSERACT_AGENT_ACCESS_LOG: /var/log/tesseract/access.log
       # Nur nötig, wenn das Zertifikat des Controllers nicht öffentlich vertraut ist:
       # TESSERACT_AGENT_CONTROLLER_CA: /data/controller-ca.pem
     volumes:

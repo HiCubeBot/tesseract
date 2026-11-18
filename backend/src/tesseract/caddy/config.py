@@ -15,6 +15,7 @@ mTLS (Phase 2):
   Client-Zertifikats gegen die Freigabeliste – auch pro Pfad.
 """
 
+import copy
 import hashlib
 import ipaddress
 import json
@@ -155,6 +156,8 @@ class NodeSpec:
     custom_certs: tuple[tuple[int, str, str], ...] = ()
     # Datei, in die Caddy WAF-Treffer schreibt (Pfad im Caddy-Container); leer = aus
     waf_log_file: str = ""
+    # Zugriffs-Log (Phase 5): Pfad im Caddy-Container, leer = keins
+    access_log_file: str = ""
     # Geräte-Zwischenzertifikat (DER, Base64) – Vertrauensanker für Client-Zertifikate
     client_ca_der_b64: str = ""
 
@@ -244,6 +247,38 @@ def path_patterns(paths: tuple[str, ...] | list[str]) -> list[str]:
     return list(dict.fromkeys(out))
 
 
+# Grund einer Ablehnung fürs Zugriffs-Log (Phase 5). Der Marker wird in build_config entweder
+# durch einen `log_append`-Handler ersetzt (Feld `tesseract_reason`) oder entfernt.
+REASON_KEY = "_tesseract_reason"
+ACCESS_LOGGER = "tesseract_access"
+
+
+def _tagged(handler: JSON, reason: str) -> JSON:
+    return {**handler, REASON_KEY: reason}
+
+
+def _apply_reasons(node: Any, enabled: bool) -> None:
+    """Marker auflösen: vor jeden markierten Handler ein log_append setzen (oder nur löschen)."""
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key == "handle" and isinstance(value, list):
+                out = []
+                for h in value:
+                    reason = h.pop(REASON_KEY, None) if isinstance(h, dict) else None
+                    if reason and enabled:
+                        out.append(
+                            {"handler": "log_append", "key": "tesseract_reason", "value": reason}
+                        )
+                    out.append(h)
+                    _apply_reasons(h, enabled)
+                node[key] = out
+            else:
+                _apply_reasons(value, enabled)
+    elif isinstance(node, list):
+        for item in node:
+            _apply_reasons(item, enabled)
+
+
 def _deny(host: HostSpec) -> JSON:
     if host.no_cert_action == "hint":
         return {
@@ -274,7 +309,7 @@ def gate_route(host: HostSpec) -> JSON | None:
     else:
         # nur die gelisteten Pfade geschützt
         matcher = {"not": negations, "path": patterns}
-    return {"match": [matcher], "handle": [_deny(host)], "terminal": True}
+    return {"match": [matcher], "handle": [_tagged(_deny(host), "mtls")], "terminal": True}
 
 
 def waf_directives(mode: str, paranoia: int, exclusions: tuple[int, ...] | list[int]) -> str:
@@ -315,7 +350,12 @@ def ip_route(host: HostSpec) -> JSON | None:
     else:
         return None
     route: JSON = {
-        "handle": [{"handler": "static_response", "status_code": 403, "body": "Zugriff gesperrt"}],
+        "handle": [
+            _tagged(
+                {"handler": "static_response", "status_code": 403, "body": "Zugriff gesperrt"},
+                "ip",
+            )
+        ],
         "terminal": True,
     }
     if matcher:
@@ -422,11 +462,14 @@ def host_handlers(host: HostSpec, authelia: JSON | None = None) -> list[JSON]:
         routes.append(
             {
                 "handle": [
-                    {
-                        "handler": "static_response",
-                        "status_code": 503,
-                        "body": "Anmeldung (Authelia) ist nicht eingerichtet",
-                    }
+                    _tagged(
+                        {
+                            "handler": "static_response",
+                            "status_code": 503,
+                            "body": "Anmeldung (Authelia) ist nicht eingerichtet",
+                        },
+                        "authelia",
+                    )
                 ],
                 "terminal": True,
             }
@@ -435,7 +478,9 @@ def host_handlers(host: HostSpec, authelia: JSON | None = None) -> list[JSON]:
         routes.append(
             {
                 "match": [{"header": {"Upgrade": ["websocket"]}}],
-                "handle": [{"handler": "static_response", "status_code": 403}],
+                "handle": [
+                    _tagged({"handler": "static_response", "status_code": 403}, "websocket")
+                ],
                 "terminal": True,
             }
         )
@@ -458,7 +503,10 @@ def host_handlers(host: HostSpec, authelia: JSON | None = None) -> list[JSON]:
 def internal_route(networks: tuple[str, ...]) -> JSON:
     """Für alle außerhalb der internen Netze: Verbindung abbrechen, keine Antwort.
     Geprüft wird die echte Verbindungs-IP (remote_ip), nicht X-Forwarded-For."""
-    abort: JSON = {"handle": [{"handler": "static_response", "abort": True}], "terminal": True}
+    abort: JSON = {
+        "handle": [_tagged({"handler": "static_response", "abort": True}, "internal")],
+        "terminal": True,
+    }
     if networks:
         abort["match"] = [{"not": [{"remote_ip": {"ranges": list(networks)}}]}]
     return abort
@@ -630,11 +678,15 @@ def build_config(spec: NodeSpec) -> JSON:
         ban: JSON = {
             "@id": "banned",
             "match": [{"client_ip": {"ranges": list(spec.banned)}}],
-            "handle": [{"handler": "static_response", "status_code": 403, "body": "Gesperrt"}],
+            "handle": [
+                _tagged(
+                    {"handler": "static_response", "status_code": 403, "body": "Gesperrt"}, "ban"
+                )
+            ],
             "terminal": True,
         }
         https_routes.append(ban)
-        http_routes.append({**ban, "@id": "banned-http"})
+        http_routes.append({**copy.deepcopy(ban), "@id": "banned-http"})
 
     authelia = (
         authelia_handler(spec.authelia_url, spec.authelia_headers) if spec.authelia_url else None
@@ -712,10 +764,30 @@ def build_config(spec: NodeSpec) -> JSON:
         }
     if tls:
         config["apps"]["tls"] = tls
+    logs: JSON = {}
+    if spec.access_log_file:
+        # Zugriffs-Log aller Hosts (Phase 5) – ohne die Oberfläche selbst (Polling, Agents)
+        server_logs: JSON = {"default_logger_name": ACCESS_LOGGER}
+        if spec.controller_domain:
+            server_logs["skip_hosts"] = [spec.controller_domain]
+        https_server["logs"] = server_logs
+        http_server["logs"] = dict(server_logs)
+        logs[ACCESS_LOGGER] = {
+            "writer": {
+                "output": "file",
+                "filename": spec.access_log_file,
+                "roll_size_mb": 50,
+                "roll_keep": 3,
+                "mode": "0644",
+            },
+            "encoder": {"format": "json"},
+            "include": [f"http.log.access.{ACCESS_LOGGER}"],
+        }
+    _apply_reasons(config, bool(spec.access_log_file))
     if spec.waf_log_file:
         # Eigene Logdatei nur für WAF-Treffer – liest der Controller für die Auto-Sperre
-        config["logging"] = {
-            "logs": {
+        logs.update(
+            {
                 "tesseract_waf": {
                     "writer": {
                         "output": "file",
@@ -730,7 +802,9 @@ def build_config(spec: NodeSpec) -> JSON:
                     "include": ["http.handlers.waf"],
                 }
             }
-        }
+        )
+    if logs:
+        config["logging"] = {"logs": logs}
     return config
 
 

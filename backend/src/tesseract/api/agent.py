@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 
 from tesseract import audit
 from tesseract import nodes as node_svc
-from tesseract.autoban import expire_bans, parse_violation
+from tesseract.autoban import expire_bans
 from tesseract.caddy.config import config_hash
 from tesseract.db.models import Node, utcnow
 from tesseract.deps import DB, AppSettings, client_fingerprint, client_ip
@@ -197,21 +197,45 @@ def post_status(body: StatusIn, node: AgentNode, db: DB) -> dict[str, Any]:
     return {"ok": True, "heartbeat": node_svc.HEARTBEAT_SECONDS}
 
 
+class LogsIn(BaseModel):
+    # Zeilen aus Caddys Zugriffs- und WAF-Log (JSON), vom Agent gepuffert und nachgeliefert
+    access: list[str] = Field(default_factory=list, max_length=5000)
+    waf: list[str] = Field(default_factory=list, max_length=5000)
+
+
 class WafIn(BaseModel):
-    # Zeilen aus Caddys WAF-Log (JSON), vom Agent gepuffert und nachgeliefert
     lines: list[str] = Field(max_length=5000)
 
 
-@router.post("/waf")
-async def post_waf(
-    body: WafIn, request: Request, node: AgentNode, db: DB, settings: AppSettings
+async def _ingest(
+    request: Request, node: Node, db: Session, settings, access: list[str], waf: list[str]
 ) -> dict[str, Any]:
-    """WAF-Treffer eines Nodes – zählen für die Auto-Sperre wie die des lokalen Caddy."""
-    violations = [v for line in body.lines if (v := parse_violation(line))]
+    violations = request.app.state.logs.node(db, node, access, waf)
     node.last_seen_at = utcnow()
     changed = request.app.state.autoban.feed(db, violations) + expire_bans(db)
     db.commit()
     if changed:
         await asyncio.to_thread(apply_all, db, settings, request.app.state.caddy_transport)
         db.commit()
-    return {"accepted": len(violations), "banned": [b.ip for b in changed if not b.lifted_at]}
+    return {
+        "accepted": len(violations),
+        "entries": len(access),
+        "banned": [b.ip for b in changed if not b.lifted_at],
+    }
+
+
+@router.post("/logs")
+async def post_logs(
+    body: LogsIn, request: Request, node: AgentNode, db: DB, settings: AppSettings
+) -> dict[str, Any]:
+    """Logs eines Nodes: landen in der zentralen Log-Ansicht, WAF-Treffer zählen für die
+    Auto-Sperre wie die des lokalen Caddy."""
+    return await _ingest(request, node, db, settings, body.access, body.waf)
+
+
+@router.post("/waf")
+async def post_waf(
+    body: WafIn, request: Request, node: AgentNode, db: DB, settings: AppSettings
+) -> dict[str, Any]:
+    """Nur WAF-Zeilen (Agent 0.1)."""
+    return await _ingest(request, node, db, settings, [], body.lines)

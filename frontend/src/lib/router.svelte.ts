@@ -6,7 +6,8 @@
 function readPath(fallback = ''): string {
   const h = window.location.hash;
   if (h === '' || h === '#/') return '';
-  if (h.startsWith('#/')) return decodeURIComponent(h.slice(2)).replace(/\/+$/, '');
+  // "?…" am Ende sind Parameter für die Seite (z. B. #/logs?q=ip:1.2.3.4), keine Route
+  if (h.startsWith('#/')) return decodeURIComponent(h.slice(2).split('?')[0]).replace(/\/+$/, '');
   return fallback;
 }
 

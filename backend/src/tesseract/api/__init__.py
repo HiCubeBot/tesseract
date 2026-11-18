@@ -15,6 +15,7 @@ from tesseract.api import (
     hosts,
     invites,
     iplists,
+    logs,
     nodes,
     people,
     settings,
@@ -37,3 +38,4 @@ api_router.include_router(bans.router)
 api_router.include_router(certificates.router)
 api_router.include_router(customcerts.router)
 api_router.include_router(agent.router)
+api_router.include_router(logs.router)

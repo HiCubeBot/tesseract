@@ -18,6 +18,7 @@ class FakeController:
         self.force = 0
         self.status: list[dict] = []
         self.waf: list[list[str]] = []
+        self.access: list[list[str]] = []
         self.down = False
         self.csr: str | None = None
 
@@ -52,8 +53,10 @@ class FakeController:
         if path == "/api/agent/status":
             self.status.append(json.loads(request.content))
             return httpx.Response(200, json={"ok": True})
-        if path == "/api/agent/waf":
-            self.waf.append(json.loads(request.content)["lines"])
+        if path == "/api/agent/logs":
+            body = json.loads(request.content)
+            self.waf.append(body["waf"])
+            self.access.append(body["access"])
             return httpx.Response(200, json={"accepted": 1})
         return httpx.Response(404)
 
@@ -86,6 +89,7 @@ def env(tmp_path: Path):
         data_dir=tmp_path,
         controller="https://ctrl.example.org",
         waf_log=tmp_path / "waf.log",
+        access_log=tmp_path / "access.log",
         caddy_bin="gibt-es-nicht",
     )
 
@@ -172,25 +176,37 @@ def test_status_reports_drift_with_running_config(env):
     assert json.loads(base64.b64decode(second["running_config_b64"])) == caddy.running
 
 
-def test_waf_hits_buffered_while_offline(env):
+def test_logs_buffered_while_offline(env):
     ctrl, _, settings, make = env
     agent = joined(env)
-    log = settings.waf_log
-    log.write_text("")
-    agent.waf_round()  # merkt sich das Dateiende
+    waf, acc = settings.waf_log, settings.access_log
+    waf.write_text("")
+    acc.write_text('{"alt": true}\n')
+    agent.logs_round()  # merkt sich die Dateienden
     hit = json.dumps({"msg": "WAF rule violation detected", "client_ip": "203.0.113.9"})
-    with log.open("a") as f:
-        f.write(hit + "\n" + json.dumps({"msg": "anderes"}) + "\n")
+    req = json.dumps({"msg": "handled request", "status": 403})
+    with waf.open("a") as f:
+        f.write(hit + "\n")
+    with acc.open("a") as f:
+        f.write(req + "\n")
     ctrl.down = True
     with pytest.raises(httpx.ConnectError):
-        agent.waf_round()
-    assert agent.waf.pending() == [hit]
+        agent.logs_round()
+    assert agent.logs.pending() == [("a", req), ("w", hit)]
     # Neustart des Agents: Puffer und Lesestand bleiben erhalten
     ctrl.down = False
     again = make()
-    assert again.waf_round() == 1
-    assert ctrl.waf == [[hit]]
-    assert again.waf.pending() == []
+    assert again.logs_round() == 2
+    assert ctrl.waf == [[hit]] and ctrl.access == [[req]]
+    assert again.logs.pending() == []
+
+
+def test_old_buffer_format_is_shipped_as_waf(env):
+    ctrl, _, settings, make = env
+    agent = joined(env)
+    settings.buffer_file.write_text("alte-waf-zeile\n")
+    assert agent.logs.ship(agent.send_logs) == 1
+    assert ctrl.waf == [["alte-waf-zeile"]] and ctrl.access == [[]]
 
 
 def test_cli_status_and_missing_token(env, capsys, monkeypatch):

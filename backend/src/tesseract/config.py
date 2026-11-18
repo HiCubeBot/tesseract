@@ -50,6 +50,12 @@ class Settings(BaseSettings):
     # Controller dieselbe Datei liest (gemeinsames Volume). Leer = Auto-Sperre ohne Daten.
     caddy_waf_log: str = ""
     waf_log_path: Path | None = None
+    # Zugriffs-Log (Phase 5): Pfad im Caddy-Container und Pfad, unter dem der Controller
+    # dieselbe Datei liest. Leer = keine Logs vom lokalen Node.
+    caddy_access_log: str = ""
+    access_log_path: Path | None = None
+    # Optionale GeoIP-Datenbank (MaxMind GeoLite2-Country o. ä., .mmdb) für Länder in Logs/Statistik
+    geoip_db: Path | None = None
     # Hintergrundaufgaben (Auto-Sperre); in Tests aus
     background_tasks: bool = True
 

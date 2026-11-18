@@ -46,6 +46,7 @@ import HostSecurityPage from "./pages/HostSecurity.svelte";
 import SettingsIntegrationsPage from "./pages/SettingsIntegrations.svelte";
 import CertificatesPage from "./pages/Certificates.svelte";
 import NodesPage from "./pages/Nodes.svelte";
+import LogsPage from "./pages/Logs.svelte";
 
 export interface Page {
   /** Muster ohne "#/", Parameter mit ":" – z. B. "hosts/:id/history" */
@@ -64,6 +65,7 @@ export const pages: Page[] = [
   { pattern: "hosts/new", title: "Host anlegen", component: HostWizardPage },
   { pattern: "certificates", title: "Zertifikate", component: CertificatesPage },
   { pattern: "nodes", title: "Nodes", component: NodesPage },
+  { pattern: "logs", title: "Logs", component: LogsPage },
   { pattern: "hosts/:id", title: "Proxy-Hosts", component: HostsPage },
   { pattern: "hosts/:id/history", title: "Host · Verlauf", component: HostHistoryPage },
   { pattern: "hosts/:id/security", title: "Host · Sicherheit", component: HostSecurityPage },

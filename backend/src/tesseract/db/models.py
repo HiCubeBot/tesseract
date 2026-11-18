@@ -482,3 +482,35 @@ class CustomCert(Base):
     not_before: Mapped[datetime]
     not_after: Mapped[datetime]
     created_at: Mapped[datetime] = mapped_column(default=utcnow)
+
+
+# ---------- Phase 5: Logs ----------
+
+
+class LogEntry(Base):
+    """Ein Eintrag aus Caddys Zugriffs-Log eines Nodes, ergänzt um Grund, WAF-Regeln, Gerät."""
+
+    __tablename__ = "log_entries"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    ts: Mapped[datetime] = mapped_column(index=True)
+    node_id: Mapped[int] = mapped_column(ForeignKey("nodes.id", ondelete="CASCADE"), index=True)
+    host: Mapped[str] = mapped_column(String(253), index=True)
+    method: Mapped[str] = mapped_column(String(16), default="")
+    uri: Mapped[str] = mapped_column(String(2048), default="")
+    status: Mapped[int] = mapped_column(default=0)
+    duration_ms: Mapped[float] = mapped_column(default=0.0)
+    # Bytes der Antwort
+    size: Mapped[int] = mapped_column(default=0)
+    ip: Mapped[str] = mapped_column(String(64), index=True)
+    country: Mapped[str | None] = mapped_column(String(2))
+    device_id: Mapped[int | None] = mapped_column(
+        ForeignKey("devices.id", ondelete="SET NULL"), index=True
+    )
+    # ok | waf | ip | ban | mtls | internal | websocket | authelia
+    reason: Mapped[str] = mapped_column(String(16), default="ok", index=True)
+    # WAF: ausgelöste Regeln (auch im Modus „nur protokollieren“), Meldung, Anomalie-Score
+    waf_rules: Mapped[list[int]] = mapped_column(JSON, default=list)
+    waf_msg: Mapped[str | None] = mapped_column(String(255))
+    waf_score: Mapped[int | None]
+    user_agent: Mapped[str | None] = mapped_column(String(255))

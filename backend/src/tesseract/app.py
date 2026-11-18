@@ -16,6 +16,7 @@ from tesseract.auth import LoginThrottle
 from tesseract.autoban import AutoBan
 from tesseract.bootstrap import init_database, sync_nodes_on_start
 from tesseract.config import Settings, get_settings
+from tesseract.logs import Collector, Geo
 from tesseract.secretbox import load_secretbox
 
 
@@ -47,6 +48,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                         settings,
                         app.state.caddy_transport,
                         banner=app.state.autoban,
+                        collector=app.state.logs,
                     )
                 )
             )
@@ -72,6 +74,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.enroll_throttle = LoginThrottle(limit=10, window=900)
     # Auto-Sperre: Treffer des lokalen Caddy und der Agents zählen gemeinsam
     app.state.autoban = AutoBan()
+    # Zentrale Logs: WAF-Zwischenstand pro Node, GeoIP (Phase 5)
+    app.state.logs = Collector(Geo(settings.geoip_db))
     # In Tests durch einen httpx.MockTransport ersetzt
     app.state.caddy_transport = None
     app.include_router(api_router, prefix="/api")

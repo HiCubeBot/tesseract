@@ -84,6 +84,8 @@ GENERAL_DEFAULTS: dict[str, Any] = {
     "internal_list_ids": [],
     # Geteilte Wildcard-Zertifikate (DNS-01)
     "wildcard_certs": [],
+    # Logs: Aufbewahrung in Tagen (Phase 5)
+    "logs_days": 14,
 }
 CLOUDFLARE_CONTEXT = "cloudflare-token"
 ADMIN_GROUP = "Admin"
@@ -502,6 +504,7 @@ def node_config(db: Session, node: Node, settings: Settings) -> dict[str, Any]:
         wildcard_certs=tuple(general["wildcard_certs"]),
         custom_certs=tuple(custom_cert_material(db, settings, hosts)),
         waf_log_file=settings.caddy_waf_log,
+        access_log_file=settings.caddy_access_log,
     )
     return build_config(spec)
 

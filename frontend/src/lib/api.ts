@@ -668,3 +668,83 @@ export const ENROLLMENT_STATUS: Record<Enrollment['status'], { label: string; to
   delivered: { label: 'installiert', tone: 'ok' },
   rejected: { label: 'abgelehnt', tone: 'bad' }
 };
+
+// ---------- Phase 5: Logs ----------
+
+export type LogReason = 'ok' | 'waf' | 'ip' | 'ban' | 'mtls' | 'internal' | 'websocket' | 'authelia';
+
+export interface LogEntry {
+  id: number;
+  ts: string;
+  node: string;
+  host: string;
+  method: string;
+  uri: string;
+  status: number;
+  duration_ms: number;
+  size: number;
+  ip: string;
+  country: string | null;
+  device: string | null;
+  person: string | null;
+  reason: LogReason;
+  waf_rules: number[];
+  waf_msg: string | null;
+  waf_score: number | null;
+  user_agent: string | null;
+}
+
+export interface LogSource {
+  node: string;
+  kind: 'local' | 'agent';
+  state: NodeState;
+  last_entry_at: string | null;
+}
+
+export interface LogPage {
+  entries: LogEntry[];
+  sources: LogSource[];
+  geoip: boolean;
+}
+
+export interface LogDetail extends LogEntry {
+  host_id: number | null;
+  waf_mode: WafMode | null;
+  waf_exclusions: number[];
+  ip_requests: number;
+  ip_denied: number;
+  ip_banned: boolean;
+}
+
+export const LOG_REASONS: Record<LogReason, { label: string; tone: 'ok' | 'waf' | 'mtls' | 'ip' | 'bad' }> = {
+  ok: { label: 'ok', tone: 'ok' },
+  waf: { label: 'WAF', tone: 'waf' },
+  ip: { label: 'IP-Filter', tone: 'ip' },
+  ban: { label: 'IP gesperrt', tone: 'ip' },
+  internal: { label: 'nicht intern', tone: 'ip' },
+  mtls: { label: 'ohne Zertifikat', tone: 'mtls' },
+  websocket: { label: 'WebSocket gesperrt', tone: 'bad' },
+  authelia: { label: 'Authelia fehlt', tone: 'bad' }
+};
+
+/** Land (ISO-Code) als Name auf Deutsch */
+export function countryName(code: string | null): string {
+  if (!code) return '';
+  try {
+    return new Intl.DisplayNames(['de'], { type: 'region' }).of(code) ?? code;
+  } catch {
+    return code;
+  }
+}
+
+export function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  const units = ['KB', 'MB', 'GB', 'TB'];
+  let v = n / 1024;
+  let i = 0;
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024;
+    i++;
+  }
+  return `${v.toLocaleString('de-DE', { maximumFractionDigits: v < 10 ? 1 : 0 })} ${units[i]}`;
+}

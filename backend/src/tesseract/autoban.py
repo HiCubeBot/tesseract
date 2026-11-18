@@ -142,18 +142,31 @@ async def watch(
     transport=None,
     interval: float = 5.0,
     banner: AutoBan | None = None,
+    collector=None,
 ) -> None:
-    """Hintergrund-Aufgabe des Controllers. `banner` teilt sie sich mit den Agents (Phase 4)."""
+    """Hintergrund-Aufgabe des Controllers: WAF- und Zugriffs-Log des lokalen Caddy lesen.
+    `banner` und `collector` teilt sie sich mit den Agents (Phase 4/5)."""
+    from tesseract.logs import Collector
+
     tail = LogTail(settings.waf_log_path) if settings.waf_log_path else None
+    access = LogTail(settings.access_log_path) if settings.access_log_path else None
     banner = banner or AutoBan()
+    collector = collector or Collector()
     if tail is None:
         log.info("Kein WAF-Log konfiguriert (TESSERACT_WAF_LOG_PATH) – Auto-Sperre ohne Daten")
+    if access is None:
+        log.info("Kein Zugriffs-Log konfiguriert (TESSERACT_ACCESS_LOG_PATH) – keine Logs")
+    rounds = 0
     while True:
         try:
-            lines = await asyncio.to_thread(tail.read_new) if tail else []
-            violations = [v for line in lines if (v := parse_violation(line))]
+            waf_lines = await asyncio.to_thread(tail.read_new) if tail else []
+            access_lines = await asyncio.to_thread(access.read_new) if access else []
             with database.sessionmaker() as db:
+                violations = collector.local(db, access_lines, waf_lines)
                 changed = banner.feed(db, violations) + expire_bans(db)
+                # Aufbewahrung: etwa alle 10 Minuten alte Einträge löschen
+                if rounds % 120 == 0:
+                    collector.prune(db)
                 db.commit()
                 if changed:
                     for b in changed:
@@ -165,5 +178,6 @@ async def watch(
         except asyncio.CancelledError:
             raise
         except Exception:  # pragma: no cover – die Schleife darf nie sterben
-            log.exception("Auto-Sperre: Fehler beim Auswerten")
+            log.exception("Auto-Sperre/Logs: Fehler beim Auswerten")
+        rounds += 1
         await asyncio.sleep(interval)
