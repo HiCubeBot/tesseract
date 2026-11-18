@@ -168,6 +168,17 @@ dass sie später durch den Agent ersetzt werden kann („Node-Treiber“: lokal 
   Proxys; bei NAT-Loopback über den Router kann sonst die Router-IP als Absender ankommen;
   bei Docker-Portfreigaben prüfen, dass Caddy die echte Client-IP sieht.
 
+## Geteilte Wildcard-Zertifikate (Phase 3b)
+
+- Unter Einstellungen › Integrationen eingetragene Wildcards (z. B. `*.home.beispiel.de`)
+  holt Caddy per DNS-01 (`tls.certificates.automate` + eigene ACME-Richtlinie) – auch ohne
+  eigenen Host.
+- Hosts genau eine Ebene darunter stehen in `automatic_https.skip_certificates` und bekommen
+  kein Einzelzertifikat; Caddy liefert für ihren Namen das Wildcard-Zertifikat aus
+  (am echten Caddy geprüft). Deren Namen erscheinen so nicht in den CT-Logs.
+- Nur mit hinterlegtem Cloudflare-Token; interne Hosts mit öffentlichem Namen sind
+  damit auch ohne eigenes DNS-01 möglich.
+
 ## Offene Entscheidungen
 
 | Thema | Optionen | Notiz |

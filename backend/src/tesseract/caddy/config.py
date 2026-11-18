@@ -139,6 +139,8 @@ class NodeSpec:
     banned: tuple[str, ...] = ()
     # Interne Netze (LAN, VPN) für Hosts mit „Nur intern“
     internal_networks: tuple[str, ...] = ()
+    # Geteilte Wildcard-Zertifikate (per DNS-01), z. B. "*.home.example.org"
+    wildcard_certs: tuple[str, ...] = ()
     # Datei, in die Caddy WAF-Treffer schreibt (Pfad im Caddy-Container); leer = aus
     waf_log_file: str = ""
     # Geräte-Zwischenzertifikat (DER, Base64) – Vertrauensanker für Client-Zertifikate
@@ -524,6 +526,17 @@ def _controller_route(spec: NodeSpec) -> JSON:
     return route
 
 
+def covering_wildcard(domain: str, wildcards: tuple[str, ...] | list[str]) -> str | None:
+    """Welches Wildcard-Zertifikat deckt den Namen ab? (genau eine Ebene darunter)"""
+    if domain.startswith("*."):
+        return domain if domain in wildcards else None
+    first, _, rest = domain.partition(".")
+    if not first or not rest:
+        return None
+    candidate = f"*.{rest}"
+    return candidate if candidate in wildcards else None
+
+
 def _route_order(h: HostSpec) -> tuple[int, str]:
     # Wildcards nach den konkreten Namen, sonst fängt *.example.org alles ab
     return (1 if h.domain.startswith("*.") else 0, h.domain)
@@ -531,12 +544,14 @@ def _route_order(h: HostSpec) -> tuple[int, str]:
 
 def tls_automation(spec: NodeSpec, hosts: list[HostSpec]) -> JSON | None:
     """ACME-Richtlinien: HTTP-01 (Standard) und DNS-01 über Cloudflare."""
-    http_subjects = [
-        h.domain for h in hosts if is_public_name(h.domain) and h.tls_challenge != "dns"
+    wild = spec.wildcard_certs if spec.cloudflare_token else ()
+    # Hosts unter einem geteilten Wildcard-Zertifikat brauchen kein eigenes
+    public = [
+        h for h in hosts if is_public_name(h.domain) and not covering_wildcard(h.domain, wild)
     ]
-    dns_subjects = [
-        h.domain for h in hosts if is_public_name(h.domain) and h.tls_challenge == "dns"
-    ]
+    http_subjects = [h.domain for h in public if h.tls_challenge != "dns"]
+    dns_subjects = [*wild, *(h.domain for h in public if h.tls_challenge == "dns")]
+    dns_subjects = list(dict.fromkeys(dns_subjects))
     if spec.controller_domain and is_public_name(spec.controller_domain):
         http_subjects.insert(0, spec.controller_domain)
 
@@ -563,7 +578,13 @@ def tls_automation(spec: NodeSpec, hosts: list[HostSpec]) -> JSON | None:
         policies.append({"subjects": dns_subjects, "issuers": [issuer(True)]})
     if http_subjects and spec.acme_email:
         policies.append({"subjects": http_subjects, "issuers": [issuer(False)]})
-    return {"automation": {"policies": policies}} if policies else None
+    if not policies:
+        return None
+    tls: JSON = {"automation": {"policies": policies}}
+    if wild:
+        # Wildcard-Zertifikate auch ohne eigenen Host holen und erneuern
+        tls["certificates"] = {"automate": list(wild)}
+    return tls
 
 
 def build_config(spec: NodeSpec) -> JSON:
@@ -616,6 +637,13 @@ def build_config(spec: NodeSpec) -> JSON:
         "routes": https_routes,
         "automatic_https": {"disable_redirects": True},
     }
+    wild = spec.wildcard_certs if spec.cloudflare_token else ()
+    covered = [
+        h.domain for h in hosts if is_public_name(h.domain) and covering_wildcard(h.domain, wild)
+    ]
+    if covered:
+        # kein Einzelzertifikat – Caddy liefert das passende Wildcard-Zertifikat aus
+        https_server["automatic_https"]["skip_certificates"] = covered
     http_server: JSON = {"listen": [":80"], "routes": http_routes}
     if spec.trusted_proxies:
         proxies = {"source": "static", "ranges": list(spec.trusted_proxies)}

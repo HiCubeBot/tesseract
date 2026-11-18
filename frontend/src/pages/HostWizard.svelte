@@ -7,6 +7,7 @@
   import AccessForm from '../lib/components/AccessForm.svelte';
   import {
     api,
+    coveringWildcard,
     type CAStatus,
     type Check,
     type GeneralSettings,
@@ -35,6 +36,7 @@
   let caConfigured = $state(false);
   let dnsAvailable = $state(false);
   let internalAvailable = $state(false);
+  let wildcards = $state<string[]>([]);
 
   api.get<NodeInfo[]>('/nodes').then((n) => {
     nodes = n;
@@ -50,6 +52,7 @@
     persons = p;
     caConfigured = c.configured;
     dnsAvailable = s.cloudflare_token_set;
+    wildcards = s.wildcard_certs;
     internalAvailable = s.internal_networks.length > 0 || s.internal_list_ids.length > 0;
   });
 
@@ -159,7 +162,7 @@
   {#if step === 1}
     <div class="layout">
       <section class="card main" aria-label="Domain und Ziel">
-        <HostForm bind:value={host} {nodes} {dnsAvailable} />
+        <HostForm bind:value={host} {nodes} {dnsAvailable} {wildcards} />
       </section>
       <aside class="card side" aria-label="Automatische Prüfungen">
         <h2>Vorab geprüft</h2>
@@ -190,7 +193,11 @@
           <dt>Ziel</dt><dd class="mono">{upstreamLabel(host)}</dd>
           <dt>Node</dt><dd>{nodeName}</dd>
           <dt>Zertifikat</dt>
-          <dd>{localName ? 'lokales Zertifikat von Caddy' : `Let's Encrypt · ${host.tls_challenge === 'dns' ? 'DNS-01 (Cloudflare)' : 'HTTP-01'}`}</dd>
+          <dd>
+            {#if localName}lokales Zertifikat von Caddy
+            {:else if dnsAvailable && coveringWildcard(host.domain, wildcards)}geteiltes Wildcard-Zertifikat {coveringWildcard(host.domain, wildcards)}
+            {:else}Let's Encrypt · {host.tls_challenge === 'dns' ? 'DNS-01 (Cloudflare)' : 'HTTP-01'}{/if}
+          </dd>
           <dt>Zugriff</dt>
           <dd>
             {host.internal ? 'Nur intern · ' : ''}{host.access === 'mtls' ? 'Nur mit Zertifikat' : host.internal ? 'ohne Zertifikat' : 'Öffentlich'}

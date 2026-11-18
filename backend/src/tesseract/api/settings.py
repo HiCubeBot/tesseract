@@ -45,6 +45,22 @@ class GeneralIn(BaseModel):
     autoban_exempt: list[str] = Field(default_factory=list, max_length=200)
     internal_networks: list[str] = Field(default_factory=list, max_length=200)
     internal_list_ids: list[int] = Field(default_factory=list, max_length=20)
+    wildcard_certs: list[str] = Field(default_factory=list, max_length=20)
+
+    @field_validator("wildcard_certs")
+    @classmethod
+    def _wildcards(cls, v: list[str]) -> list[str]:
+        from tesseract.api.hosts import normalize_domain
+
+        out = []
+        for w in v:
+            w = w.strip().lower()
+            if not w:
+                continue
+            if not w.startswith("*."):
+                w = "*." + w
+            out.append(normalize_domain(w, allow_wildcard=True))
+        return list(dict.fromkeys(out))
 
     @field_validator("internal_networks")
     @classmethod
@@ -127,6 +143,7 @@ class GeneralOut(BaseModel):
     autoban_exempt: list[str]
     internal_networks: list[str]
     internal_list_ids: list[int]
+    wildcard_certs: list[str]
     # Liest der Controller das WAF-Log? (sonst sieht die Auto-Sperre keine Treffer)
     autoban_log_ready: bool
     # nur lesbar – kommen aus der Umgebung
@@ -155,6 +172,7 @@ def get_settings_general(db: DB, _: CurrentActor, settings: AppSettings) -> Gene
         autoban_exempt=g["autoban_exempt"],
         internal_networks=g["internal_networks"],
         internal_list_ids=g["internal_list_ids"],
+        wildcard_certs=g["wildcard_certs"],
         autoban_log_ready=bool(settings.caddy_waf_log and settings.waf_log_path),
         controller_domain=settings.controller_domain,
         version=__version__,
@@ -192,6 +210,13 @@ def put_settings_general(
             status.HTTP_409_CONFLICT,
             "Authelia wird noch von Hosts genutzt – dort erst abschalten",
         )
+    if value.get("wildcard_certs") and not (
+        before["cloudflare_token_enc"] or value.get("cloudflare_token_enc")
+    ):
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Wildcard-Zertifikate brauchen DNS-01 – erst den Cloudflare-Token eintragen",
+        )
     nets_after = value.get("internal_networks", before["internal_networks"])
     lists_after = value.get("internal_list_ids", before["internal_list_ids"])
     if not (nets_after or lists_after) and db.scalar(select(Host.id).where(Host.internal).limit(1)):
@@ -222,6 +247,7 @@ def put_settings_general(
         "cloudflare_token_enc",
         "internal_networks",
         "internal_list_ids",
+        "wildcard_certs",
     )
     if any(before.get(k) != value.get(k, before.get(k)) for k in relevant):
         for node in db.scalars(select(Node)):

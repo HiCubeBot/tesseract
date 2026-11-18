@@ -49,7 +49,8 @@
         autoban_hours: Number(general.autoban_hours),
         autoban_exempt: general.autoban_exempt,
         internal_networks: general.internal_networks,
-        internal_list_ids: general.internal_list_ids
+        internal_list_ids: general.internal_list_ids,
+        wildcard_certs: general.wildcard_certs
       });
       ipLists = await api.get<IpList[]>('/ip-lists');
       toasts.show('ok', 'Gespeichert.');
@@ -242,6 +243,24 @@
           <Button variant="ghost" label="Token löschen" disabled={cfSaving} onClick={() => saveToken('')} />
         {/if}
       </div>
+    </form>
+
+    <form class="card" onsubmit={save} aria-labelledby="wild-title">
+      <h2 id="wild-title">Geteilte Wildcard-Zertifikate</h2>
+      <p class="muted small">
+        Ein Zertifikat wie <code>*.home.beispiel.de</code> wird einmal per DNS-01 geholt und für alle Hosts genutzt,
+        die genau eine Ebene darunter liegen (z. B. <code>grafana.home.beispiel.de</code>). Weniger Zertifikate – und die
+        einzelnen Hostnamen tauchen nicht in den öffentlichen Certificate-Transparency-Logs auf.
+      </p>
+      {#if general.cloudflare_token_set}
+        <div class="field">
+          Wildcard-Domains
+          <ChipInput bind:values={general.wildcard_certs} label="Wildcard hinzufügen" placeholder="*.home.beispiel.de" />
+        </div>
+        <div class="row"><Button type="submit" label={saving ? 'Speichert …' : 'Speichern'} disabled={saving} /></div>
+      {:else}
+        <p class="muted small">Braucht DNS-01 – erst oben den Cloudflare-Token eintragen.</p>
+      {/if}
     </form>
 
     <form class="card" onsubmit={save} aria-labelledby="authelia-title">

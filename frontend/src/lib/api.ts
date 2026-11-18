@@ -105,6 +105,7 @@ export interface Host {
   authelia: boolean;
   tls_challenge: 'http' | 'dns';
   internal: boolean;
+  wildcard_cert: string | null;
   areas: (AreaInput & { id: number })[];
   paths: string[];
   grants: GrantRef[];
@@ -164,6 +165,16 @@ export interface IpList {
   updated_at: string;
 }
 
+/** Welches geteilte Wildcard-Zertifikat deckt den Namen ab? (eine Ebene darunter) */
+export function coveringWildcard(domain: string, wildcards: string[]): string | null {
+  const d = domain.trim().toLowerCase();
+  if (d.startsWith('*.')) return wildcards.includes(d) ? d : null;
+  const dot = d.indexOf('.');
+  if (dot < 1) return null;
+  const candidate = '*.' + d.slice(dot + 1);
+  return wildcards.includes(candidate) ? candidate : null;
+}
+
 /** Vorlage: Netze von Cloudflare (Stand der Veröffentlichung, bitte gelegentlich prüfen) */
 export const CLOUDFLARE_RANGES = [
   '173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22', '141.101.64.0/18',
@@ -195,6 +206,7 @@ export type HostInput = Omit<
   | 'grants'
   | 'granted_persons'
   | 'allowed_devices'
+  | 'wildcard_cert'
   | 'waf_mode'
   | 'waf_paranoia'
   | 'areas'
@@ -284,6 +296,7 @@ export interface GeneralSettings {
   autoban_log_ready: boolean;
   internal_networks: string[];
   internal_list_ids: number[];
+  wildcard_certs: string[];
   controller_domain: string;
   version: string;
 }

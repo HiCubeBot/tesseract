@@ -80,6 +80,8 @@ GENERAL_DEFAULTS: dict[str, Any] = {
     # Interne Netze (LAN, VPN) für „Nur intern“: einzelne Netze und IP-Listen
     "internal_networks": [],
     "internal_list_ids": [],
+    # Geteilte Wildcard-Zertifikate (DNS-01)
+    "wildcard_certs": [],
 }
 CLOUDFLARE_CONTEXT = "cloudflare-token"
 ADMIN_GROUP = "Admin"
@@ -463,6 +465,7 @@ def node_config(db: Session, node: Node, settings: Settings) -> dict[str, Any]:
         internal_networks=tuple(
             resolve_ranges(db, general["internal_networks"], general["internal_list_ids"])
         ),
+        wildcard_certs=tuple(general["wildcard_certs"]),
         waf_log_file=settings.caddy_waf_log,
     )
     return build_config(spec)

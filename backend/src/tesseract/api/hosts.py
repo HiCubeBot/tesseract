@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from tesseract import audit, checks
 from tesseract.api.iplists import normalize_networks
-from tesseract.caddy.config import host_route, is_public_name
+from tesseract.caddy.config import covering_wildcard, host_route, is_public_name
 from tesseract.db.models import Group, Host, HostArea, HostVersion, IpList, Node, Person
 from tesseract.deps import DB, AppSettings, CurrentActor
 from tesseract.services import (
@@ -231,6 +231,8 @@ class HostOut(BaseModel):
     authelia: bool
     tls_challenge: str
     internal: bool
+    # Geteiltes Wildcard-Zertifikat, das diesen Host abdeckt (sonst None)
+    wildcard_cert: str | None
     areas: list[AreaOut]
     paths: list[str]
     grants: list[GrantRef]
@@ -269,7 +271,15 @@ class VersionDetail(VersionOut):
     previous_route: dict[str, Any] | None
 
 
-_COMPUTED = {"node", "paths", "grants", "granted_persons", "allowed_devices", "areas"}
+_COMPUTED = {
+    "node",
+    "paths",
+    "grants",
+    "granted_persons",
+    "allowed_devices",
+    "areas",
+    "wildcard_cert",
+}
 
 
 def _out(db: Session, host: Host) -> HostOut:
@@ -301,6 +311,7 @@ def _out(db: Session, host: Host) -> HostOut:
             for a in host.areas
         ],
         grants=grants,
+        wildcard_cert=covering_wildcard(host.domain, get_general(db)["wildcard_certs"]),
         granted_persons=len(granted_persons(db, host)),
         allowed_devices=len(allowed_devices(db, host)),
     )
@@ -340,7 +351,13 @@ def _check_grants(db: Session, body: HostIn) -> None:
             status.HTTP_409_CONFLICT,
             "Erst unter Einstellungen › Integrationen die internen Netze festlegen",
         )
-    if body.internal and body.tls_challenge == "http" and is_public_name(body.domain):
+    covered = covering_wildcard(body.domain, general["wildcard_certs"])
+    if (
+        body.internal
+        and body.tls_challenge == "http"
+        and is_public_name(body.domain)
+        and not covered
+    ):
         raise HTTPException(
             status.HTTP_409_CONFLICT,
             "Interne Hosts sind von außen nicht erreichbar – das Zertifikat braucht DNS-01",

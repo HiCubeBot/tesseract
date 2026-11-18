@@ -36,6 +36,7 @@
   let caConfigured = $state(false);
   let dnsAvailable = $state(false);
   let internalAvailable = $state(false);
+  let wildcards = $state<string[]>([]);
   let loaded = $state(false);
   let loadError = $state('');
   let filter = $state(0);
@@ -64,6 +65,7 @@
       ]);
       caConfigured = ca.configured;
       dnsAvailable = general.cloudflare_token_set;
+      wildcards = general.wildcard_certs;
       internalAvailable = general.internal_networks.length > 0 || general.internal_list_ids.length > 0;
       loadError = '';
     } catch (e) {
@@ -232,7 +234,7 @@
           <Alert tone="warn" title="Entwurf" text="Dieser Host ist gespeichert, aber noch nicht an Caddy übertragen." />
         {/if}
 
-        <HostForm bind:value={edit} {nodes} {dnsAvailable} compact />
+        <HostForm bind:value={edit} {nodes} {dnsAvailable} {wildcards} compact />
         <div class="divider"></div>
         <AccessForm bind:value={edit} {groups} {persons} {caConfigured} {internalAvailable} compact />
 

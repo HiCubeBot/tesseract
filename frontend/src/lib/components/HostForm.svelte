@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { HostInput, NodeInfo } from '../api';
+  import { coveringWildcard, type HostInput, type NodeInfo } from '../api';
 
   interface Props {
     value: HostInput;
@@ -8,9 +8,12 @@
     compact?: boolean;
     /** Cloudflare-Token hinterlegt → DNS-01 möglich */
     dnsAvailable?: boolean;
+    /** geteilte Wildcard-Zertifikate aus den Einstellungen */
+    wildcards?: string[];
   }
 
-  let { value = $bindable(), nodes, compact = false, dnsAvailable = false }: Props = $props();
+  let { value = $bindable(), nodes, compact = false, dnsAvailable = false, wildcards = [] }: Props = $props();
+  const covered = $derived(dnsAvailable ? coveringWildcard(value.domain, wildcards) : null);
   const wildcard = $derived(value.domain.trim().startsWith('*.'));
   // Wildcard geht nur per DNS-01
   $effect(() => {
@@ -35,6 +38,12 @@
     />
   </label>
 
+  {#if covered}
+    <div class="field">
+      Zertifikat
+      <span class="wild">Geteiltes Wildcard-Zertifikat <code class="mono">{covered}</code> – kein eigenes nötig</span>
+    </div>
+  {:else}
   <label class="field" for="{id}-challenge">
     Zertifikat von Let's Encrypt prüfen über
     <select id="{id}-challenge" class="input" bind:value={value.tls_challenge}>
@@ -45,6 +54,7 @@
       <span class="field-error">Wildcard-Domains brauchen DNS-01 – Cloudflare-Token unter Einstellungen › Integrationen eintragen.</span>
     {/if}
   </label>
+  {/if}
 
   {#if !compact}
     <fieldset class="nodes">
@@ -120,6 +130,16 @@
 </div>
 
 <style>
+  .wild {
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    background: var(--ok-soft);
+    color: var(--ok-text);
+    font-size: 13px;
+  }
+  .wild code {
+    color: var(--text);
+  }
   .form {
     display: flex;
     flex-direction: column;
