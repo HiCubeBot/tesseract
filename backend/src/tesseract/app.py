@@ -48,6 +48,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.settings = settings
     app.state.login_throttle = LoginThrottle()
+    # Gastseite: falsche Codes pro IP bremsen
+    app.state.enroll_throttle = LoginThrottle(limit=10, window=900)
     # In Tests durch einen httpx.MockTransport ersetzt
     app.state.caddy_transport = None
     app.include_router(api_router, prefix="/api")
@@ -70,6 +72,11 @@ def _mount_frontend(app: FastAPI, static_dir: Path) -> None:
     @app.get("/", include_in_schema=False)
     async def index_html() -> FileResponse:
         return FileResponse(index)
+
+    # Öffentliche Einladungsseite: /e/<token> liefert dieselbe SPA aus
+    @app.get("/e/{token}", include_in_schema=False)
+    async def enroll_page(token: str) -> FileResponse:
+        return FileResponse(index, headers={"Referrer-Policy": "no-referrer"})
 
 
 def app_factory() -> FastAPI:

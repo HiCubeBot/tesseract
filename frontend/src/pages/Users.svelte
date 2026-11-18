@@ -7,6 +7,7 @@
   import EmptyState from '../lib/components/EmptyState.svelte';
   import ConfirmDialog from '../lib/components/ConfirmDialog.svelte';
   import IssuedCertificate from '../lib/components/IssuedCertificate.svelte';
+  import InviteCard from '../lib/components/InviteCard.svelte';
   import Icon from '../lib/components/Icon.svelte';
   import {
     api,
@@ -16,6 +17,7 @@
     formatDay,
     type CAStatus,
     type Group,
+    type Invite,
     type IssuedDevice,
     type Person
   } from '../lib/api';
@@ -28,6 +30,8 @@
   let persons = $state<Person[]>([]);
   let groups = $state<Group[]>([]);
   let ca = $state<CAStatus | null>(null);
+  let invites = $state<Invite[]>([]);
+  let inviting = $state(false);
   let error = $state('');
 
   const selectedId = $derived(params.id === 'new' ? null : params.id ? Number(params.id) : null);
@@ -56,10 +60,11 @@
 
   async function load() {
     try {
-      [persons, groups, ca] = await Promise.all([
+      [persons, groups, ca, invites] = await Promise.all([
         api.get<Person[]>('/persons'),
         api.get<Group[]>('/groups'),
-        api.get<CAStatus>('/ca')
+        api.get<CAStatus>('/ca'),
+        api.get<Invite[]>('/invites')
       ]);
       error = '';
     } catch (e) {
@@ -67,6 +72,36 @@
     }
   }
   load();
+
+  const personInvites = $derived(invites.filter((i) => i.person_id === selectedId));
+  const pendingFor = (id: number) =>
+    invites.filter((i) => i.person_id === id).flatMap((i) => i.enrollments).filter((e) => e.status === 'pending').length;
+
+  // Offene Einladung angezeigt → regelmäßig nach neuen Registrierungen schauen
+  $effect(() => {
+    if (!personInvites.length) return;
+    const timer = setInterval(async () => {
+      try {
+        invites = await api.get<Invite[]>('/invites');
+      } catch {
+        /* nächster Versuch */
+      }
+    }, 5000);
+    return () => clearInterval(timer);
+  });
+
+  async function invite() {
+    if (!selected) return;
+    inviting = true;
+    try {
+      await api.post(`/persons/${selected.id}/invites`, { days: 7 });
+      await load();
+    } catch (err) {
+      toasts.show('bad', err instanceof Error ? err.message : String(err));
+    } finally {
+      inviting = false;
+    }
+  }
 
   // Formular nur beim Wechsel der Person neu füllen – nicht nach jedem Neuladen
   $effect(() => {
@@ -238,6 +273,7 @@
                   </span>
                 </span>
                 {#if p.disabled}<StatusPill tone="bad" label="gesperrt" />{/if}
+                {#if pendingFor(p.id)}<StatusPill tone="warn" label="Gerät wartet" />{/if}
               </a>
             </li>
           {/each}
@@ -328,18 +364,33 @@
             <div class="row">
               <h3>Geräte · {selected.active_devices} von {selected.max_devices}</h3>
               <span class="spacer"></span>
+              {#if !personInvites.length}
+                <Button
+                  size="sm"
+                  icon="send"
+                  label={inviting ? 'Erstellt …' : 'Einladen (Link)'}
+                  disabled={inviting || !ca?.configured || selected.disabled || selected.active_devices >= selected.max_devices}
+                  onClick={invite}
+                />
+              {/if}
               {#if !issueOpen && !issued}
                 <Button
                   variant="secondary"
                   size="sm"
                   icon="plus"
-                  label="Gerät direkt ausstellen"
+                  label="Direkt ausstellen"
                   disabled={!ca?.configured || selected.disabled || selected.active_devices >= selected.max_devices}
                   onClick={() => (issueOpen = true)}
                 />
               {/if}
             </div>
-            <p class="muted small">Einladungen per Link folgen in Kürze – bis dahin stellst du Zertifikate hier direkt aus.</p>
+            <p class="muted small">
+              Per Link registriert die Person ihr Gerät selbst. „Direkt ausstellen“ ist für Geräte, die du selbst einrichtest.
+            </p>
+
+            {#each personInvites as inv (inv.id)}
+              <InviteCard invite={inv} onChange={load} />
+            {/each}
 
             {#if issued}
               <IssuedCertificate {issued} onClose={() => (issued = null)} />

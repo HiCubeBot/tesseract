@@ -12,6 +12,7 @@
     ACTION_LABELS,
     type AuditEntry,
     type Host,
+    type Invite,
     type NodeInfo
   } from '../lib/api';
   import { applyNode } from '../lib/nodes';
@@ -19,15 +20,17 @@
   let hosts = $state<Host[]>([]);
   let nodes = $state<NodeInfo[]>([]);
   let events = $state<AuditEntry[]>([]);
+  let invites = $state<Invite[]>([]);
   let error = $state('');
   let applying = $state<number | null>(null);
 
   async function load() {
     try {
-      [hosts, nodes, events] = await Promise.all([
+      [hosts, nodes, events, invites] = await Promise.all([
         api.get<Host[]>('/hosts'),
         api.get<NodeInfo[]>('/nodes'),
-        api.get<AuditEntry[]>('/audit?limit=8')
+        api.get<AuditEntry[]>('/audit?limit=8'),
+        api.get<Invite[]>('/invites')
       ]);
       error = '';
     } catch (e) {
@@ -49,6 +52,11 @@
   const live = $derived(hosts.filter((h) => h.enabled && !h.draft));
   const drafts = $derived(hosts.filter((h) => h.draft).length);
   const outOfSync = $derived(nodes.filter((n) => !n.in_sync));
+  const pending = $derived(
+    invites.flatMap((i) =>
+      i.enrollments.filter((e) => e.status === 'pending').map((e) => ({ ...e, person: i.person_name, personId: i.person_id }))
+    )
+  );
 
   const tone = (action: string) =>
     action.endsWith('failed') ? 'bad' : action.startsWith('host_') ? 'mtls' : 'neutral';
@@ -63,6 +71,16 @@
   />
 
   {#if error}<Alert tone="bad" title="Daten konnten nicht geladen werden" text={error} />{/if}
+
+  {#each pending as e (e.id)}
+    <Alert
+      tone="info"
+      title={`${e.person} möchte „${e.device_name}“ registrieren`}
+      text="Bestätigungscode war korrekt. Gib das Gerät frei oder lehne ab."
+      actionLabel="Ansehen"
+      actionHref={`#/users/${e.personId}`}
+    />
+  {/each}
 
   {#each outOfSync as node (node.id)}
     <Alert

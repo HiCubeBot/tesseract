@@ -264,3 +264,53 @@ class HostGrant(Base):
 
     group: Mapped[Group | None] = relationship()
     person: Mapped[Person | None] = relationship()
+
+
+# ---------- Phase 2: Einladungen ----------
+
+
+class Invite(Base):
+    """Einladungslink für eine Person. Token und Code liegen verschlüsselt vor,
+    gesucht wird über den Hash des Tokens."""
+
+    __tablename__ = "invites"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    person_id: Mapped[int] = mapped_column(ForeignKey("persons.id", ondelete="CASCADE"))
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    token_enc: Mapped[str]
+    code_enc: Mapped[str]
+    created_by: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+    expires_at: Mapped[datetime]
+    revoked_at: Mapped[datetime | None]
+    failed_attempts: Mapped[int] = mapped_column(default=0)
+
+    person: Mapped[Person] = relationship()
+    enrollments: Mapped[list["Enrollment"]] = relationship(
+        back_populates="invite", cascade="all, delete-orphan", order_by="Enrollment.id"
+    )
+
+
+class Enrollment(Base):
+    """Registrierungsanfrage eines Geräts über eine Einladung."""
+
+    __tablename__ = "enrollments"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    invite_id: Mapped[int] = mapped_column(ForeignKey("invites.id", ondelete="CASCADE"))
+    device_name: Mapped[str] = mapped_column(String(64))
+    platform: Mapped[str] = mapped_column(String(32), default="")
+    user_agent: Mapped[str] = mapped_column(String(255), default="")
+    ip: Mapped[str | None] = mapped_column(String(64))
+    # Hash des Geheimnisses, mit dem der Gast den Status abfragt
+    secret_hash: Mapped[str] = mapped_column(String(64))
+    # pending → approved → delivered · oder rejected
+    status: Mapped[str] = mapped_column(String(16), default="pending")
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+    decided_at: Mapped[datetime | None]
+    decided_by: Mapped[str | None] = mapped_column(String(64))
+    delivered_at: Mapped[datetime | None]
+    device_id: Mapped[int | None] = mapped_column(ForeignKey("devices.id", ondelete="SET NULL"))
+
+    invite: Mapped[Invite] = relationship(back_populates="enrollments")

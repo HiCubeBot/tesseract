@@ -114,6 +114,23 @@ immer eine eigene Route, damit sich der Controller nicht aussperrt.
 | `POST /api/persons/{id}/devices` | Zertifikat direkt ausstellen (liefert `.p12` einmalig) |
 | `GET /api/devices` · `POST /api/devices/{id}/revoke` · `GET /api/devices/revoked.csv` | Geräte, sperren, Export |
 
+## Einladungen (Phase 2)
+
+1. Admin: `POST /api/persons/{id}/invites` → Link `https://<controller>/e/<token>`, QR-Code
+   (`GET /api/invites/{id}/qr.svg`) und 6-stelliger **Bestätigungscode**, der separat
+   (z. B. am Telefon) weitergegeben wird. Token und Code liegen verschlüsselt in der DB,
+   gesucht wird über den SHA-256 des Tokens. Gültig 7 Tage (1–30).
+2. Gast (öffentlich, ohne Anmeldung): `GET /api/enroll/{token}` zeigt Name, freie Plätze und
+   die erreichbaren Dienste; `POST /api/enroll/{token}/register` mit Gerätename, Plattform und
+   Code legt eine Anfrage an und liefert ein Geheimnis für die Statusabfrage
+   (`X-Enroll-Secret`). 5 falsche Codes sperren die Einladung, zusätzlich Bremse pro IP.
+3. Admin: `POST /api/enrollments/{id}/approve` bzw. `/reject`.
+4. Gast: `POST /api/enroll/{token}/requests/{id}/certificate` liefert die `.p12` mit
+   Einmal-Passwort – **genau einmal**. Danach werden die Freigabelisten neu übertragen.
+
+Die Seite `/e/<token>` ist der einzige Teil des Controllers, der ohne Anmeldung (und ab
+Phase 2/PR 4 ohne Admin-Zertifikat) erreichbar ist.
+
 ## Datenbank & Migrationen
 
 Schema ändern:

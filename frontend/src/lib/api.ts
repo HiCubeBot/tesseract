@@ -252,7 +252,13 @@ export const ACTION_LABELS: Record<string, string> = {
   person_deleted: 'Person gelöscht',
   device_issued: 'Gerätezertifikat ausgestellt',
   device_revoked: 'Gerät gesperrt',
-  access_changed: 'Zugriff geändert'
+  access_changed: 'Zugriff geändert',
+  invite_created: 'Einladung erstellt',
+  invite_revoked: 'Einladung widerrufen',
+  enrollment_requested: 'Gerät möchte sich registrieren',
+  enrollment_approved: 'Gerät freigegeben',
+  enrollment_rejected: 'Gerät abgelehnt',
+  enrollment_code_wrong: 'Falscher Einladungscode'
 };
 
 // ---------- Phase 2: CA, Personen, Geräte ----------
@@ -360,3 +366,56 @@ export function base64ToBytes(b64: string): Uint8Array<ArrayBuffer> {
   for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
   return out;
 }
+
+// ---------- Phase 2: Einladungen ----------
+
+export interface Enrollment {
+  id: number;
+  device_name: string;
+  platform: string;
+  user_agent: string;
+  ip: string | null;
+  status: 'pending' | 'approved' | 'rejected' | 'delivered';
+  created_at: string;
+  decided_at: string | null;
+  decided_by: string | null;
+  delivered_at: string | null;
+}
+
+export interface Invite {
+  id: number;
+  person_id: number;
+  person_name: string;
+  url: string;
+  code: string;
+  state: 'open' | 'expired' | 'revoked';
+  created_by: string;
+  created_at: string;
+  expires_at: string;
+  slots_left: number;
+  enrollments: Enrollment[];
+}
+
+export interface PublicInvite {
+  person_name: string;
+  slots_left: number;
+  max_devices: number;
+  expires_at: string;
+  services: string[];
+}
+
+export interface GuestCertificate {
+  filename: string;
+  password: string;
+  p12_base64: string;
+  not_after: string;
+  services: string[];
+  slots_left: number;
+}
+
+export const ENROLLMENT_STATUS: Record<Enrollment['status'], { label: string; tone: 'ok' | 'warn' | 'bad' | 'neutral' }> = {
+  pending: { label: 'wartet', tone: 'warn' },
+  approved: { label: 'freigegeben', tone: 'ok' },
+  delivered: { label: 'installiert', tone: 'ok' },
+  rejected: { label: 'abgelehnt', tone: 'bad' }
+};
