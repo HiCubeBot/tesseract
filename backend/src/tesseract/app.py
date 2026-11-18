@@ -79,6 +79,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # In Tests durch einen httpx.MockTransport ersetzt
     app.state.caddy_transport = None
     app.include_router(api_router, prefix="/api")
+    # Prometheus erwartet /metrics an der Wurzel
+    from tesseract.api.metrics import public as metrics_public
+
+    app.include_router(metrics_public)
 
     if settings.static_dir and settings.static_dir.is_dir():
         _mount_frontend(app, settings.static_dir)

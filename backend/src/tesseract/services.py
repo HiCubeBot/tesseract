@@ -86,6 +86,14 @@ GENERAL_DEFAULTS: dict[str, Any] = {
     "wildcard_certs": [],
     # Logs: Aufbewahrung in Tagen (Phase 5)
     "logs_days": 14,
+    # Prometheus-Endpunkt /metrics: aus, Schutz "token" | "mtls" | "ip"
+    "metrics_enabled": False,
+    "metrics_auth": "token",
+    "metrics_token_hash": "",
+    "metrics_networks": [],
+    "metrics_list_ids": [],
+    # Caddy-Metriken der Nodes mit ausliefern
+    "metrics_caddy": True,
 }
 CLOUDFLARE_CONTEXT = "cloudflare-token"
 ADMIN_GROUP = "Admin"

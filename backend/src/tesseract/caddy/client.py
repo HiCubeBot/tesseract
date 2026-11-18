@@ -38,6 +38,17 @@ class CaddyClient:
             raise CaddyError(_error_text(r))
         return r.json()
 
+    def metrics(self) -> str:
+        """Prometheus-Text der Admin-API (GET /metrics)."""
+        try:
+            with self._client() as c:
+                r = c.get("/metrics")
+        except httpx.HTTPError as e:
+            raise CaddyError(f"Caddy nicht erreichbar ({self.admin_url}): {e}") from e
+        if r.status_code >= 400:
+            raise CaddyError(_error_text(r))
+        return r.text
+
     def adapt_ok(self, caddyfile: str) -> bool:
         """Lässt Caddy ein Caddyfile nur übersetzen (POST /adapt, nichts wird geladen).
         False, wenn der Adapter es ablehnt – z. B. weil ein Modul fehlt."""

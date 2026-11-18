@@ -246,6 +246,7 @@ def ingest(
     waf_lines: list[str],
     tracker: WafTracker,
     geo: Geo | None = None,
+    metrics=None,
 ) -> IngestResult:
     """Speichert neue Zeilen eines Nodes. Commit macht der Aufrufer."""
     result = IngestResult(violations=tracker.feed(waf_lines))
@@ -286,6 +287,8 @@ def ingest(
                 user_agent=p["user_agent"],
             )
         )
+        if metrics is not None:
+            metrics.observe(node.name, p["host"], p["status"], reason, p["duration_ms"], p["size"])
         if device is not None:
             seen[device.id] = max(seen.get(device.id, ts), ts)
         result.entries += 1
@@ -398,14 +401,17 @@ class Collector:
     """Hält pro Node den WAF-Zwischenstand und die GeoIP-Datenbank (eine Instanz pro App)."""
 
     def __init__(self, geo: Geo | None = None) -> None:
+        from tesseract.metrics import Metrics
+
         self.geo = geo or Geo()
         self.trackers: dict[int, WafTracker] = {}
+        self.metrics = Metrics()
 
     def node(
         self, db: Session, node: Node, access_lines: list[str], waf_lines: list[str]
     ) -> list[tuple[str, str]]:
         tracker = self.trackers.setdefault(node.id, WafTracker())
-        return ingest(db, node, access_lines, waf_lines, tracker, self.geo).violations
+        return ingest(db, node, access_lines, waf_lines, tracker, self.geo, self.metrics).violations
 
     def local(
         self, db: Session, access_lines: list[str], waf_lines: list[str]

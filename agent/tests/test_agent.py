@@ -21,6 +21,7 @@ class FakeController:
         self.access: list[list[str]] = []
         self.down = False
         self.csr: str | None = None
+        self.want_metrics = False
 
     def handler(self, request: httpx.Request) -> httpx.Response:
         if self.down:
@@ -52,7 +53,7 @@ class FakeController:
             )
         if path == "/api/agent/status":
             self.status.append(json.loads(request.content))
-            return httpx.Response(200, json={"ok": True})
+            return httpx.Response(200, json={"ok": True, "caddy_metrics": self.want_metrics})
         if path == "/api/agent/logs":
             body = json.loads(request.content)
             self.waf.append(body["waf"])
@@ -76,6 +77,8 @@ class FakeCaddy:
             return httpx.Response(200)
         if request.url.path == "/config/":
             return httpx.Response(200, json=self.running)
+        if request.url.path == "/metrics":
+            return httpx.Response(200, text="# TYPE caddy_x counter\ncaddy_x 3\ngo_goroutines 9\n")
         if request.url.path == "/adapt":
             ok = b"coraza_waf" in request.content
             return httpx.Response(200 if ok else 400, json={})
@@ -217,3 +220,14 @@ def test_cli_status_and_missing_token(env, capsys, monkeypatch):
     rc = main(["--data-dir", str(settings.data_dir), "run", "--controller", "https://x"])
     assert rc == 1
     assert "Beitritts-Token fehlt" in capsys.readouterr().err
+
+
+def test_caddy_metrics_only_when_wanted(env):
+    ctrl, _, _, _ = env
+    agent = joined(env)
+    agent.send_status()
+    assert "caddy_metrics" not in ctrl.status[-1]
+    ctrl.want_metrics = True
+    agent.send_status()  # Antwort schaltet es ein
+    agent.send_status()
+    assert ctrl.status[-1]["caddy_metrics"] == "# TYPE caddy_x counter" + chr(10) + "caddy_x 3"

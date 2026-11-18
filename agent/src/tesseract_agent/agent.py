@@ -87,6 +87,17 @@ class Caddy:
         r.raise_for_status()
         return r.json() or {}
 
+    def metrics(self) -> str:
+        """Nur die caddy_*-Zeilen aus GET /metrics."""
+        r = self.http.get("/metrics")
+        r.raise_for_status()
+        keep = [
+            line
+            for line in r.text.splitlines()
+            if line.startswith(("caddy_", "# HELP caddy_", "# TYPE caddy_"))
+        ]
+        return chr(10).join(keep)
+
     def modules(self) -> list[str]:
         found = []
         for name, caddyfile in MODULE_PROBES.items():
@@ -217,6 +228,8 @@ class Agent:
         self.stop = threading.Event()
         self.load_error: str | None = None
         self.rejected_hash = ""
+        # Will der Controller die Caddy-Metriken? (kommt mit der Antwort auf den Status)
+        self.want_metrics = False
         self._modules: list[str] | None = None
         self._modules_at = 0.0
         self._version = caddy_version(settings.caddy_bin or "caddy")
@@ -371,6 +384,8 @@ class Agent:
                 self._modules = self.caddy.modules()
                 self._modules_at = time.monotonic()
             report["modules"] = self._modules
+            if self.want_metrics:
+                report["caddy_metrics"] = self.caddy.metrics()
         except httpx.HTTPError as e:
             report["load_error"] = self.load_error or f"Caddy nicht erreichbar: {e}"
         return report
@@ -380,6 +395,10 @@ class Agent:
             r = c.post("/api/agent/status", json=self.status_report())
         if r.status_code != 200:
             raise AgentError(f"Status senden fehlgeschlagen ({r.status_code}): {_detail(r)}")
+        try:
+            self.want_metrics = bool(r.json().get("caddy_metrics"))
+        except ValueError:
+            self.want_metrics = False
 
     def send_logs(self, access: list[str], waf: list[str]) -> None:
         with self._http(with_cert=True) as c:

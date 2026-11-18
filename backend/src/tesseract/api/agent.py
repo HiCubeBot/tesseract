@@ -22,7 +22,7 @@ from tesseract.caddy.config import config_hash
 from tesseract.db.models import Node, utcnow
 from tesseract.deps import DB, AppSettings, client_fingerprint, client_ip
 from tesseract.identity import ca_configured
-from tesseract.services import apply_all, node_config
+from tesseract.services import apply_all, get_general, node_config
 
 log = logging.getLogger("tesseract.agent")
 router = APIRouter(prefix="/agent", tags=["agent"])
@@ -180,11 +180,13 @@ class StatusIn(BaseModel):
     # laufende Config als Base64-JSON (nur bei Abweichung) – so stört die WAF der
     # Controller-Domain sich nicht an Coraza-Regeln im Inhalt
     running_config_b64: str | None = Field(default=None, max_length=8_000_000)
+    # caddy_*-Metriken des Nodes (Prometheus-Text), wenn der Controller sie haben will
+    caddy_metrics: str | None = Field(default=None, max_length=4_000_000)
 
 
 @router.post("/status")
-def post_status(body: StatusIn, node: AgentNode, db: DB) -> dict[str, Any]:
-    report = body.model_dump(exclude={"running_config_b64"})
+def post_status(body: StatusIn, request: Request, node: AgentNode, db: DB) -> dict[str, Any]:
+    report = body.model_dump(exclude={"running_config_b64", "caddy_metrics"})
     if body.running_config_b64:
         try:
             report["running_config"] = json.loads(base64.b64decode(body.running_config_b64))
@@ -194,7 +196,11 @@ def post_status(body: StatusIn, node: AgentNode, db: DB) -> dict[str, Any]:
             ) from e
     node_svc.record_status(db, node, report)
     db.commit()
-    return {"ok": True, "heartbeat": node_svc.HEARTBEAT_SECONDS}
+    g = get_general(db)
+    want = bool(g["metrics_enabled"] and g["metrics_caddy"])
+    if want and body.caddy_metrics:
+        request.app.state.logs.metrics.set_caddy(node.name, body.caddy_metrics)
+    return {"ok": True, "heartbeat": node_svc.HEARTBEAT_SECONDS, "caddy_metrics": want}
 
 
 class LogsIn(BaseModel):

@@ -36,6 +36,8 @@ CONTROLLER_PUBLIC_PATHS = (
     "/assets/*",
     "/api/health",
     "/favicon.ico",
+    # Prometheus: Schutz (Token, Admin-Zertifikat oder IP-Liste) prüft der Controller
+    "/metrics",
 )
 
 

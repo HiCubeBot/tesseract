@@ -50,6 +50,7 @@ import LogsPage from "./pages/Logs.svelte";
 import StatsSecurityPage from "./pages/StatsSecurity.svelte";
 import StatsTrafficPage from "./pages/StatsTraffic.svelte";
 import StatsUsagePage from "./pages/StatsUsage.svelte";
+import SettingsMetricsPage from "./pages/SettingsMetrics.svelte";
 
 export interface Page {
   /** Muster ohne "#/", Parameter mit ":" – z. B. "hosts/:id/history" */
@@ -72,6 +73,7 @@ export const pages: Page[] = [
   { pattern: "stats", title: "Statistik · Sicherheit", component: StatsSecurityPage },
   { pattern: "stats-traffic", title: "Statistik · Traffic & Leistung", component: StatsTrafficPage },
   { pattern: "stats-usage", title: "Statistik · Nutzung", component: StatsUsagePage },
+  { pattern: "settings-metrics", title: "Einstellungen · Metriken", component: SettingsMetricsPage },
   { pattern: "hosts/:id", title: "Proxy-Hosts", component: HostsPage },
   { pattern: "hosts/:id/history", title: "Host · Verlauf", component: HostHistoryPage },
   { pattern: "hosts/:id/security", title: "Host · Sicherheit", component: HostSecurityPage },
