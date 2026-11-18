@@ -31,6 +31,8 @@ COPY --from=frontend --chown=tesseract:tesseract /app/frontend/dist /app/static
 RUN mkdir -p /data && chown tesseract:tesseract /data
 
 ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
     TESSERACT_HOST=0.0.0.0 \
     TESSERACT_PORT=8000 \
     TESSERACT_DATA_DIR=/data \

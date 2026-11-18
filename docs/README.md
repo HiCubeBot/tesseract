@@ -12,4 +12,5 @@ und in dieser Übersicht verlinken.
 | [frontend.md](frontend.md) | Svelte-UI: Aufbau, Komponenten, Screens, Routen |
 | [agent.md](agent.md) | Tesseract-Agent: Node hinzufügen, Beitritt, Abweichung, Einstellungen, Schnittstelle |
 | [deployment.md](deployment.md) | Docker-Images, Compose-Stack, Umgebungsvariablen |
+| [security.md](security.md) | Angriffsfläche, Härtung, Geheimnisse, Sicherheits-Review |
 | [contributing.md](contributing.md) | Git-Workflow: Feature-Branches, Pull Requests, lokale Regeln |

@@ -204,6 +204,8 @@ Alle Einstellungen kommen aus Umgebungsvariablen oder einer `.env` im Arbeitsver
 | Variable | Standard | Bedeutung |
 |---|---|---|
 | `TESSERACT_HOST` | `127.0.0.1` | Bind-Adresse |
+| `TESSERACT_FORWARDED_ALLOW_IPS` | private Netze | Von wem `X-Forwarded-For` übernommen wird (Caddy davor) |
+| `TESSERACT_BACKUP_DIR` | `data/backups` | Ordner für lokale Sicherungen |
 | `TESSERACT_PORT` | `8000` | Port |
 | `TESSERACT_RELOAD` | `false` | Auto-Reload (nur Entwicklung) |
 | `TESSERACT_DATA_DIR` | `data` | Persistente Daten (DB, CA, Backups) |

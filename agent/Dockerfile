@@ -21,7 +21,8 @@ RUN mkdir -p /data && chown agent:agent /data
 
 ENV PATH="/app/.venv/bin:$PATH" \
     TESSERACT_AGENT_DATA_DIR=/data \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
 
 USER agent
 VOLUME ["/data"]

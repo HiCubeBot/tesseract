@@ -11,6 +11,10 @@ class Settings(BaseSettings):
 
     host: str = "127.0.0.1"
     port: int = 8000
+    # Von wem X-Forwarded-For übernommen wird (Caddy davor). Standard: private Netze – im
+    # Compose-Stack ist das Caddy. Ohne das sähe der Controller nur Caddys IP: Anmelde-Bremse
+    # und Audit-Log wären falsch. Den Port des Controllers nie direkt veröffentlichen.
+    forwarded_allow_ips: str = "127.0.0.1,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fc00::/7"
     reload: bool = False
 
     # Persistente Daten des Controllers (DB, CA-Zwischenzertifikat, Backups …)

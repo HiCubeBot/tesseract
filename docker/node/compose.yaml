@@ -22,6 +22,12 @@ services:
       - >-
         printf '{"admin":{"listen":"0.0.0.0:2019"}}' > /tmp/start.json &&
         caddy run --config /tmp/start.json --resume
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
     ports:
       - "80:80"
       - "443:443"
@@ -37,6 +43,13 @@ services:
     image: tesseract-agent:dev
     restart: unless-stopped
     depends_on: [caddy]
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     environment:
       TESSERACT_AGENT_CONTROLLER: ${TESSERACT_CONTROLLER:?Adresse des Controllers fehlt}
       TESSERACT_AGENT_JOIN_TOKEN: ${TESSERACT_JOIN_TOKEN:-}

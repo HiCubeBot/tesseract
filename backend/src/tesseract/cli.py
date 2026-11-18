@@ -28,6 +28,7 @@ def serve() -> None:
         reload=settings.reload,
         log_level=settings.log_level,
         proxy_headers=True,
+        forwarded_allow_ips=settings.forwarded_allow_ips,
     )
 
 

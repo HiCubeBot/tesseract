@@ -96,6 +96,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.backup_transport = None
     app.state.restore_lock = asyncio.Lock()
     app.include_router(api_router, prefix="/api")
+    # Sicherheits-Header und Rate-Limits für öffentliche Endpunkte (Phase 6)
+    from tesseract.security import SecurityMiddleware
+
+    app.add_middleware(SecurityMiddleware)
     # Prometheus erwartet /metrics an der Wurzel
     from tesseract.api.metrics import public as metrics_public
 
