@@ -128,8 +128,21 @@ immer eine eigene Route, damit sich der Controller nicht aussperrt.
 4. Gast: `POST /api/enroll/{token}/requests/{id}/certificate` liefert die `.p12` mit
    Einmal-Passwort – **genau einmal**. Danach werden die Freigabelisten neu übertragen.
 
-Die Seite `/e/<token>` ist der einzige Teil des Controllers, der ohne Anmeldung (und ab
-Phase 2/PR 4 ohne Admin-Zertifikat) erreichbar ist.
+Die Seite `/e/<token>` ist der einzige Teil des Controllers, der ohne Anmeldung und ohne
+Admin-Zertifikat erreichbar ist.
+
+## Oberfläche nur mit Admin-Zertifikat
+
+- Caddy fragt auf der Controller-Domain immer nach einem Client-Zertifikat
+  (`verify_if_given`) und reicht den Fingerabdruck als `X-Tesseract-Client-Fingerprint`
+  an den Controller weiter (ein vom Client gesendeter Header wird überschrieben).
+- `GET /api/auth/device` erkennt Admin-Geräte (aktive Geräte nicht gesperrter Personen in der
+  eingebauten Gruppe `Admin`) – die Login-Seite zeigt „Admin-Gerät erkannt“.
+- `PUT /api/settings/admin-access` schaltet den Schutz ein, **aber nur**, wenn die Anfrage
+  gerade selbst mit einem Admin-Zertifikat kommt (Schutz vor dem Aussperren). Dann sperrt Caddy
+  alles außer `/e/*`, `/api/enroll/*`, `/assets/*`, `/api/health`, und der Controller prüft
+  zusätzlich jede angemeldete Anfrage und den Login.
+- Notausgang: `tesseract admin mtls off`.
 
 ## Datenbank & Migrationen
 

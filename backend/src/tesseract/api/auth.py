@@ -13,7 +13,15 @@ from tesseract.auth import (
     set_password,
     verify_password,
 )
-from tesseract.deps import DB, AppSettings, CurrentActor, client_ip
+from tesseract.deps import (
+    DB,
+    AppSettings,
+    CurrentActor,
+    admin_device_for,
+    client_fingerprint,
+    client_ip,
+    require_admin_device,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -28,6 +36,13 @@ class Me(BaseModel):
     username: str
 
 
+class DeviceInfo(BaseModel):
+    # Zertifikat mitgeschickt, aber kein Admin-Gerät → admin_device ist None
+    certificate: bool
+    admin_device: str | None
+    person: str | None
+
+
 class PasswordChange(BaseModel):
     current_password: str
     new_password: str = Field(min_length=MIN_PASSWORD_LENGTH, max_length=256)
@@ -37,6 +52,7 @@ class PasswordChange(BaseModel):
 def login(
     body: LoginRequest, request: Request, response: Response, db: DB, settings: AppSettings
 ) -> Me:
+    require_admin_device(request, db)
     throttle = request.app.state.login_throttle
     ip = client_ip(request) or "?"
     if throttle.blocked(ip):
@@ -80,6 +96,17 @@ def logout(request: Request, response: Response, db: DB) -> None:
         end_session(db, token)
         db.commit()
     response.delete_cookie(SESSION_COOKIE, path="/")
+
+
+@router.get("/device")
+def device(request: Request, db: DB) -> DeviceInfo:
+    """Erkennt ein Admin-Gerät am Client-Zertifikat (für die Login-Seite)."""
+    d = admin_device_for(request, db)
+    return DeviceInfo(
+        certificate=bool(client_fingerprint(request)),
+        admin_device=d.name if d else None,
+        person=d.person.name if d else None,
+    )
 
 
 @router.get("/me")

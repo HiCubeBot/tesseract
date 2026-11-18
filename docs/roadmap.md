@@ -7,7 +7,7 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 |---|---|---|
 | 0 | Fundament | Projektstruktur, Docker, Doku – **fertig** |
 | 1 | Proxy-Manager (Single-Node) | Ersetzt NPM für einen lokalen Caddy – **fertig** |
-| 2 | mTLS & Identitäten | Private Dienste ohne VPN, Einladungen |
+| 2 | mTLS & Identitäten | Private Dienste ohne VPN, Einladungen – **fertig** |
 | 3 | WAF & Zugriffsschutz | Coraza, IP-Filter, Authelia |
 | 4 | Multi-Node | Agent, mehrere Server, auch hinter NAT |
 | 5 | Beobachtbarkeit | Logs, Statistik, Audit, Metriken, Benachrichtigungen |
@@ -56,14 +56,20 @@ Offen / bewusst verschoben:
 
 **Ziel:** Private Dienste nur für freigegebene Geräte – die VPN-Alternative.
 
-- Eigene CA: Root offline (Import/Signieren per Datei), Geräte-Zwischenzertifikat verschlüsselt auf dem Controller
-- Personen, Gruppen, Geräte; ein Client-Zertifikat pro Gerät
-- Zugriffsart pro Host (Öffentlich / mTLS) und Verhalten ohne Zertifikat (ablehnen / Hinweisseite)
-- Freigaben an Gruppen und Personen, Zugriffsmatrix
-- Zugriff pro Pfad: einzelne Pfade per mTLS schützen oder freigeben (Black-/Whitelist), z. B. API öffentlich, Admin-Oberfläche nur per mTLS
-- Sperren und Verlängern von Geräten, Widerrufsliste
-- Einladungsfluss: Link + QR + separater Bestätigungscode, Admin-Freigabe, Installationsanleitungen je Plattform
-- Admin-UI selbst nur mit Admin-Gerätezertifikat (+ Passwort/Passkey)
+- [x] Eigene CA: Root-Schlüssel nur einmal verschlüsselt ausgeliefert (offline), Geräte-Zwischenzertifikat verschlüsselt auf dem Controller
+- [x] Personen, Gruppen, Geräte; ein Client-Zertifikat pro Gerät, Geräte-Limit pro Person
+- [x] Zugriffsart pro Host (Öffentlich / mTLS) und Verhalten ohne Zertifikat (ablehnen / Hinweisseite)
+- [x] Freigaben an Gruppen und Personen, Zugriffsmatrix
+- [x] Zugriff pro Pfad in beide Richtungen, z. B. API öffentlich, `/admin` nur per mTLS
+- [x] Sperren von Geräten (sofort aus allen Freigabelisten), Export gesperrter Geräte
+- [x] Einladungsfluss: Link + QR + separater Bestätigungscode, Admin-Freigabe, Installationsanleitungen je Plattform
+- [x] Admin-UI nur mit Admin-Gerätezertifikat (+ Passwort), Notausgang `tesseract admin mtls off`
+
+Offen / bewusst verschoben:
+- Verlängern eines Geräts ohne neue Registrierung und Ablauf-Erinnerungen → Phase 6
+- Passkey als Alternative zum Passwort → Backlog/Phase 6
+- Import einer bestehenden CA bzw. Signieren eines neuen Zwischenzertifikats mit dem Root-Schlüssel → Phase 6
+- Eigene Freigaben pro Pfad (heute gelten die Freigaben des Hosts für alle geschützten Pfade) → Phase 3 („Host-Bereiche“)
 
 **Fertig, wenn:** Ein eingeladener Gast registriert ein iPhone und einen Laptop, erreicht genau die
 freigegebenen Dienste, und nach dem Sperren eines Geräts schlägt dessen TLS-Handshake fehl.

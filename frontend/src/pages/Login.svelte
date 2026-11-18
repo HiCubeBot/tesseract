@@ -2,12 +2,19 @@
   import { session } from '../lib/session.svelte';
   import { router } from '../lib/router.svelte';
   import Icon from '../lib/components/Icon.svelte';
+  import { api, type DeviceInfo } from '../lib/api';
 
   let username = $state('admin');
   let password = $state('');
   let remember = $state(false);
   let error = $state('');
   let busy = $state(false);
+  let device = $state<DeviceInfo | null>(null);
+
+  api.get<DeviceInfo>('/auth/device').then(
+    (d) => (device = d),
+    () => (device = null)
+  );
 
   async function submit(e: SubmitEvent) {
     e.preventDefault();
@@ -43,14 +50,22 @@
     <div class="hint">
       <span class="hint-icon"><Icon name="lock" size={16} strokeWidth={2} /></span>
       <span class="muted">
-        <strong>Zweite Hürde folgt.</strong> Ab Phase 2 ist diese Seite zusätzlich nur mit einem Admin-Gerätezertifikat erreichbar.
+        <strong>Doppelt geschützt.</strong> Mit eingeschaltetem Admin-Zertifikat ist diese Seite nur von
+        Admin-Geräten erreichbar – das Passwort ist die zweite Hürde.
       </span>
     </div>
   </section>
 
   <main>
     <form onsubmit={submit}>
-      <h2>Anmelden</h2>
+      <div class="head">
+        <h2>Anmelden</h2>
+        {#if device?.admin_device}
+          <span class="detected"><span class="dot"></span>Admin-Gerät erkannt · {device.admin_device}</span>
+        {:else if device?.certificate}
+          <span class="detected other">Zertifikat erkannt – kein Admin-Gerät</span>
+        {/if}
+      </div>
 
       <label>
         Benutzername
@@ -189,6 +204,33 @@
     margin: 0;
     font-size: 28px;
     letter-spacing: -0.02em;
+  }
+  .head {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .detected {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    align-self: flex-start;
+    padding: 5px 12px;
+    border-radius: var(--radius-pill);
+    background: var(--ok-soft);
+    color: var(--ok-text);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .detected.other {
+    background: var(--surface-raised);
+    color: var(--text-muted);
+  }
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--ok);
   }
   label {
     display: flex;

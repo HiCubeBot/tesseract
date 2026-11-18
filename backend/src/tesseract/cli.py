@@ -2,6 +2,7 @@
 
 tesseract                    Controller starten (wie `tesseract serve`)
 tesseract admin reset        neues Zufallspasswort setzen, alle Sessions beenden
+tesseract admin mtls off     Oberfläche wieder ohne Admin-Zertifikat erreichbar machen
 tesseract db upgrade         Migrationen ausführen
 """
 
@@ -47,6 +48,24 @@ def admin_reset(username: str) -> None:
     print(f"Neues Passwort für '{username}': {password}")
 
 
+def admin_mtls_off() -> None:
+    """Notausgang, falls das Admin-Gerät verloren ist."""
+    from tesseract.bootstrap import init_database
+    from tesseract.services import apply_all, set_general
+
+    settings = get_settings()
+    database = init_database(settings)
+    with database.sessionmaker() as db:
+        set_general(db, {"admin_mtls": False})
+        audit.record(db, actor="system", action="admin_mtls_off", target="Oberfläche (CLI)")
+        db.commit()
+        errors = apply_all(db, settings)
+        db.commit()
+    print("Admin-Zertifikat für die Oberfläche ist abgeschaltet.")
+    if errors:
+        print("Achtung – Config nicht übertragen:", "; ".join(errors))
+
+
 def db_upgrade() -> None:
     from tesseract.db import make_engine, run_migrations
 
@@ -63,13 +82,17 @@ def run(argv: list[str] | None = None) -> None:
     admin_sub = admin.add_subparsers(dest="admin_cmd", required=True)
     reset = admin_sub.add_parser("reset", help="Passwort zurücksetzen (nur lokal)")
     reset.add_argument("--username", default="admin")
+    mtls = admin_sub.add_parser("mtls", help="Admin-Zertifikat für die Oberfläche")
+    mtls.add_argument("state", choices=["off"])
 
     db = sub.add_parser("db", help="Datenbank")
     db_sub = db.add_subparsers(dest="db_cmd", required=True)
     db_sub.add_parser("upgrade", help="Migrationen ausführen")
 
     args = parser.parse_args(argv)
-    if args.cmd == "admin":
+    if args.cmd == "admin" and args.admin_cmd == "mtls":
+        admin_mtls_off()
+    elif args.cmd == "admin":
         admin_reset(args.username)
     elif args.cmd == "db":
         db_upgrade()

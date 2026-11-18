@@ -24,6 +24,10 @@ from typing import Any
 JSON = dict[str, Any]
 
 FINGERPRINT = "{http.request.tls.client.fingerprint}"
+# Header, mit dem Caddy dem Controller den Fingerabdruck des Client-Zertifikats mitteilt
+FINGERPRINT_HEADER = "X-Tesseract-Client-Fingerprint"
+# Auf der Controller-Domain immer ohne Zertifikat erreichbar (Einladungsseite + Dateien)
+CONTROLLER_PUBLIC_PATHS = ("/e/*", "/api/enroll/*", "/assets/*", "/api/health", "/favicon.ico")
 
 
 @dataclass(frozen=True)
@@ -44,10 +48,18 @@ class HostSpec:
     paths: tuple[str, ...] = ()
     # erlaubte Geräte: (Fingerabdruck SHA-256 hex, Zertifikat als PEM)
     allowed: tuple[tuple[str, str], ...] = ()
+    # Fingerabdruck als Header ans Ziel weiterreichen (nur für den Controller)
+    pass_fingerprint: bool = False
+    # Client-Zertifikat erfragen, auch wenn nichts geschützt ist (Geräteerkennung)
+    ask_client_cert: bool = False
 
     @property
     def needs_client_auth(self) -> bool:
         return self.access == "mtls" or bool(self.paths)
+
+    @property
+    def wants_tls_policy(self) -> bool:
+        return self.needs_client_auth or self.ask_client_cert
 
     @property
     def strict(self) -> bool:
@@ -61,6 +73,9 @@ class NodeSpec:
     hosts: list[HostSpec] = field(default_factory=list)
     controller_domain: str = ""
     controller_upstream: str = ""
+    # Oberfläche nur mit Admin-Zertifikat (Einladungsseite bleibt öffentlich)
+    controller_protected: bool = False
+    controller_allowed: tuple[tuple[str, str], ...] = ()
     acme_email: str = ""
     # Geräte-Zwischenzertifikat (DER, Base64) – Vertrauensanker für Client-Zertifikate
     client_ca_der_b64: str = ""
@@ -109,6 +124,9 @@ def _proxy(host: HostSpec) -> JSON:
     }
     if host.upstream_scheme == "https":
         handler["transport"] = {"protocol": "http", "tls": {}}
+    if host.pass_fingerprint:
+        # "set" überschreibt einen vom Client mitgeschickten Header
+        handler["headers"] = {"request": {"set": {FINGERPRINT_HEADER: [FINGERPRINT]}}}
     return handler
 
 
@@ -231,28 +249,40 @@ def _redirect_route(domain: str) -> JSON:
     }
 
 
+def controller_spec(spec: NodeSpec) -> HostSpec:
+    host, _, port = spec.controller_upstream.rpartition(":")
+    protected = spec.controller_protected
+    return HostSpec(
+        id=0,
+        domain=spec.controller_domain,
+        upstream_scheme="http",
+        upstream_host=host.strip("[]") or spec.controller_upstream,
+        upstream_port=int(port) if port.isdigit() else 80,
+        access="mtls" if protected else "public",
+        no_cert_action="hint",
+        paths=CONTROLLER_PUBLIC_PATHS if protected else (),
+        allowed=spec.controller_allowed,
+        pass_fingerprint=True,
+        ask_client_cert=True,
+    )
+
+
 def _controller_route(spec: NodeSpec) -> JSON:
-    return {
-        "@id": "controller",
-        "match": [{"host": [spec.controller_domain]}],
-        "handle": [
-            {
-                "handler": "reverse_proxy",
-                "upstreams": [{"dial": spec.controller_upstream}],
-            }
-        ],
-        "terminal": True,
-    }
+    route = host_route(controller_spec(spec))
+    route["@id"] = "controller"
+    return route
 
 
 def build_config(spec: NodeSpec) -> JSON:
     hosts = sorted(spec.hosts, key=lambda h: h.domain)
     https_routes: list[JSON] = []
     http_routes: list[JSON] = []
+    policy_hosts: list[HostSpec] = []
 
     if spec.controller_domain and spec.controller_upstream:
         https_routes.append(_controller_route(spec))
         http_routes.append(_redirect_route(spec.controller_domain))
+        policy_hosts.append(controller_spec(spec))
 
     for host in hosts:
         https_routes.append(host_route(host))
@@ -269,10 +299,10 @@ def build_config(spec: NodeSpec) -> JSON:
         "routes": https_routes,
         "automatic_https": {"disable_redirects": True},
     }
-    protected = [h for h in hosts if h.needs_client_auth]
-    if protected and spec.client_ca_der_b64:
+    policy_hosts += [h for h in hosts if h.wants_tls_policy]
+    if policy_hosts and spec.client_ca_der_b64:
         https_server["tls_connection_policies"] = [
-            *(tls_policy(h, spec.client_ca_der_b64) for h in protected),
+            *(tls_policy(h, spec.client_ca_der_b64) for h in policy_hosts),
             {},  # alle übrigen Hosts: ohne Client-Zertifikat
         ]
 

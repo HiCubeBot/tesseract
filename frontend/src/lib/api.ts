@@ -64,6 +64,21 @@ export interface Me {
   username: string;
 }
 
+export interface DeviceInfo {
+  certificate: boolean;
+  admin_device: string | null;
+  person: string | null;
+}
+
+export interface AdminAccess {
+  enabled: boolean;
+  admin_devices: number;
+  current_device: string | null;
+  can_enable: boolean;
+  reason: string | null;
+  apply_error: string | null;
+}
+
 export interface NodeRef {
   id: number;
   name: string;
@@ -258,7 +273,9 @@ export const ACTION_LABELS: Record<string, string> = {
   enrollment_requested: 'Gerät möchte sich registrieren',
   enrollment_approved: 'Gerät freigegeben',
   enrollment_rejected: 'Gerät abgelehnt',
-  enrollment_code_wrong: 'Falscher Einladungscode'
+  enrollment_code_wrong: 'Falscher Einladungscode',
+  admin_mtls_on: 'Oberfläche nur noch mit Admin-Zertifikat',
+  admin_mtls_off: 'Admin-Zertifikat für Oberfläche abgeschaltet'
 };
 
 // ---------- Phase 2: CA, Personen, Geräte ----------

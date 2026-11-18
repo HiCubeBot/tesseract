@@ -41,7 +41,8 @@ SNAPSHOT_FIELDS = (
     "draft",
 )
 
-GENERAL_DEFAULTS: dict[str, Any] = {"acme_email": "", "public_ips": []}
+GENERAL_DEFAULTS: dict[str, Any] = {"acme_email": "", "public_ips": [], "admin_mtls": False}
+ADMIN_GROUP = "Admin"
 
 
 # ---------- Einstellungen ----------
@@ -168,6 +169,37 @@ def granted_persons(db: Session, host: Host) -> list[Person]:
     )
 
 
+def _active_devices_of(db: Session, persons: list[Person]) -> list[Device]:
+    if not persons:
+        return []
+    return list(
+        db.scalars(
+            select(Device)
+            .where(
+                Device.person_id.in_([p.id for p in persons]),
+                Device.revoked_at.is_(None),
+                Device.not_after > utcnow(),
+            )
+            .order_by(Device.id)
+        )
+    )
+
+
+def admin_devices(db: Session) -> list[Device]:
+    """Aktive Geräte nicht gesperrter Personen in der Gruppe „Admin“."""
+    group = db.scalar(select(Group).where(Group.name == ADMIN_GROUP, Group.builtin))
+    if group is None:
+        return []
+    return _active_devices_of(db, [p for p in group.persons if not p.disabled])
+
+
+def device_by_fingerprint(db: Session, fingerprint: str) -> Device | None:
+    fp = fingerprint.strip().lower().replace(":", "")
+    if len(fp) != 64:
+        return None
+    return db.scalar(select(Device).where(Device.fingerprint == fp))
+
+
 def allowed_devices(db: Session, host: Host) -> list[Device]:
     persons = granted_persons(db, host)
     if not persons:
@@ -232,6 +264,8 @@ def node_config(db: Session, node: Node, settings: Settings) -> dict[str, Any]:
         controller_upstream=settings.controller_upstream,
         acme_email=general["acme_email"],
         client_ca_der_b64=client_ca_der_b64(db),
+        controller_protected=bool(general["admin_mtls"]),
+        controller_allowed=tuple((d.fingerprint, d.cert_pem) for d in admin_devices(db)),
     )
     return build_config(spec)
 

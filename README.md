@@ -13,8 +13,10 @@ mit **mTLS statt VPN** und eingebauter **Coraza WAF**.
 - **Einladungen per Link**: Gäste registrieren ihr Gerät selbst und installieren das Zertifikat
   mit einer Schritt-für-Schritt-Anleitung.
 
-> Status: **Phase 1 fertig** – Proxy-Hosts mit Let's Encrypt für einen Caddy, mit Versionen,
-> Audit-Log und Admin-Login. Bereiche ohne Funktion zeigt das UI als Prototyp. Siehe [Roadmap](docs/roadmap.md).
+> Status: **Phase 2 fertig** – Proxy-Hosts mit Let's Encrypt, eigene CA, Geräte-Zertifikate,
+> Hosts und einzelne Pfade nur für freigegebene Geräte (mTLS), Einladungen per Link und
+> Admin-Oberfläche nur mit Admin-Zertifikat. Bereiche ohne Funktion zeigt das UI als Prototyp.
+> Siehe [Roadmap](docs/roadmap.md).
 
 ## Projektstruktur
 

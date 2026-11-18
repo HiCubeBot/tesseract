@@ -4,7 +4,8 @@
   import Button from '../lib/components/Button.svelte';
   import Alert from '../lib/components/Alert.svelte';
   import SettingsTabs from '../lib/components/SettingsTabs.svelte';
-  import { api, type GeneralSettings } from '../lib/api';
+  import Toggle from '../lib/components/Toggle.svelte';
+  import { api, type AdminAccess, type GeneralSettings } from '../lib/api';
   import { session } from '../lib/session.svelte';
   import { toasts } from '../lib/toast.svelte';
 
@@ -13,6 +14,37 @@
   let ips = $state('');
   let saving = $state(false);
   let error = $state('');
+
+  let access = $state<AdminAccess | null>(null);
+  let accessBusy = $state(false);
+
+  async function loadAccess() {
+    try {
+      access = await api.get<AdminAccess>('/settings/admin-access');
+    } catch {
+      access = null;
+    }
+  }
+  loadAccess();
+
+  async function setAccess(enabled: boolean) {
+    if (!access) return;
+    accessBusy = true;
+    try {
+      access = await api.put<AdminAccess>('/settings/admin-access', { enabled });
+      if (access.apply_error) toasts.show('warn', `Gespeichert, aber nicht übertragen: ${access.apply_error}`, 12000);
+      else
+        toasts.show(
+          'ok',
+          enabled ? 'Die Oberfläche ist jetzt nur noch mit Admin-Zertifikat erreichbar.' : 'Admin-Zertifikat abgeschaltet.'
+        );
+    } catch (err) {
+      toasts.show('bad', err instanceof Error ? err.message : String(err));
+      await loadAccess();
+    } finally {
+      accessBusy = false;
+    }
+  }
 
   let currentPw = $state('');
   let newPw = $state('');
@@ -101,6 +133,31 @@
         Die Domain kommt aus <code>TESSERACT_CONTROLLER_DOMAIN</code> (Compose: <code>TESSERACT_DOMAIN</code>) –
         so kann sich der Controller nicht versehentlich aussperren.
       </p>
+    </section>
+
+    <section class="card" aria-labelledby="access-title">
+      <h2 id="access-title">Zugang zur Oberfläche</h2>
+      {#if access}
+        <Toggle
+          label="Nur mit Admin-Zertifikat"
+          description="Ohne Zertifikat eines Geräts aus der Gruppe „Admin“ ist die Oberfläche nicht erreichbar. Die Einladungsseite bleibt öffentlich."
+          checked={access.enabled}
+          onChange={(v) => setAccess(v)}
+        />
+        <dl>
+          <dt>Dieses Gerät</dt>
+          <dd>{access.current_device ?? 'kein Admin-Zertifikat erkannt'}</dd>
+          <dt>Admin-Geräte</dt>
+          <dd>{access.admin_devices} · <a href="#/users">verwalten</a></dd>
+        </dl>
+        {#if !access.enabled && access.reason}
+          <p class="muted small">Zum Einschalten: {access.reason}.</p>
+        {/if}
+        <p class="muted small">
+          Notausgang, falls das Gerät verloren ist – auf dem Controller: <code>tesseract admin mtls off</code>
+        </p>
+        {#if accessBusy}<p class="muted small" aria-live="polite">Überträgt …</p>{/if}
+      {/if}
     </section>
 
     <form class="card" onsubmit={changePassword} aria-labelledby="pw-title">
