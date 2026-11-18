@@ -1,0 +1,21 @@
+# Start-Konfiguration. Ab Phase 1 schreibt der Controller die Config
+# über die Admin-API (JSON); diese Datei dient nur dem ersten Start.
+{
+	# Admin-API nur im internen Docker-Netz erreichbar – NICHT nach außen veröffentlichen.
+	admin 0.0.0.0:2019
+	order coraza_waf first
+	email {$ACME_EMAIL}
+}
+
+{$TESSERACT_DOMAIN:localhost} {
+	coraza_waf {
+		load_owasp_crs
+		directives `
+			Include @coraza.conf-recommended
+			Include @crs-setup.conf.example
+			Include @owasp_crs/*.conf
+			SecRuleEngine DetectionOnly
+		`
+	}
+	reverse_proxy tesseract:8000
+}
