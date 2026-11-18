@@ -168,6 +168,10 @@ async def watch(
                 if rounds % 120 == 0:
                     collector.prune(db)
                 db.commit()
+                # Audit-Log laufend versiegeln (Prüfsummenkette)
+                from tesseract.audit import seal
+
+                seal(db)
                 if changed:
                     for b in changed:
                         log.warning(

@@ -388,6 +388,14 @@ export interface AuditEntry {
   target: string;
   details: Record<string, unknown>;
   ip: string | null;
+  hash: string | null;
+}
+
+export interface AuditVerify {
+  ok: boolean;
+  checked: number;
+  broken_id: number | null;
+  last_hash: string;
 }
 
 // ---------- Anzeige-Hilfen ----------

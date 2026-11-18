@@ -4,7 +4,13 @@
   import Button from '../lib/components/Button.svelte';
   import Alert from '../lib/components/Alert.svelte';
   import Icon from '../lib/components/Icon.svelte';
-  import { api, formatDate, ACTION_LABELS, type AuditEntry } from '../lib/api';
+  import SegmentedControl from '../lib/components/SegmentedControl.svelte';
+  import StatusPill from '../lib/components/StatusPill.svelte';
+  import { api, formatDate, ACTION_LABELS, type AuditEntry, type AuditVerify } from '../lib/api';
+
+  const KINDS = ['', 'admin', 'system', 'guest', 'agent'] as const;
+  let kind = $state(0);
+  let check = $state<AuditVerify | null>(null);
 
   const PAGE = 100;
 
@@ -17,6 +23,7 @@
   async function load(append = false) {
     const params = new URLSearchParams({ limit: String(PAGE) });
     if (query.trim()) params.set('q', query.trim());
+    if (KINDS[kind]) params.set('kind', KINDS[kind]);
     if (append && entries.length) params.set('before_id', String(entries[entries.length - 1].id));
     try {
       const page = await api.get<AuditEntry[]>(`/audit?${params}`);
@@ -35,17 +42,53 @@
     timer = setTimeout(() => load(), 250);
   });
 
-  const detailText = (e: AuditEntry) => (Object.keys(e.details).length ? JSON.stringify(e.details, null, 2) : '');
+  const detailText = (e: AuditEntry) =>
+    [Object.keys(e.details).length ? JSON.stringify(e.details, null, 2) : '', e.hash ? `Prüfsumme ${e.hash}` : '']
+      .filter(Boolean)
+      .join('\n\n');
+
+  async function verify() {
+    try {
+      check = await api.get<AuditVerify>('/audit/verify');
+    } catch (e) {
+      error = e instanceof Error ? e.message : String(e);
+    }
+  }
+  verify();
+
+  function exportCsv() {
+    const params = new URLSearchParams();
+    if (query.trim()) params.set('q', query.trim());
+    if (KINDS[kind]) params.set('kind', KINDS[kind]);
+    window.location.href = `/api/audit/export.csv?${params}`;
+  }
 </script>
 
 <AppShell active="audit">
-  <PageHeader title="Audit-Log" subtitle="Jede Änderung und jede Anmeldung – wer, wann, was." />
+  <PageHeader
+    title="Audit-Log"
+    subtitle="Jede Änderung und jede Anmeldung – wer, wann, was. Einträge lassen sich nicht ändern oder löschen."
+    primaryLabel="CSV exportieren"
+    primaryIcon="download"
+    onPrimary={exportCsv}
+  />
 
-  <label class="search">
-    <Icon name="search" size={16} strokeWidth={2} />
-    <span class="visually-hidden">Log durchsuchen</span>
-    <input type="search" placeholder="Wer, Aktion oder Ziel …" bind:value={query} />
-  </label>
+  <div class="row">
+    <SegmentedControl groupLabel="Wer" options={['Alle', 'Admins', 'System', 'Gäste', 'Agents']} bind:selected={kind} onChange={() => load()} />
+    <label class="search">
+      <Icon name="search" size={16} strokeWidth={2} />
+      <span class="visually-hidden">Log durchsuchen</span>
+      <input type="search" placeholder="Wer, Aktion oder Ziel …" bind:value={query} />
+    </label>
+    {#if check}
+      <span class="chain" title={`Letzte Prüfsumme ${check.last_hash}`}>
+        <StatusPill tone={check.ok ? 'ok' : 'bad'} label={check.ok ? `Kette intakt · ${check.checked} Einträge` : `Kette gebrochen bei #${check.broken_id}`} />
+      </span>
+    {/if}
+  </div>
+  {#if check && !check.ok}
+    <Alert tone="bad" title="Das Audit-Log wurde verändert" text={`Eintrag #${check.broken_id} passt nicht zur Prüfsumme seines Vorgängers. Jemand hat die Datenbank direkt bearbeitet – Backup vergleichen.`} />
+  {/if}
 
   {#if error}<Alert tone="bad" title="Fehler" text={error} />{/if}
 
@@ -90,11 +133,15 @@
 
   {#if more}<div><Button variant="secondary" label="Ältere laden" onClick={() => load(true)} /></div>{/if}
 
-  <p class="muted small">Unveränderliche, verkettete Einträge und CSV-Export folgen mit Phase 5.</p>
+  <p class="muted small">
+    Jeder Eintrag trägt die Prüfsumme (SHA-256) seines Vorgängers. Ein geänderter oder gelöschter Eintrag bricht die Kette ab dieser
+    Stelle – die Prüfung oben zeigt, wo.
+  </p>
 </AppShell>
 
 <style>
   .search {
+    flex: 1 1 260px;
     display: flex;
     align-items: center;
     gap: 8px;

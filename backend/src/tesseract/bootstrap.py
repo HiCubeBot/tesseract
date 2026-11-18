@@ -42,6 +42,11 @@ def init_database(settings: Settings) -> Database:
         db.commit()
 
         password = ensure_admin(db)
+        db.commit()
+        # Audit-Log: offene Einträge (z. B. aus älteren Versionen) versiegeln
+        from tesseract.audit import seal
+
+        seal(db)
         if password:
             log.warning(
                 "Erster Start: Admin 'admin' angelegt. Passwort: %s – bitte nach dem Login ändern.",

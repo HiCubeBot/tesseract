@@ -225,6 +225,9 @@ class AuditEntry(Base):
     target: Mapped[str] = mapped_column(String(255), default="")
     details: Mapped[dict[str, Any]] = mapped_column(default=dict)
     ip: Mapped[str | None] = mapped_column(String(64))
+    # Phase 5: Kette – siehe tesseract.audit
+    prev_hash: Mapped[str | None] = mapped_column(String(64))
+    hash: Mapped[str | None] = mapped_column(String(64), index=True)
 
 
 # ---------- Phase 2: PKI und Identitäten ----------
