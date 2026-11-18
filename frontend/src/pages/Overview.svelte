@@ -13,15 +13,26 @@
     ACTION_LABELS,
     type AuditEntry,
     type Host,
+    type CertificateOverview,
     type Invite,
     type NodeInfo
   } from '../lib/api';
+  import { formatDay } from '../lib/api';
   import { applyNode } from '../lib/nodes';
 
   let hosts = $state<Host[]>([]);
   let nodes = $state<NodeInfo[]>([]);
   let events = $state<AuditEntry[]>([]);
   let invites = $state<Invite[]>([]);
+  let certs = $state<CertificateOverview | null>(null);
+  // Zertifikate separat laden – das Auslesen kann ein paar Sekunden dauern
+  api.get<CertificateOverview>('/certificates').then(
+    (c) => (certs = c),
+    () => (certs = null)
+  );
+  const expiring = $derived(
+    (certs?.certificates ?? []).filter((c) => c.source !== 'lokal' && c.days_left < 30).slice(0, 5)
+  );
   let error = $state('');
   let applying = $state<number | null>(null);
 
@@ -129,6 +140,29 @@
       {/each}
     </section>
 
+    <section class="card" aria-labelledby="certs-title">
+      <div class="row">
+        <h2 id="certs-title" class="card-title">Bald ablaufende Zertifikate</h2>
+        <span class="spacer"></span>
+        <a href="#/certificates" class="small">Alle Zertifikate</a>
+      </div>
+      {#if !certs}
+        <p class="muted small">Prüfe …</p>
+      {:else if expiring.length}
+        <ul class="plain">
+          {#each expiring as c (c.fingerprint)}
+            <li>
+              <span class="mono">{c.names[0]}</span>
+              <span class="spacer"></span>
+              <StatusPill tone={c.status === 'ok' ? 'warn' : 'bad'} label={`${c.days_left} Tage · ${formatDay(c.not_after)}`} />
+            </li>
+          {/each}
+        </ul>
+      {:else}
+        <p class="muted small">Keine öffentlichen Zertifikate, die in den nächsten 30 Tagen ablaufen.</p>
+      {/if}
+    </section>
+
     <BansCard compact />
 
     <section class="card" aria-labelledby="events-title">
@@ -181,5 +215,17 @@
   }
   .small {
     font-size: 13px;
+  }
+  .plain {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .plain li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    border-top: 1px solid var(--border);
   }
 </style>

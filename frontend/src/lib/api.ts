@@ -136,6 +136,26 @@ export interface AreaInput {
 }
 export type IpMode = 'off' | 'block' | 'allow';
 
+export interface CertificateInfo {
+  fingerprint: string;
+  names: string[];
+  issuer: string;
+  issuer_raw: string;
+  not_before: string;
+  not_after: string;
+  days_left: number;
+  status: 'ok' | 'soon' | 'expired';
+  source: 'http-01' | 'dns-01' | 'wildcard' | 'lokal' | 'unbekannt';
+  hosts: string[];
+  node: string;
+}
+
+export interface CertificateOverview {
+  checked_at: string;
+  certificates: CertificateInfo[];
+  errors: { name: string; node: string; error: string }[];
+}
+
 export interface Ban {
   id: number;
   ip: string;

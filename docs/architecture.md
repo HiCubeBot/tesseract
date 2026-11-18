@@ -179,6 +179,19 @@ dass sie später durch den Agent ersetzt werden kann („Node-Treiber“: lokal 
 - Nur mit hinterlegtem Cloudflare-Token; interne Hosts mit öffentlichem Namen sind
   damit auch ohne eigenes DNS-01 möglich.
 
+## Zertifikatsübersicht (Phase 3b)
+
+- Caddys Admin-API listet verwaltete Zertifikate nicht auf. Der Controller baut deshalb pro
+  Host (plus Controller-Domain und je Wildcard ein Beispielname) eine TLS-Verbindung zu
+  Caddy auf (`TESSERACT_CADDY_TLS_ADDRESS`, sonst Host der Admin-URL mit Port 443) und liest
+  das ausgelieferte Zertifikat – auch bei strengem mTLS (TLS 1.3 liefert das
+  Server-Zertifikat vor der Client-Prüfung) und bei internen Hosts (Abbruch erst danach).
+- Gruppiert nach Fingerabdruck: Namen, Aussteller (Let's Encrypt, ZeroSSL, Caddy-CA …),
+  Laufzeit, Prüfart, nutzende Hosts. Status „läuft bald ab“ unter 21 Tagen (Caddy erneuert
+  ~30 Tage vorher); Caddys lokale CA ist absichtlich kurzlebig und zählt nicht.
+- Ergebnis 5 Minuten zwischengespeichert, „Neu prüfen“ erzwingt das Auslesen.
+- `GET /api/certificates[?refresh=true]`
+
 ## Offene Entscheidungen
 
 | Thema | Optionen | Notiz |

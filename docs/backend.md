@@ -169,6 +169,7 @@ Alle Einstellungen kommen aus Umgebungsvariablen oder einer `.env` im Arbeitsver
 | `TESSERACT_DATABASE_URL` | SQLite in `DATA_DIR` | Andere Datenbank-URL |
 | `TESSERACT_STATIC_DIR` | – | Gebautes Frontend; leer = nur API |
 | `TESSERACT_CADDY_ADMIN_URL` | `http://caddy:2019` | Caddy-Admin-API des lokalen Nodes |
+| `TESSERACT_CADDY_TLS_ADDRESS` | Host der Admin-URL `:443` | HTTPS-Port von Caddy für die Zertifikatsübersicht |
 | `TESSERACT_CADDY_ADMIN_LISTEN` | `0.0.0.0:2019` | Admin-Adresse, die in die erzeugte Caddy-Config geschrieben wird |
 | `TESSERACT_CONTROLLER_DOMAIN` | – | Domain der Tesseract-Oberfläche (Compose: `TESSERACT_DOMAIN`) |
 | `TESSERACT_CONTROLLER_UPSTREAM` | `tesseract:8000` | Wie Caddy den Controller erreicht |

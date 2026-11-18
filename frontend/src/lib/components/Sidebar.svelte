@@ -3,7 +3,17 @@
   import { icons } from '../icons';
   import { session } from '../session.svelte';
 
-  type NavId = 'main' | 'hosts' | 'users' | 'devices' | 'access' | 'nodes' | 'stats' | 'audit' | 'settings';
+  type NavId =
+    | 'main'
+    | 'hosts'
+    | 'certificates'
+    | 'users'
+    | 'devices'
+    | 'access'
+    | 'nodes'
+    | 'stats'
+    | 'audit'
+    | 'settings';
 
   interface Props {
     active?: NavId;
@@ -14,6 +24,7 @@
   const nav: { id: NavId; label: string; href: string; count?: string; d: string }[] = [
     { id: 'main', label: 'Übersicht', href: '#/', d: icons.grid },
     { id: 'hosts', label: 'Proxy-Hosts', href: '#/hosts', d: icons.globe },
+    { id: 'certificates', label: 'Zertifikate', href: '#/certificates', d: icons.okCircle },
     { id: 'users', label: 'Nutzer', href: '#/users', d: icons.users },
     { id: 'devices', label: 'Geräte', href: '#/devices', d: icons.device },
     { id: 'access', label: 'Zugriff', href: '#/access', d: icons.lock },

@@ -2,7 +2,17 @@
   import type { Snippet } from 'svelte';
   import Sidebar from './Sidebar.svelte';
 
-  type NavId = 'main' | 'hosts' | 'users' | 'devices' | 'access' | 'nodes' | 'stats' | 'audit' | 'settings';
+  type NavId =
+    | 'main'
+    | 'hosts'
+    | 'certificates'
+    | 'users'
+    | 'devices'
+    | 'access'
+    | 'nodes'
+    | 'stats'
+    | 'audit'
+    | 'settings';
 
   interface Props {
     active: NavId;

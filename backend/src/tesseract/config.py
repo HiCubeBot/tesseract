@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     caddy_admin_listen: str = "0.0.0.0:2019"
     # Domain der Tesseract-Oberfläche; Caddy bekommt dafür immer eine eigene Route
     controller_domain: str = ""
+    # Wo der Controller Caddys HTTPS-Port erreicht (Zertifikatsübersicht);
+    # leer = Host der Admin-URL mit Port 443
+    caddy_tls_address: str = ""
     # Wie Caddy den Controller selbst erreicht (Route für die Controller-Domain)
     controller_upstream: str = "tesseract:8000"
 
