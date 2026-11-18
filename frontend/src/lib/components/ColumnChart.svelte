@@ -17,7 +17,9 @@
 
   let { buckets, series, height = 180, label }: Props = $props();
 
-  const W = 720;
+  // In echter Pixelbreite zeichnen – gestreckt würden Schrift und Rundungen verzerrt
+  let width = $state(0);
+  const W = $derived(Math.max(320, width || 720));
   const PAD = { top: 8, right: 8, bottom: 22, left: 44 };
   let hover = $state<number | null>(null);
   let showTable = $state(false);
@@ -57,8 +59,8 @@
       {#each series as s (s.key)}<span><i style:background={s.color}></i>{s.label}</span>{/each}
     </div>
   {/if}
-  <div class="plot">
-    <svg viewBox="0 0 {W} {height}" role="img" aria-label={label} preserveAspectRatio="none" style:height="{height}px">
+  <div class="plot" bind:clientWidth={width}>
+    <svg viewBox="0 0 {W} {height}" role="img" aria-label={label} width={W} {height}>
       {#each [0, 0.5, 1] as f (f)}
         <line x1={PAD.left} x2={W - PAD.right} y1={y(max * f)} y2={y(max * f)} class="grid" />
         <text x={PAD.left - 8} y={y(max * f) + 4} class="tick" text-anchor="end">{compact(max * f)}</text>

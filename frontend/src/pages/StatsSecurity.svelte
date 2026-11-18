@@ -5,6 +5,7 @@
   import SegmentedControl from '../lib/components/SegmentedControl.svelte';
   import ColumnChart from '../lib/components/ColumnChart.svelte';
   import BarList from '../lib/components/BarList.svelte';
+  import WorldMap from '../lib/components/WorldMap.svelte';
   import StatCard from '../lib/components/StatCard.svelte';
   import Alert from '../lib/components/Alert.svelte';
   import { api, countryName, LOG_REASONS, type LogReason, type NodeInfo } from '../lib/api';
@@ -79,6 +80,25 @@
       <ColumnChart {buckets} {series} label="Abgelehnte Anfragen nach Grund" />
     </section>
 
+    <section class="card" aria-labelledby="geo-title">
+      <h2 id="geo-title">Herkunft abgelehnter Anfragen</h2>
+      {#if data.geoip}
+        {#if data.countries.length}
+          <div class="geo">
+            <WorldMap items={data.countries} label="Weltkarte: abgelehnte Anfragen nach Herkunftsland" />
+            <BarList color="#9085E9" items={data.countries.slice(0, 8).map((c) => ({ label: countryName(c.country), value: c.count }))} />
+          </div>
+        {:else}
+          <p class="muted small">Keine abgelehnten Anfragen mit bekanntem Land im Zeitraum (private und lokale Adressen haben kein Land).</p>
+        {/if}
+      {:else}
+        <p class="muted small">
+          Für die Karte eine lokale GeoIP-Datenbank (.mmdb) hinterlegen: <span class="mono">TESSERACT_GEOIP_DB</span> –
+          Bezug siehe docs/deployment.md › GeoIP. Es geht keine Anfrage nach außen.
+        </p>
+      {/if}
+    </section>
+
     <div class="cols">
       <section class="card" aria-labelledby="ips-title">
         <h2 id="ips-title">Top abgelehnte IPs</h2>
@@ -94,17 +114,6 @@
         />
       </section>
 
-      <section class="card" aria-labelledby="geo-title">
-        <h2 id="geo-title">Herkunft abgelehnter Anfragen</h2>
-        {#if data.geoip}
-          <BarList color="#8B7CF6" items={data.countries.map((c) => ({ label: countryName(c.country), value: c.count }))} />
-        {:else}
-          <p class="muted small">
-            Für Länder eine lokale GeoIP-Datenbank (z. B. GeoLite2-Country oder DB-IP Lite, .mmdb) hinterlegen:
-            <span class="mono">TESSERACT_GEOIP_DB</span>. Es geht keine Anfrage nach außen.
-          </p>
-        {/if}
-      </section>
     </div>
 
     <div class="cols">
@@ -171,6 +180,17 @@
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
     gap: 16px;
     align-items: start;
+  }
+  .geo {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(220px, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .geo {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
   .small {
     font-size: 13px;

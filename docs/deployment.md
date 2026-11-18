@@ -99,8 +99,24 @@ docker build -t tesseract-agent:dev agent
 
 ## GeoIP (optional)
 
-Für Länder in Logs und Statistik eine lokale Datenbank einbinden, z. B. DB-IP „IP to Country
-Lite“ oder MaxMind GeoLite2-Country (`.mmdb`, Lizenz beachten). Es geht keine Anfrage nach außen.
+Für Länder in Logs, Statistik und auf der Herkunftskarte eine lokale Datenbank im Format
+`.mmdb` einbinden. Tesseract liest sie nur – es geht keine Anfrage nach außen.
+
+**Variante 1 – DB-IP „IP to Country Lite“ (ohne Konto):** monatlich neu, Lizenz CC BY 4.0
+(Quellenangabe „IP Geolocation by DB-IP“, wenn man Auswertungen weitergibt).
+Übersicht: <https://db-ip.com/db/download/ip-to-country-lite>
+
+```bash
+mkdir -p geoip
+curl -L https://download.db-ip.com/free/dbip-country-lite-$(date +%Y-%m).mmdb.gz | gunzip > geoip/country.mmdb
+```
+
+**Variante 2 – MaxMind GeoLite2-Country (kostenloses Konto):** Konto anlegen unter
+<https://www.maxmind.com/en/geolite2/signup>, Lizenzschlüssel erzeugen und
+`GeoLite2-Country.mmdb` herunterladen (oder automatisch mit `geoipupdate`). Es gilt die
+GeoLite2-Lizenz von MaxMind.
+
+Einbinden (z. B. in einer `compose.override.yaml`), danach `docker compose up -d`:
 
 ```yaml
 services:
@@ -110,3 +126,6 @@ services:
     volumes:
       - ./geoip:/geoip:ro
 ```
+
+Die Datenbank alle paar Wochen erneuern (gleicher Dateiname, Controller neu starten). Länder
+gibt es nur für öffentliche Adressen; private und lokale IPs bleiben ohne Land.

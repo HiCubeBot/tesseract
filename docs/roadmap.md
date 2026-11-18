@@ -152,14 +152,14 @@ lokale Änderung auf dem Pi wird im UI als Abweichung angezeigt.
 
 - [x] Zentrale Log-Sammlung von allen Nodes (Zugriffs- und WAF-Logs, Agent puffert und liefert
   nach), Live-Ansicht, Such-Syntax, Grund jeder Ablehnung, WAF-Regel pro Anfrage, Gerät
-- [x] Statistik: Sicherheit, Traffic & Leistung, Nutzung; lokale GeoIP-Datenbank (optional)
+- [x] Statistik: Sicherheit (mit Herkunftskarte), Traffic & Leistung, Nutzung; lokale
+  GeoIP-Datenbank (optional)
 - [x] Aktionen aus Logs (IP sperren, Ausnahme anlegen, alle Einträge einer IP)
 - [x] Unveränderliches Audit-Log mit verketteten Prüfsummen, Prüfung, Filter, CSV-Export
 - [x] Prometheus-Endpunkt inkl. Node- und Caddy-Metriken, Grafana-Dashboard
 - [x] Benachrichtigungen per E-Mail, Webhook, ntfy mit Bündelung und Ruhezeiten
 
 Offen / bewusst verschoben:
-- Herkunftskarte: Länder erscheinen als Liste, eine Weltkarte fehlt (bräuchte Kartendaten)
 - Abgelehnte TLS-Handshakes (strenges mTLS) stehen nicht im Zugriffs-Log – Caddy schreibt dafür
   keine Anfrage; sichtbar sind nur 403 der Hinweisseite und der Pfad-Regeln
 - Anomalie-Score: Coraza schreibt ihn bei OWASP CRS 4 nicht ins Log, er wird nur gezeigt, wenn

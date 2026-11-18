@@ -15,9 +15,21 @@ from tesseract.db.models import Admin
 ADMIN_PASSWORD = "test-passwort-123"
 
 
+@pytest.fixture(autouse=True)
+def _clean_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Tests unabhängig von TESSERACT_*-Variablen der Umgebung."""
+    import os
+
+    for key in list(os.environ):
+        if key.startswith("TESSERACT_"):
+            monkeypatch.delenv(key)
+
+
 @pytest.fixture
 def settings(tmp_path: Path) -> Settings:
     return Settings(
+        # keine lokale .env einlesen (z. B. backend/.env der Entwicklung)
+        _env_file=None,
         data_dir=tmp_path,
         static_dir=None,
         cookie_secure=False,

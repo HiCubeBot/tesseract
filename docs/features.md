@@ -86,7 +86,7 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 
 | Feature | Beschreibung | Phase |
 |---|---|---|
-| Sicherheit | Abgelehnte Anfragen pro Stunde, Coraza-Angriffsarten, Top-IPs, Herkunft nach Land (lokale GeoIP-DB; Weltkarte folgt) | 5 |
+| Sicherheit | Abgelehnte Anfragen pro Stunde, Coraza-Angriffsarten, Top-IPs, Herkunftskarte (Kreisfläche = Anzahl, lokale GeoIP-DB, Kartendaten Natural Earth im Build) | 5 |
 | Traffic & Leistung | Anfragen, Datenmenge, Antwortzeiten (Median/p95), 5xx-Fehler, Erreichbarkeit, Hosts im Vergleich | 5 |
 | Nutzung | Wer nutzt was (Person × Dienst), Geräte-Aktivität, Heatmap Wochentag × Uhrzeit | 5 |
 | Logs | Live-Ansicht, Suche mit Filtersyntax (`host:git status:403 ip:…`), Detailansicht mit Regel und Meldung, Anomalie-Score (wenn Coraza ihn schreibt), Grund jeder Ablehnung | 5 |
