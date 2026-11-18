@@ -203,6 +203,29 @@ def post_status(body: StatusIn, request: Request, node: AgentNode, db: DB) -> di
     return {"ok": True, "heartbeat": node_svc.HEARTBEAT_SECONDS, "caddy_metrics": want}
 
 
+class RenewIn(BaseModel):
+    csr: str = Field(max_length=8000)
+
+
+@router.post("/renew")
+def renew(body: RenewIn, request: Request, node: AgentNode, db: DB) -> dict[str, Any]:
+    """Neues Node-Zertifikat vor Ablauf (der Agent fragt ab 60 Tage vorher selbst)."""
+    try:
+        out = node_svc.renew_cert(db, request.app.state.secretbox, node, body.csr)
+    except ValueError as e:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(e)) from e
+    audit.record(
+        db,
+        actor="agent",
+        action="node_cert_renewed",
+        target=node.name,
+        details={"not_after": out["not_after"]},
+        ip=client_ip(request),
+    )
+    db.commit()
+    return out
+
+
 class LogsIn(BaseModel):
     # Zeilen aus Caddys Zugriffs- und WAF-Log (JSON), vom Agent gepuffert und nachgeliefert
     access: list[str] = Field(default_factory=list, max_length=5000)

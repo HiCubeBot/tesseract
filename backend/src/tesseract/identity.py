@@ -28,6 +28,77 @@ def active_authority(db: Session, kind: str) -> Authority | None:
     )
 
 
+def trusted_intermediates(db: Session) -> list[Authority]:
+    """Aktives Zwischenzertifikat zuerst, dann ältere, die noch gültig sind und an denen noch
+    aktive Geräte hängen."""
+    now = utcnow()
+    out = []
+    for a in db.scalars(
+        select(Authority)
+        .where(Authority.kind == "intermediate", Authority.not_after > now)
+        .order_by(Authority.active.desc(), Authority.id.desc())
+    ):
+        if a.active or devices_of(db, a, active_only=True):
+            out.append(a)
+    return out
+
+
+def _aki(cert) -> bytes | None:
+    from cryptography import x509
+
+    try:
+        return cert.extensions.get_extension_for_class(
+            x509.AuthorityKeyIdentifier
+        ).value.key_identifier
+    except x509.ExtensionNotFound:
+        return None
+
+
+def _ski(cert) -> bytes | None:
+    from cryptography import x509
+
+    try:
+        return cert.extensions.get_extension_for_class(x509.SubjectKeyIdentifier).value.digest
+    except x509.ExtensionNotFound:
+        return None
+
+
+def devices_of(db: Session, authority: Authority, active_only: bool = False) -> list[Device]:
+    """Geräte, die von diesem Zwischenzertifikat ausgestellt wurden (über die Schlüssel-ID)."""
+    ski = _ski(pki.load_cert(authority.cert_pem))
+    stmt = select(Device)
+    if active_only:
+        stmt = stmt.where(Device.revoked_at.is_(None), Device.not_after > utcnow())
+    return [d for d in db.scalars(stmt) if _aki(pki.load_cert(d.cert_pem)) == ski]
+
+
+def rotate_intermediate(
+    db: Session, box: SecretBox, root_key_pem: str, passphrase: str
+) -> Authority:
+    """Neues Zwischenzertifikat mit dem (offline aufbewahrten) Root-Schlüssel. Der Schlüssel
+    wird nur für diesen Vorgang entschlüsselt und nicht gespeichert. Das alte bleibt vertraut,
+    solange noch Geräte daran hängen – sie lassen sich nach und nach verlängern."""
+    root = active_authority(db, "root")
+    old = active_authority(db, "intermediate")
+    if root is None or old is None:
+        raise CAError("Die Zertifizierungsstelle ist noch nicht eingerichtet")
+    try:
+        key = pki.load_key(root_key_pem.strip().encode(), passphrase)
+    except (ValueError, TypeError) as e:
+        raise CAError("Root-Schlüssel oder Passphrase falsch") from e
+    root_cert = pki.load_cert(root.cert_pem)
+    if key.public_key().public_numbers() != root_cert.public_key().public_numbers():
+        raise CAError("Dieser Schlüssel gehört nicht zum Root-Zertifikat dieser CA")
+    inter = pki.generate_intermediate(pki.KeyPair(key, root_cert))
+    old.active = False
+    new = _authority(
+        inter, "intermediate", box.encrypt(pki.key_pem(inter.key).encode(), KEY_CONTEXT)
+    )
+    db.add(new)
+    db.flush()
+    return new
+
+
 def ca_configured(db: Session) -> bool:
     return active_authority(db, "intermediate") is not None
 
@@ -147,6 +218,34 @@ def issue_device(
     password = pki.generate_p12_password()
     p12 = pki.to_p12(kp, chain(db), password, f"{person.name} – {name}")
     filename = f"tesseract-{_slug(person.name)}-{_slug(name)}.p12"
+    return IssuedDevice(device, p12, password, filename)
+
+
+def renew_device(
+    db: Session, box: SecretBox, device: Device, days: int | None = DEFAULT_DEVICE_DAYS
+) -> IssuedDevice:
+    """Neues Zertifikat für dasselbe Gerät (neuer Schlüssel, aktuelles Zwischenzertifikat).
+    Freigaben bleiben, das alte Zertifikat gilt ab sofort nicht mehr."""
+    if device.revoked_at is not None:
+        raise CAError("Gesperrte Geräte lassen sich nicht verlängern")
+    person = device.person
+    if person.disabled:
+        raise CAError(f"{person.name} ist gesperrt")
+    issuer = intermediate_keypair(db, box)
+    now = utcnow()
+    not_after = issuer.cert.not_valid_after_utc if days is None else now + timedelta(days=days)
+    kp = pki.issue_client(
+        issuer, cn=device.name, org_unit=person.name, not_after=not_after, now=now
+    )
+    device.serial = pki.serial_hex(kp.cert)
+    device.fingerprint = pki.fingerprint(kp.cert)
+    device.cert_pem = pki.cert_pem(kp.cert)
+    device.not_before = kp.cert.not_valid_before_utc
+    device.not_after = kp.cert.not_valid_after_utc
+    device.unlimited = days is None
+    password = pki.generate_p12_password()
+    p12 = pki.to_p12(kp, chain(db), password, f"{person.name} – {device.name}")
+    filename = f"tesseract-{_slug(person.name)}-{_slug(device.name)}.p12"
     return IssuedDevice(device, p12, password, filename)
 
 

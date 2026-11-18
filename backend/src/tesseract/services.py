@@ -428,12 +428,13 @@ def area_specs(db: Session, host: Host) -> list[AreaSpec]:
     return out
 
 
-def client_ca_der_b64(db: Session) -> str:
+def client_ca_der_b64(db: Session) -> tuple[str, ...]:
+    """Alle noch gültigen Zwischenzertifikate – das aktive zuerst. Nach einem Wechsel bleibt
+    das alte vertraut, bis es abläuft oder kein Gerät mehr davon abhängt."""
     from tesseract import pki
-    from tesseract.identity import active_authority
+    from tesseract.identity import trusted_intermediates
 
-    inter = active_authority(db, "intermediate")
-    return pki.der_b64(pki.load_cert(inter.cert_pem)) if inter else ""
+    return tuple(pki.der_b64(pki.load_cert(a.cert_pem)) for a in trusted_intermediates(db))
 
 
 def active_bans(db: Session) -> list[str]:

@@ -64,6 +64,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             from tesseract.backup import watch as backup_watch
 
             tasks.append(asyncio.create_task(backup_watch(app)))
+            from tesseract.reminders import watch as reminders_watch
+
+            tasks.append(asyncio.create_task(reminders_watch(app.state.db)))
         yield
         for task in tasks:
             task.cancel()

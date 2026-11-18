@@ -47,6 +47,10 @@ EVENTS: dict[str, tuple[str, str, tuple[str, ...]]] = {
     "node_join": ("Agent möchte beitreten", "info", ("node_join_requested",)),
     "code_wrong": ("Falscher Einladungscode", "warn", ("enrollment_code_wrong",)),
     "backup_failed": ("Sicherung fehlgeschlagen", "critical", ("backup_failed",)),
+    "device_expiring": ("Gerätezertifikat läuft ab", "warn", ("device_expiring",)),
+    "ca_expiring": ("Zwischenzertifikat läuft ab", "critical", ("ca_expiring",)),
+    "node_cert_expiring": ("Node-Zertifikat läuft ab", "warn", ("node_cert_expiring",)),
+    "custom_cert_expiring": ("Eigenes Zertifikat läuft ab", "warn", ("custom_cert_expiring",)),
 }
 ACTION_EVENT = {a: ev for ev, (_, _, actions) in EVENTS.items() for a in actions}
 
@@ -141,6 +145,15 @@ def describe(e: AuditEntry) -> str:
         return f"{e.target} – im Controller freigeben"
     if a == "node_join_requested":
         return f"Node {e.target} ({d.get('hostname') or '?'}) – Fingerabdruck vergleichen"
+    if a in ("device_expiring", "ca_expiring", "node_cert_expiring", "custom_cert_expiring"):
+        days = d.get("days", "?")
+        hint = {
+            "device_expiring": "Gerät unter Geräte verlängern",
+            "ca_expiring": "Unter Zertifizierungsstelle auf ein neues wechseln",
+            "node_cert_expiring": "Der Agent erneuert es selbst – meldet er sich noch?",
+            "custom_cert_expiring": "Unter Zertifikate erneuern",
+        }[a]
+        return f"{e.target}: noch {days} Tage – {hint}"
     if a == "backup_failed":
         return f"Sicherung fehlgeschlagen: {d.get('error', '?')}"
     if a == "enrollment_code_wrong":

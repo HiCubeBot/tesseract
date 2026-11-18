@@ -526,7 +526,14 @@ export const ACTION_LABELS: Record<string, string> = {
   backup_failed: 'Sicherung fehlgeschlagen',
   backup_tested: 'Sicherung getestet',
   backup_downloaded: 'Sicherung heruntergeladen',
-  backup_restored: 'Sicherung wiederhergestellt'
+  backup_restored: 'Sicherung wiederhergestellt',
+  ca_rotated: 'Zwischenzertifikat gewechselt',
+  device_renewed: 'Gerät verlängert',
+  node_cert_renewed: 'Node-Zertifikat erneuert',
+  device_expiring: 'Gerätezertifikat läuft bald ab',
+  ca_expiring: 'Zwischenzertifikat läuft bald ab',
+  node_cert_expiring: 'Node-Zertifikat läuft bald ab',
+  custom_cert_expiring: 'Eigenes Zertifikat läuft bald ab'
 };
 
 // ---------- Phase 2: CA, Personen, Geräte ----------
@@ -548,6 +555,8 @@ export interface CAStatus {
   devices_active: number;
   devices_revoked: number;
   devices_beyond_intermediate: number;
+  /** ältere Zwischenzertifikate, denen nach einem Wechsel noch vertraut wird */
+  previous: { authority: AuthorityInfo; devices: { id: number; name: string; person: string }[] }[];
 }
 
 export interface Group {

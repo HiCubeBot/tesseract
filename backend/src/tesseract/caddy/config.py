@@ -161,7 +161,9 @@ class NodeSpec:
     # Zugriffs-Log (Phase 5): Pfad im Caddy-Container, leer = keins
     access_log_file: str = ""
     # Geräte-Zwischenzertifikat (DER, Base64) – Vertrauensanker für Client-Zertifikate
-    client_ca_der_b64: str = ""
+    # Zwischenzertifikat(e) für Client-Zertifikate, Base64-DER. Nach einem CA-Wechsel stehen
+    # hier das neue und das alte, bis die alten Geräte verlängert sind.
+    client_ca_der_b64: str | tuple[str, ...] = ""
 
 
 HINT_PAGE = """<!doctype html>
@@ -533,7 +535,7 @@ def custom_tag(cert_id: int) -> str:
     return f"tesseract-custom-{cert_id}"
 
 
-def tls_policy(host: HostSpec, ca_der_b64: str) -> JSON:
+def tls_policy(host: HostSpec, ca_der_b64: str | tuple[str, ...]) -> JSON:
     policy: JSON = {"match": {"sni": [host.domain]}}
     if host.custom_cert is not None:
         # genau dieses hochgeladene Zertifikat ausliefern
@@ -541,7 +543,10 @@ def tls_policy(host: HostSpec, ca_der_b64: str) -> JSON:
     if not (host.needs_client_auth or host.ask_client_cert) or not ca_der_b64:
         return policy
     client_auth: JSON = {
-        "ca": {"provider": "inline", "trusted_ca_certs": [ca_der_b64]},
+        "ca": {
+            "provider": "inline",
+            "trusted_ca_certs": [ca_der_b64] if isinstance(ca_der_b64, str) else list(ca_der_b64),
+        },
         "mode": "verify_if_given",
     }
     if host.strict:

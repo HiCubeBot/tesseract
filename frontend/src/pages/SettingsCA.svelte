@@ -6,7 +6,8 @@
   import Alert from '../lib/components/Alert.svelte';
   import StatusPill from '../lib/components/StatusPill.svelte';
   import Icon from '../lib/components/Icon.svelte';
-  import { api, downloadFile, formatDay, type AuthorityInfo, type CAStatus } from '../lib/api';
+  import IssuedCertificate from '../lib/components/IssuedCertificate.svelte';
+  import { api, downloadFile, formatDay, type AuthorityInfo, type CAStatus, type IssuedDevice } from '../lib/api';
   import { toasts } from '../lib/toast.svelte';
 
   let status = $state<CAStatus | null>(null);
@@ -73,6 +74,44 @@
 
   const yearsLeft = (a: AuthorityInfo) =>
     Math.max(0, Math.round((new Date(a.not_after).getTime() - Date.now()) / (365.25 * 86400_000) * 10) / 10);
+
+  // ---------- Phase 6: Wechsel des Zwischenzertifikats, Verlängern ----------
+  let rootKey = $state('');
+  let rootPass = $state('');
+  let rotating = $state(false);
+  let renewing = $state<number | null>(null);
+  let renewed = $state<IssuedDevice | null>(null);
+
+  async function readKey(e: Event) {
+    const f = (e.currentTarget as HTMLInputElement).files?.[0];
+    if (f) rootKey = await f.text();
+  }
+
+  async function rotate(e: Event) {
+    e.preventDefault();
+    rotating = true;
+    try {
+      status = await api.post<CAStatus>('/ca/rotate', { root_key_pem: rootKey, passphrase: rootPass });
+      rootKey = rootPass = '';
+      toasts.show('ok', 'Neues Zwischenzertifikat aktiv. Alte Geräte funktionieren weiter und lassen sich nach und nach verlängern.', 10000);
+    } catch (err) {
+      toasts.show('bad', err instanceof Error ? err.message : String(err), 10000);
+    } finally {
+      rotating = false;
+    }
+  }
+
+  async function renew(id: number) {
+    renewing = id;
+    try {
+      renewed = await api.post<IssuedDevice>(`/devices/${id}/renew`, { days: 365 });
+      status = await api.get<CAStatus>('/ca');
+    } catch (err) {
+      toasts.show('bad', err instanceof Error ? err.message : String(err), 10000);
+    } finally {
+      renewing = null;
+    }
+  }
 </script>
 
 <AppShell active="settings">
@@ -161,12 +200,83 @@
       <div class="row">
         <Button variant="secondary" icon="download" label="Root-Zertifikat herunterladen" onClick={downloadRoot} />
       </div>
-      <p class="muted small">Wechsel auf ein neues Zwischenzertifikat folgt mit Phase 6.</p>
     </section>
+
+    {#each status.previous as prev (prev.authority.fingerprint)}
+      <section class="card retiring">
+        <div class="row">
+          <h2 class="card-title">Altes Zwischenzertifikat – noch vertraut</h2>
+          <span class="spacer"></span>
+          <StatusPill tone="warn" label={`${prev.devices.length} Gerät(e)`} />
+        </div>
+        <p class="muted small">
+          Gültig bis {formatDay(prev.authority.not_after)}. Caddy vertraut ihm, bis alle Geräte unten verlängert sind – danach fällt es weg.
+        </p>
+        <ul class="devlist">
+          {#each prev.devices as d (d.id)}
+            <li>
+              <span>{d.person} · {d.name}</span>
+              <Button variant="secondary" size="sm" label={renewing === d.id ? 'Verlängert …' : 'Verlängern'} disabled={renewing !== null} onClick={() => renew(d.id)} />
+            </li>
+          {/each}
+        </ul>
+      </section>
+    {/each}
+
+    <form class="card" onsubmit={rotate} aria-labelledby="rot-title">
+      <h2 id="rot-title">Wechsel auf ein neues Zwischenzertifikat</h2>
+      <p class="muted small">
+        Dafür wird der Root-Schlüssel gebraucht, den du bei der Einrichtung gesichert hast (Datei <span class="mono">tesseract-root-key.pem</span>, mit
+        Passphrase verschlüsselt). Er wird nur für diesen Vorgang entschlüsselt und nicht gespeichert. Bestehende Geräte funktionieren weiter;
+        verlängerte und neue bekommen ihr Zertifikat vom neuen Zwischenzertifikat. Empfohlen spätestens 90 Tage vor Ablauf.
+      </p>
+      <label class="field col">
+        <span class="label">Root-Schlüssel (Datei wählen oder Inhalt einfügen)</span>
+        <input class="input" type="file" accept=".pem,.key,.txt" onchange={readKey} />
+        <textarea class="input mono keyarea" rows="4" bind:value={rootKey} placeholder="-----BEGIN ENCRYPTED PRIVATE KEY-----"></textarea>
+      </label>
+      <label class="field col">
+        <span class="label">Passphrase des Root-Schlüssels</span>
+        <input class="input" type="password" autocomplete="off" bind:value={rootPass} />
+      </label>
+      <div class="row">
+        <Button type="submit" label={rotating ? 'Wechselt …' : 'Wechsel durchführen'} disabled={rotating || !rootKey.trim() || !rootPass} />
+      </div>
+    </form>
+    {#if renewed}<IssuedCertificate issued={renewed} onClose={() => (renewed = null)} />{/if}
   {/if}
 </AppShell>
 
 <style>
+  .retiring {
+    border-color: rgba(229, 164, 67, 0.45);
+  }
+  .devlist {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .devlist li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  .col {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .label {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .keyarea {
+    font-size: 11px;
+    resize: vertical;
+  }
   h2 {
     margin: 0;
     font-size: 16px;

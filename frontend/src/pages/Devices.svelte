@@ -8,7 +8,8 @@
   import ConfirmDialog from '../lib/components/ConfirmDialog.svelte';
   import EmptyState from '../lib/components/EmptyState.svelte';
   import Icon from '../lib/components/Icon.svelte';
-  import { api, DEVICE_STATUS, PLATFORMS, expiresSoon, formatDay, type Device } from '../lib/api';
+  import IssuedCertificate from '../lib/components/IssuedCertificate.svelte';
+  import { api, DEVICE_STATUS, PLATFORMS, expiresSoon, formatDay, type Device, type IssuedDevice } from '../lib/api';
   import { toasts } from '../lib/toast.svelte';
 
   let devices = $state<Device[]>([]);
@@ -18,6 +19,21 @@
   let person = $state('');
   let query = $state('');
   let revoke = $state<Device | null>(null);
+  let renewing = $state<number | null>(null);
+  let renewed = $state<IssuedDevice | null>(null);
+
+  /** Neues Zertifikat für dasselbe Gerät – Freigaben bleiben, das alte gilt nicht mehr */
+  async function renew(d: Device) {
+    renewing = d.id;
+    try {
+      renewed = await api.post<IssuedDevice>(`/devices/${d.id}/renew`, { days: d.unlimited ? null : 365 });
+      await load();
+    } catch (e) {
+      toasts.show('bad', e instanceof Error ? e.message : String(e), 10000);
+    } finally {
+      renewing = null;
+    }
+  }
 
   async function load() {
     try {
@@ -111,6 +127,8 @@
     </label>
   </div>
 
+  {#if renewed}<IssuedCertificate issued={renewed} onClose={() => (renewed = null)} />{/if}
+
   {#if revoke}
     <ConfirmDialog
       title={`„${revoke.name}“ von ${revoke.person_name} sperren?`}
@@ -152,6 +170,9 @@
                 {#if expiresSoon(d)}<StatusPill tone="warn" label="läuft bald ab" />{:else}<StatusPill tone={st.tone} label={st.label} />{/if}
               </td>
               <td class="right">
+                {#if d.status === 'active' || d.status === 'expired'}
+                  <Button variant="ghost" size="sm" label={renewing === d.id ? 'Verlängert …' : 'Verlängern'} disabled={renewing !== null} onClick={() => renew(d)} />
+                {/if}
                 {#if d.status === 'active'}
                   <Button variant="ghost" size="sm" label="Sperren" onClick={() => (revoke = d)} />
                 {:else}

@@ -18,6 +18,7 @@ import ssl
 import subprocess
 import threading
 import time
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -41,6 +42,8 @@ LONG_POLL = 25
 HEARTBEAT = 30.0
 MODULES_EVERY = 600.0
 LOGS_EVERY = 5.0
+# Node-Zertifikat so viele Tage vor Ablauf erneuern
+RENEW_DAYS = 60
 LOG_BATCH = 1000
 LOG_BUFFER_MAX = 200_000
 
@@ -390,7 +393,53 @@ class Agent:
             report["load_error"] = self.load_error or f"Caddy nicht erreichbar: {e}"
         return report
 
+    def cert_days_left(self) -> float | None:
+        try:
+            cert = x509.load_pem_x509_certificate(self.settings.cert_file.read_bytes())
+        except (OSError, ValueError):
+            return None
+        return (cert.not_valid_after_utc - datetime.now(UTC)).total_seconds() / 86400
+
+    def renew_if_due(self) -> bool:
+        """Neuen Schlüssel erzeugen und das Zertifikat erneuern lassen, solange das alte
+        noch gilt. Erst nach Erfolg werden Schlüssel und Zertifikat ersetzt."""
+        left = self.cert_days_left()
+        if left is None or left > RENEW_DAYS:
+            return False
+        key = ec.generate_private_key(ec.SECP256R1())
+        csr = (
+            x509.CertificateSigningRequestBuilder()
+            .subject_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, self.state.name)]))
+            .sign(key, hashes.SHA256())
+        )
+        with self._http(with_cert=True) as c:
+            r = c.post(
+                "/api/agent/renew",
+                json={"csr": csr.public_bytes(serialization.Encoding.PEM).decode()},
+            )
+        if r.status_code != 200:
+            raise AgentError(f"Zertifikat erneuern fehlgeschlagen ({r.status_code}): {_detail(r)}")
+        data = r.json()
+        with self.lock:
+            key_tmp = self.settings.key_file.with_name(self.settings.key_file.name + ".new")
+            write_private(
+                key_tmp,
+                key.private_bytes(
+                    serialization.Encoding.PEM,
+                    serialization.PrivateFormat.PKCS8,
+                    serialization.NoEncryption(),
+                ),
+            )
+            cert_tmp = self.settings.cert_file.with_name(self.settings.cert_file.name + ".new")
+            cert_tmp.write_text(data["cert_pem"], encoding="utf-8")
+            key_tmp.replace(self.settings.key_file)
+            cert_tmp.replace(self.settings.cert_file)
+            self.settings.chain_file.write_text(data["chain_pem"], encoding="utf-8")
+        log.info("Node-Zertifikat erneuert, gültig bis %s", data.get("not_after"))
+        return True
+
     def send_status(self) -> None:
+        self.renew_if_due()
         with self._http(with_cert=True) as c:
             r = c.post("/api/agent/status", json=self.status_report())
         if r.status_code != 200:

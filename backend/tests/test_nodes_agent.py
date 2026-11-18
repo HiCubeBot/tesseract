@@ -336,3 +336,18 @@ def test_route_host() -> None:
     assert route_host(cfg, "apps.http.servers.https.routes[0].handle[0]") == "a.b"
     assert route_host(cfg, "apps.http.servers.https.routes[5]") is None
     assert route_host(cfg, "admin.listen") is None
+
+
+def test_agent_renews_certificate(auth_client: TestClient) -> None:
+    agent, created = _joined(auth_client)
+    old_fp = agent.headers[FINGERPRINT_HEADER]
+    key = ec.generate_private_key(ec.SECP256R1())
+    r = agent.post("/api/agent/renew", {"csr": _csr(key)})
+    assert r.status_code == 200, r.text
+    cert = x509.load_pem_x509_certificate(r.json()["cert_pem"].encode())
+    assert cert.public_key().public_numbers() == key.public_key().public_numbers()
+    # altes Zertifikat gilt nicht mehr, neues schon
+    assert agent.get("/api/agent/config").status_code == 401
+    agent.headers[FINGERPRINT_HEADER] = pki.fingerprint(cert)
+    assert agent.get("/api/agent/config").status_code == 200
+    assert old_fp != agent.headers[FINGERPRINT_HEADER]

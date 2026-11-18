@@ -16,7 +16,13 @@ from sqlalchemy.orm import Session
 from tesseract import audit, pki
 from tesseract.db.models import Device, Group, Person
 from tesseract.deps import DB, AppSettings, Box, CurrentActor
-from tesseract.identity import CAError, active_device_count, issue_device, revoke_device
+from tesseract.identity import (
+    CAError,
+    active_device_count,
+    issue_device,
+    renew_device,
+    revoke_device,
+)
 from tesseract.services import apply_all
 
 router = APIRouter(tags=["people"])
@@ -359,6 +365,46 @@ def issue(
     _reapply(request, db, settings)
     return IssueOut(
         device=device_out(issued.device),
+        filename=issued.filename,
+        password=issued.password,
+        p12_base64=base64.b64encode(issued.p12).decode(),
+    )
+
+
+class RenewIn(BaseModel):
+    # None = so lange wie das Zwischenzertifikat
+    days: int | None = Field(365, ge=1, le=3650)
+
+
+@router.post("/devices/{device_id}/renew")
+def renew(
+    device_id: int,
+    body: RenewIn,
+    request: Request,
+    db: DB,
+    box: Box,
+    actor: CurrentActor,
+    settings: AppSettings,
+) -> IssueOut:
+    """Neues Zertifikat für ein bestehendes Gerät – ohne neue Registrierung, Freigaben
+    bleiben. Die neue .p12 kommt genau einmal; das alte Zertifikat gilt sofort nicht mehr."""
+    d: Device = _get(db, Device, device_id, "Gerät")
+    try:
+        issued = renew_device(db, box, d, body.days)
+    except CAError as e:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(e)) from e
+    audit.record(
+        db,
+        actor=actor.name,
+        action="device_renewed",
+        target=f"{d.person.name} · {d.name}",
+        details={"serial": d.serial, "not_after": d.not_after.isoformat()},
+        ip=actor.ip,
+    )
+    db.commit()
+    _reapply(request, db, settings)
+    return IssueOut(
+        device=device_out(d),
         filename=issued.filename,
         password=issued.password,
         p12_base64=base64.b64encode(issued.p12).decode(),

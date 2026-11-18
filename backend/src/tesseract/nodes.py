@@ -126,6 +126,28 @@ def approve_join(db: Session, box: SecretBox, node: Node) -> None:
     node.drift_since = None
 
 
+def renew_cert(db: Session, box: SecretBox, node: Node, csr_pem: str) -> dict[str, str]:
+    """Verbundener Agent holt sich vor Ablauf ein neues Zertifikat (neuer Schlüssel).
+    Ab sofort gilt nur noch das neue; das Agent-Token bleibt."""
+    csr = pki.load_csr(csr_pem)
+    issuer = intermediate_keypair(db, box)
+    cert = pki.sign_client(
+        issuer,
+        csr.public_key(),
+        cn=f"node:{node.name}",
+        org_unit="Node",
+        not_after=utcnow() + timedelta(days=NODE_CERT_DAYS),
+    )
+    node.cert_pem = pki.cert_pem(cert)
+    node.cert_fingerprint = pki.fingerprint(cert)
+    node.cert_not_after = cert.not_valid_after_utc
+    return {
+        "cert_pem": node.cert_pem,
+        "chain_pem": "".join(pki.cert_pem(c) for c in chain(db)),
+        "not_after": cert.not_valid_after_utc.isoformat(),
+    }
+
+
 def reject_join(node: Node) -> None:
     if node.join_state != "pending":
         raise ValueError("Keine offene Beitrittsanfrage")

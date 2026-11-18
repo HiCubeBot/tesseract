@@ -22,6 +22,8 @@ class FakeController:
         self.down = False
         self.csr: str | None = None
         self.want_metrics = False
+        self.renewed: str | None = None
+        self.new_cert = ""
 
     def handler(self, request: httpx.Request) -> httpx.Response:
         if self.down:
@@ -42,6 +44,11 @@ class FakeController:
                 json={"cert_pem": "CERT", "chain_pem": "CHAIN", "agent_token": "tok"},
             )
         assert request.headers["Authorization"] == "Bearer tok"
+        if path == "/api/agent/renew":
+            self.renewed = json.loads(request.content)["csr"]
+            return httpx.Response(
+                200, json={"cert_pem": self.new_cert, "chain_pem": "CHAIN2", "not_after": "x"}
+            )
         if path == "/api/agent/config":
             known = request.url.params["known"]
             force = int(request.url.params["force"])
@@ -231,3 +238,41 @@ def test_caddy_metrics_only_when_wanted(env):
     agent.send_status()  # Antwort schaltet es ein
     agent.send_status()
     assert ctrl.status[-1]["caddy_metrics"] == "# TYPE caddy_x counter" + chr(10) + "caddy_x 3"
+
+
+def _self_signed(days: int) -> str:
+    from datetime import UTC, datetime, timedelta
+
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from cryptography.x509.oid import NameOID
+
+    key = ec.generate_private_key(ec.SECP256R1())
+    name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "pi")])
+    now = datetime.now(UTC)
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(name)
+        .issuer_name(name)
+        .public_key(key.public_key())
+        .serial_number(1)
+        .not_valid_before(now)
+        .not_valid_after(now + timedelta(days=days))
+        .sign(key, hashes.SHA256())
+    )
+    return cert.public_bytes(serialization.Encoding.PEM).decode()
+
+
+def test_cert_renewal_before_expiry(env):
+    ctrl, _, settings, _ = env
+    agent = joined(env)
+    settings.cert_file.write_text(_self_signed(300))
+    assert agent.renew_if_due() is False and ctrl.renewed is None
+    settings.cert_file.write_text(_self_signed(30))
+    old_key = settings.key_file.read_bytes()
+    ctrl.new_cert = _self_signed(700)
+    agent.send_status()  # prüft dabei die Laufzeit
+    assert ctrl.renewed and "CERTIFICATE REQUEST" in ctrl.renewed
+    assert settings.cert_file.read_text() == ctrl.new_cert
+    assert settings.key_file.read_bytes() != old_key
+    assert settings.chain_file.read_text() == "CHAIN2"
