@@ -10,7 +10,7 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 | 2 | mTLS & Identitäten | Private Dienste ohne VPN, Einladungen – **fertig** |
 | 3 | WAF & Zugriffsschutz | Coraza, IP-Filter, Authelia – **fertig** |
 | 3b | Interne Dienste & Zertifikate | Zugriffsart „Intern“, Wildcard-Zertifikate, Zertifikatsübersicht – **fertig** |
-| 4 | Multi-Node | Agent, mehrere Server, auch hinter NAT |
+| 4 | Multi-Node | Agent, mehrere Server, auch hinter NAT – **fertig** |
 | 5 | Beobachtbarkeit | Logs, Statistik, Audit, Metriken, Benachrichtigungen |
 | 6 | Betrieb & Release | Backup, CA-Rotation, Härtung, v1.0 |
 | – | Backlog | Niedrige Priorität, ohne festen Zeitpunkt |
@@ -119,12 +119,29 @@ Zertifikatsübersicht zeigt es mit Laufzeit und allen Hosts, die es nutzen.
 
 **Ziel:** Beliebig viele Caddy-Server zentral verwalten.
 
-- Tesseract-Agent (Python, eigenes Paket/Image) neben Caddy auf jedem Node
-- Beitritt per einmaligem Token (30 Min.), Agent erzeugt Schlüssel, Bestätigung im Controller
-- Ausgehende mTLS-Verbindung Agent → Controller (funktioniert hinter NAT, kein offener Admin-Port)
-- Config-Verteilung pro Node, Erkennung von Abweichungen, Überschreiben oder Übernehmen
-- Modul-Erkennung pro Node (coraza, DNS-Provider)
-- Status, letzter Kontakt, Offline-Pufferung
+- [x] Tesseract-Agent (Python, eigenes Paket/Image unter `agent/`) neben Caddy auf jedem Node
+- [x] Beitritt per einmaligem Token (30 Min.), Agent erzeugt Schlüssel, Bestätigung im Controller
+  nach Vergleich des Schlüssel-Fingerabdrucks
+- [x] Ausgehende mTLS-Verbindung Agent → Controller (Long-Polling über HTTPS, funktioniert
+  hinter NAT, kein offener Admin-Port); zusätzlich Agent-Token
+- [x] Config-Verteilung pro Node, Erkennung von Abweichungen (auch beim lokalen Node),
+  Überschreiben oder Übernehmen, Unterschiede pro Host
+- [x] Modul-Erkennung pro Node (Coraza, DNS Cloudflare) über Caddys `/adapt`
+- [x] Status, letzter Kontakt, offline nach 90 s; WAF-Treffer werden gepuffert und nachgeliefert
+  und zählen für die Auto-Sperre
+- [x] Interne Controller-Domain (z. B. `tesseract.lan`) bekommt ein Zertifikat aus Caddys CA
+
+Offen / bewusst verschoben:
+- Caddy-Version wird nur angezeigt, wenn der Agent das `caddy`-Programm aufrufen kann – im
+  Docker-Betrieb (Agent im eigenen Container) „–“. Caddys Admin-API liefert keine Version.
+- Fehlt einem Node ein Modul, warnt die Nodes-Seite; Hosts mit WAF/DNS-01 werden aber noch
+  nicht gesperrt (Caddy lehnt die Config dann ab und der Node zeigt den Fehler)
+- „Änderung übernehmen“ übernimmt die Abweichung nicht in die Hosts des Controllers, sie
+  gilt nur bis zur nächsten Übertragung
+- Erreichbarkeit des Ziels wird weiter vom Controller aus geprüft, nicht vom Node → Backlog
+- Zertifikatsübersicht liest nur den lokalen Caddy → Phase 5
+- Zugriffs-Logs der Nodes (nicht nur WAF-Treffer) puffern und sammeln → Phase 5
+- Node-Zertifikat verlängern (gilt 2 Jahre) → Phase 6
 
 **Fertig, wenn:** Ein Raspberry Pi hinter NAT tritt bei, bekommt Hosts zugewiesen, und eine
 lokale Änderung auf dem Pi wird im UI als Abweichung angezeigt.

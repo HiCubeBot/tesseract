@@ -26,8 +26,16 @@ JSON = dict[str, Any]
 FINGERPRINT = "{http.request.tls.client.fingerprint}"
 # Header, mit dem Caddy dem Controller den Fingerabdruck des Client-Zertifikats mitteilt
 FINGERPRINT_HEADER = "X-Tesseract-Client-Fingerprint"
-# Auf der Controller-Domain immer ohne Zertifikat erreichbar (Einladungsseite + Dateien)
-CONTROLLER_PUBLIC_PATHS = ("/e/*", "/api/enroll/*", "/assets/*", "/api/health", "/favicon.ico")
+# Auf der Controller-Domain immer ohne Admin-Zertifikat erreichbar (Einladung, Agents, Dateien)
+# Agents melden sich mit eigenem Node-Zertifikat – das prüft der Controller selbst
+CONTROLLER_PUBLIC_PATHS = (
+    "/e/*",
+    "/api/enroll/*",
+    "/api/agent/*",
+    "/assets/*",
+    "/api/health",
+    "/favicon.ico",
+)
 
 
 @dataclass(frozen=True)
@@ -587,6 +595,10 @@ def tls_automation(spec: NodeSpec, hosts: list[HostSpec]) -> JSON | None:
         for h in hosts
         if not is_public_name(h.domain) and not _is_ip(h.domain) and h.domain != "localhost"
     ]
+    # auch die Oberfläche selbst, wenn sie unter einem internen Namen läuft
+    cd = spec.controller_domain
+    if cd and not is_public_name(cd) and not _is_ip(cd) and cd != "localhost":
+        local.insert(0, cd)
     if local:
         policies.append({"subjects": local, "issuers": [{"module": "internal"}]})
     if dns_subjects and spec.cloudflare_token:

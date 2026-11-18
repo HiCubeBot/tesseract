@@ -24,4 +24,5 @@ gh pr merge --squash --delete-branch
   im Projektordner. Sie steht in `.gitignore` und wird nicht eingecheckt.
 - Vor einem PR müssen laufen:
   - `cd backend && uv run pytest && uv run ruff check . && uv run ruff format --check .`
+  - `cd agent && uv run pytest && uv run ruff check . && uv run ruff format --check .`
   - `cd frontend && npm run check && npm run build`

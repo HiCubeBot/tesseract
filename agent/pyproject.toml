@@ -1,0 +1,36 @@
+[project]
+name = "tesseract-agent"
+version = "0.1.0"
+description = "Tesseract-Agent – verbindet einen Caddy-Server ausgehend per mTLS mit dem Controller"
+readme = "README.md"
+authors = [
+    { name = "c.riehe", email = "git@criehe.de" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "cryptography>=50.0.2",
+    "httpx>=0.28.1",
+]
+
+[project.scripts]
+tesseract-agent = "tesseract_agent.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.12.11,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+    "ruff>=0.17.5",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,7 +1,7 @@
 """Eigene PKI: Root-CA (offline), Geräte-Zwischenzertifikat, Client-Zertifikate.
 
 - Root:          ECDSA P-384, 10 Jahre, signiert nur Zwischenzertifikate (pathlen 0 darunter)
-- Zwischenzert.: ECDSA P-384, 3 Jahre, signiert Geräte-, Admin- und später Node-Zertifikate
+- Zwischenzert.: ECDSA P-384, 3 Jahre, signiert Geräte-, Admin- und Node-Zertifikate
 - Gerät:         ECDSA P-256, EKU clientAuth – P-256 wird von allen Plattformen unterstützt
 """
 
@@ -108,18 +108,34 @@ def issue_client(
     not_after: datetime,
     now: datetime | None = None,
 ) -> KeyPair:
+    key = ec.generate_private_key(ec.SECP256R1())
+    cert = sign_client(
+        issuer, key.public_key(), cn=cn, org_unit=org_unit, not_after=not_after, now=now
+    )
+    return KeyPair(key, cert)
+
+
+def sign_client(
+    issuer: KeyPair,
+    public_key: ec.EllipticCurvePublicKey,
+    *,
+    cn: str,
+    org_unit: str = "",
+    not_after: datetime,
+    now: datetime | None = None,
+) -> x509.Certificate:
+    """Client-Zertifikat (EKU clientAuth) für einen fremden öffentlichen Schlüssel."""
     now = now or datetime.now(UTC)
     not_after = min(not_after, issuer.cert.not_valid_after_utc)
     attrs = [x509.NameAttribute(NameOID.ORGANIZATION_NAME, "Tesseract")]
     if org_unit:
         attrs.append(x509.NameAttribute(NameOID.ORGANIZATIONAL_UNIT_NAME, org_unit[:64]))
     attrs.append(x509.NameAttribute(NameOID.COMMON_NAME, cn[:64]))
-    key = ec.generate_private_key(ec.SECP256R1())
-    cert = (
+    return (
         x509.CertificateBuilder()
         .subject_name(x509.Name(attrs))
         .issuer_name(issuer.cert.subject)
-        .public_key(key.public_key())
+        .public_key(public_key)
         .serial_number(x509.random_serial_number())
         .not_valid_before(now - BACKDATE)
         .not_valid_after(not_after)
@@ -139,14 +155,38 @@ def issue_client(
             critical=True,
         )
         .add_extension(x509.ExtendedKeyUsage([ExtendedKeyUsageOID.CLIENT_AUTH]), critical=False)
-        .add_extension(_ski(key), critical=False)
+        .add_extension(x509.SubjectKeyIdentifier.from_public_key(public_key), critical=False)
         .add_extension(
             x509.AuthorityKeyIdentifier.from_issuer_public_key(issuer.key.public_key()),
             critical=False,
         )
         .sign(issuer.key, hashes.SHA256())
     )
-    return KeyPair(key, cert)
+
+
+def load_csr(pem: str) -> x509.CertificateSigningRequest:
+    """CSR eines Agents laden und prüfen: gültige Signatur, ECDSA P-256 oder P-384."""
+    try:
+        csr = x509.load_pem_x509_csr(pem.encode())
+    except ValueError as e:
+        raise ValueError("Ungültige Zertifikatsanfrage (CSR)") from e
+    if not csr.is_signature_valid:
+        raise ValueError("Signatur der Zertifikatsanfrage ist ungültig")
+    key = csr.public_key()
+    if not isinstance(key, ec.EllipticCurvePublicKey) or key.curve.name not in (
+        "secp256r1",
+        "secp384r1",
+    ):
+        raise ValueError("Schlüssel muss ECDSA P-256 oder P-384 sein")
+    return csr
+
+
+def public_key_fingerprint(key: ec.EllipticCurvePublicKey) -> str:
+    """SHA-256 über den öffentlichen Schlüssel (SubjectPublicKeyInfo, DER)."""
+    der = key.public_bytes(
+        serialization.Encoding.DER, serialization.PublicFormat.SubjectPublicKeyInfo
+    )
+    return hashlib.sha256(der).hexdigest()
 
 
 # ---------- Formate ----------

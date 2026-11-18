@@ -1,0 +1,60 @@
+# Vorlage für einen weiteren Node: Caddy + Tesseract-Agent.
+#
+# 1. Im Controller unter Nodes „Node hinzufügen“ → Beitritts-Token (30 Min., einmalig)
+# 2. .env neben dieser Datei:
+#      TESSERACT_CONTROLLER=https://tesseract.beispiel.de
+#      TESSERACT_JOIN_TOKEN=<Token>
+# 3. docker compose up -d   →   docker compose logs agent zeigt den Schlüssel-Fingerabdruck
+# 4. Im Controller vergleichen und bestätigen. Das Token wird danach nicht mehr gebraucht.
+#
+# Der Node braucht nur ausgehend HTTPS zum Controller – kein offener Admin-Port, kein VPN.
+name: tesseract-node
+
+services:
+  caddy:
+    image: tesseract-caddy:dev
+    restart: unless-stopped
+    # Erster Start ohne Config: nur die Admin-API im internen Netz. Danach lädt der Agent
+    # die Config des Controllers; --resume startet nach einem Neustart mit dem letzten Stand.
+    command:
+      - sh
+      - -c
+      - >-
+        printf '{"admin":{"listen":"0.0.0.0:2019"}}' > /tmp/start.json &&
+        caddy run --config /tmp/start.json --resume
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    # Port 2019 (Admin-API) wird absichtlich nicht veröffentlicht.
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+      - caddy-logs:/var/log/tesseract
+    networks: [node]
+
+  agent:
+    image: tesseract-agent:dev
+    restart: unless-stopped
+    depends_on: [caddy]
+    environment:
+      TESSERACT_AGENT_CONTROLLER: ${TESSERACT_CONTROLLER:?Adresse des Controllers fehlt}
+      TESSERACT_AGENT_JOIN_TOKEN: ${TESSERACT_JOIN_TOKEN:-}
+      TESSERACT_AGENT_CADDY_ADMIN_URL: http://caddy:2019
+      # WAF-Treffer für die Auto-Sperre (Pfad muss zu TESSERACT_CADDY_WAF_LOG des Controllers passen)
+      TESSERACT_AGENT_WAF_LOG: /var/log/tesseract/waf.log
+      # Nur nötig, wenn das Zertifikat des Controllers nicht öffentlich vertraut ist:
+      # TESSERACT_AGENT_CONTROLLER_CA: /data/controller-ca.pem
+    volumes:
+      - agent-data:/data
+      - caddy-logs:/var/log/tesseract:ro
+    networks: [node]
+
+networks:
+  node:
+
+volumes:
+  caddy-data:
+  caddy-config:
+  caddy-logs:
+  agent-data:

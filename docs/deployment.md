@@ -5,6 +5,7 @@
 | Image | Quelle | Inhalt |
 |---|---|---|
 | `tesseract` | `Dockerfile` (Repo-Wurzel) | Mehrstufig: baut das Svelte-Frontend (Node 22), installiert das Backend mit uv, Laufzeit auf `python:3.13-slim` als Nicht-Root-Nutzer. Liefert UI unter `/` und API unter `/api`. |
+| `tesseract-agent` | `agent/Dockerfile` (Kontext `agent/`) | Agent für weitere Nodes, Python 3.13 als Nicht-Root-Nutzer. Siehe [agent.md](agent.md). |
 | `tesseract-caddy` | `docker/caddy/Dockerfile` | Caddy 2.11, gebaut mit `xcaddy` inkl. `coraza-caddy` (WAF) und `caddy-dns/cloudflare` (DNS-01). |
 
 ## Compose-Stack
@@ -70,7 +71,18 @@ nicht auf dem Server; den hast du beim Einrichten heruntergeladen.
 
 Weitere Controller-Variablen: siehe [backend.md](backend.md#konfiguration).
 
-## Nodes (ab Phase 4)
+## Weitere Nodes (Phase 4)
 
-Weitere Nodes bekommen nur `tesseract-caddy` und den Agent; eine Compose-Vorlage dafür folgt
-mit Phase 4.
+Weitere Nodes bekommen nur `tesseract-caddy` und den Agent. Vorlage:
+[`docker/node/compose.yaml`](../docker/node/compose.yaml), Ablauf in [agent.md](agent.md).
+
+```bash
+docker build -t tesseract-caddy:dev docker/caddy
+docker build -t tesseract-agent:dev agent
+```
+
+- Der Node braucht nur **ausgehend** HTTPS zur Controller-Domain. Ports 80/443 öffnet er
+  nur für die eigenen Hosts.
+- Damit WAF-Treffer der Nodes für die Auto-Sperre zählen, muss der Controller
+  `TESSERACT_CADDY_WAF_LOG` gesetzt haben (im Compose-Stack schon so). Derselbe Pfad landet in
+  der Config jedes Nodes, und der Agent liest ihn über `TESSERACT_AGENT_WAF_LOG`.

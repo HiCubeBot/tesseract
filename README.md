@@ -71,7 +71,8 @@ npm run dev
 Tests und Linting:
 
 ```bash
-cd backend && uv run pytest && uv run ruff check .
+(cd backend && uv run pytest && uv run ruff check .)
+(cd agent && uv run pytest && uv run ruff check .)
 ```
 
 ## Dokumentation

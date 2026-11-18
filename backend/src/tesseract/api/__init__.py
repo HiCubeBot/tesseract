@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 from tesseract.api import (
     access,
+    agent,
     audit,
     auth,
     bans,
@@ -35,3 +36,4 @@ api_router.include_router(iplists.router)
 api_router.include_router(bans.router)
 api_router.include_router(certificates.router)
 api_router.include_router(customcerts.router)
+api_router.include_router(agent.router)

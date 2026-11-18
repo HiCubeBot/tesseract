@@ -38,6 +38,16 @@ class CaddyClient:
             raise CaddyError(_error_text(r))
         return r.json()
 
+    def adapt_ok(self, caddyfile: str) -> bool:
+        """Lässt Caddy ein Caddyfile nur übersetzen (POST /adapt, nichts wird geladen).
+        False, wenn der Adapter es ablehnt – z. B. weil ein Modul fehlt."""
+        try:
+            with self._client() as c:
+                r = c.post("/adapt", content=caddyfile, headers={"Content-Type": "text/caddyfile"})
+        except httpx.HTTPError as e:
+            raise CaddyError(f"Caddy nicht erreichbar ({self.admin_url}): {e}") from e
+        return r.status_code < 400
+
 
 def _error_text(r: httpx.Response) -> str:
     try:

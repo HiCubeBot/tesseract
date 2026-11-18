@@ -469,8 +469,10 @@ def node_config(db: Session, node: Node, settings: Settings) -> dict[str, Any]:
         select(Host).where(Host.node_id == node.id, Host.enabled, Host.draft.is_(False))
     ).all()
     general = get_general(db)
+    # Die Route für die Oberfläche gibt es nur auf dem lokalen Node (Controller im selben Netz)
+    local = not node.is_agent
     spec = NodeSpec(
-        admin_listen=settings.caddy_admin_listen,
+        admin_listen=node.admin_listen or settings.caddy_admin_listen,
         hosts=[
             host_spec(
                 h,
@@ -480,8 +482,8 @@ def node_config(db: Session, node: Node, settings: Settings) -> dict[str, Any]:
             )
             for h in hosts
         ],
-        controller_domain=settings.controller_domain,
-        controller_upstream=settings.controller_upstream,
+        controller_domain=settings.controller_domain if local else "",
+        controller_upstream=settings.controller_upstream if local else "",
         acme_email=general["acme_email"],
         client_ca_der_b64=client_ca_der_b64(db),
         controller_protected=bool(general["admin_mtls"]),
@@ -507,16 +509,23 @@ def node_config(db: Session, node: Node, settings: Settings) -> dict[str, Any]:
 def apply_node(
     db: Session, node: Node, settings: Settings, transport: httpx.BaseTransport | None = None
 ) -> str | None:
-    """Überträgt die Config an den Node. Gibt eine Fehlermeldung zurück oder None."""
+    """Überträgt die Config an den Node. Gibt eine Fehlermeldung zurück oder None.
+
+    Agent-Nodes holen die Config selbst ab: hier wird nur der Soll-Stand vermerkt."""
     config = node_config(db, node, settings)
+    digest = config_hash(config)
+    if node.is_agent:
+        node.desired_hash = digest
+        return None
     try:
         CaddyClient(node.admin_url, transport=transport).load(config)
     except CaddyError as e:
         node.last_apply_error = str(e)
         return str(e)
     node.last_apply_error = None
-    node.last_applied_at = utcnow()
-    node.applied_hash = config_hash(config)
+    node.last_applied_at = node.last_seen_at = utcnow()
+    node.applied_hash = node.running_hash = digest
+    node.running_config = node.drift_since = node.accepted_hash = None
     return None
 
 

@@ -300,15 +300,61 @@ export interface VersionDetail extends Version {
   previous_route: unknown | null;
 }
 
+export type NodeState = 'pending' | 'online' | 'offline' | 'drift' | 'error';
+
 export interface NodeInfo {
   id: number;
   name: string;
   location: string;
+  /** "local" = Caddy im selben Stack, "agent" = entfernter Node mit Agent */
+  kind: 'local' | 'agent';
+  state: NodeState;
   hosts: number;
   last_applied_at: string | null;
   last_apply_error: string | null;
   in_sync: boolean;
+  last_seen_at: string | null;
+  agent_version: string | null;
+  caddy_version: string | null;
+  modules: string[] | null;
+  drift: boolean;
+  drift_since: string | null;
+  accepted: boolean;
+  join_state: 'pending' | 'approved' | 'rejected' | null;
+  join_open: boolean;
+  join_expires_at: string | null;
+  join_hostname: string | null;
+  join_key_fingerprint: string | null;
+  join_requested_at: string | null;
+  cert_not_after: string | null;
 }
+
+export interface JoinToken {
+  token: string;
+  expires_at: string;
+  command: string;
+}
+
+export interface DriftChange {
+  path: string;
+  before: unknown;
+  after: unknown;
+  kind: 'added' | 'removed' | 'changed';
+  /** Host, zu dessen Route der Pfad gehört */
+  host: string | null;
+}
+
+export interface NodeDrift {
+  drift: boolean;
+  since: string | null;
+  changes: DriftChange[];
+}
+
+/** Bekannte Caddy-Module, die Tesseract nutzt */
+export const MODULES: Record<string, string> = {
+  'http.handlers.waf': 'Coraza WAF',
+  'dns.providers.cloudflare': 'DNS · Cloudflare'
+};
 
 export interface GeneralSettings {
   acme_email: string;
@@ -450,7 +496,18 @@ export const ACTION_LABELS: Record<string, string> = {
   iplist_updated: 'IP-Liste geändert',
   iplist_deleted: 'IP-Liste gelöscht',
   ip_banned: 'IP gesperrt',
-  ip_unbanned: 'IP entsperrt'
+  ip_unbanned: 'IP entsperrt',
+  node_created: 'Node angelegt',
+  node_updated: 'Node geändert',
+  node_deleted: 'Node gelöscht',
+  node_token_created: 'Beitritts-Token erzeugt',
+  node_join_requested: 'Agent möchte beitreten',
+  node_approved: 'Node bestätigt',
+  node_rejected: 'Beitritt abgelehnt',
+  node_joined: 'Agent verbunden',
+  node_drift_detected: 'Abweichung auf Node erkannt',
+  node_drift_overwritten: 'Abweichung überschrieben',
+  node_drift_accepted: 'Abweichung übernommen'
 };
 
 // ---------- Phase 2: CA, Personen, Geräte ----------

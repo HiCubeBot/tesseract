@@ -42,6 +42,7 @@ backend/
     pki.py                Root, Zwischenzertifikat, Client-Zertifikate, PKCS#12
     identity.py           CA einrichten, Geräte ausstellen und sperren
     secretbox.py          Verschlüsselung von Geheimnissen (AES-GCM) mit dem Hauptschlüssel
+    nodes.py              Nodes mit Agent: Beitritt, Status, Abweichung, Modul-Erkennung
     checks.py             Vorab-Prüfungen (Domain frei, DNS, Ziel erreichbar)
     caddy/
       config.py           erzeugt die komplette Caddy-JSON-Config eines Nodes
@@ -76,7 +77,7 @@ Alle Endpunkte außer `/api/health` und `/api/auth/login` brauchen eine Session.
 | `POST /api/hosts/preview` | Caddy-Route, die für einen Host erzeugt würde |
 | `GET /api/hosts/{id}/versions[/{v}]` | Verlauf mit Änderungen, Caddy-Route vorher/nachher |
 | `POST /api/hosts/{id}/versions/{v}/restore` | Version wiederherstellen (= neue Version) |
-| `GET /api/nodes` · `GET /api/nodes/{id}/config` · `POST /api/nodes/{id}/apply` | Nodes, erzeugte Config, erneut übertragen |
+| `GET /api/nodes` · `GET /api/nodes/{id}/config` · `POST /api/nodes/{id}/apply` | Nodes, erzeugte Config, erneut übertragen (Agent-Nodes: Soll-Stand setzen) |
 | `GET/PUT /api/settings/general` | Let's-Encrypt-E-Mail, öffentliche IPs des Nodes |
 | `GET /api/audit` | Audit-Log (`q`, `limit`, `before_id`) |
 
@@ -144,6 +145,24 @@ Admin-Zertifikat erreichbar ist.
   zusätzlich jede angemeldete Anfrage und den Login.
 - Notausgang: `tesseract admin mtls off`.
 
+## Nodes mit Agent (Phase 4)
+
+Ablauf und Agent-Seite: [agent.md](agent.md).
+
+| Methode & Pfad | Zweck |
+|---|---|
+| `POST /api/nodes` | Node mit Agent anlegen → Beitritts-Token + Befehl (braucht die CA) |
+| `PUT /api/nodes/{id}` · `DELETE /api/nodes/{id}` | Name/Standort ändern · löschen (nur ohne Hosts, nicht `local`) |
+| `POST /api/nodes/{id}/token` | neues Beitritts-Token (z. B. Agent neu aufgesetzt) |
+| `POST /api/nodes/{id}/approve` · `/reject` | Beitrittsanfrage bestätigen (signiert die CSR) oder ablehnen |
+| `GET /api/nodes/{id}/drift` | Unterschiede laufende Config ↔ Controller (Pfad, vorher, nachher, Host) |
+| `POST /api/nodes/{id}/overwrite` · `/accept` | Abweichung überschreiben oder übernehmen |
+| `/api/agent/*` | Schnittstelle für den Agent – siehe [agent.md](agent.md#schnittstelle) |
+
+`GET /api/nodes` liefert pro Node `state` (`pending`, `online`, `offline`, `drift`, `error`),
+letzten Kontakt, Versionen, Module, Beitrittsstand und Abweichung. Lokale Nodes prüft eine
+Hintergrundaufgabe alle 30 s (laufende Config, alle 10 Min. die Module).
+
 ## Datenbank & Migrationen
 
 Schema ändern:
@@ -177,7 +196,7 @@ Alle Einstellungen kommen aus Umgebungsvariablen oder einer `.env` im Arbeitsver
 | `TESSERACT_SECRET_KEY` | – | Hauptschlüssel (Base64, 32 Byte); leer = `secret.key` im Datenverzeichnis |
 | `TESSERACT_CADDY_WAF_LOG` | – | Pfad im Caddy-Container für WAF-Treffer (Auto-Sperre) |
 | `TESSERACT_WAF_LOG_PATH` | – | Pfad, unter dem der Controller dieselbe Datei liest |
-| `TESSERACT_BACKGROUND_TASKS` | `true` | Hintergrundaufgaben (Auto-Sperre) |
+| `TESSERACT_BACKGROUND_TASKS` | `true` | Hintergrundaufgaben (Auto-Sperre, Prüfung lokaler Nodes) |
 | `TESSERACT_COOKIE_SECURE` | `true` | Session-Cookie nur über HTTPS |
 | `TESSERACT_SESSION_HOURS` | `12` | Session-Dauer ohne „angemeldet bleiben“ |
 | `TESSERACT_SESSION_REMEMBER_DAYS` | `30` | Session-Dauer mit „angemeldet bleiben“ |

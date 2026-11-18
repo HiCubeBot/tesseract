@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from tesseract import __version__
 from tesseract.api import api_router
 from tesseract.auth import LoginThrottle
+from tesseract.autoban import AutoBan
 from tesseract.bootstrap import init_database, sync_nodes_on_start
 from tesseract.config import Settings, get_settings
 from tesseract.secretbox import load_secretbox
@@ -37,9 +38,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             )
         if settings.background_tasks:
             from tesseract.autoban import watch
+            from tesseract.nodes import watch_local
 
             tasks.append(
-                asyncio.create_task(watch(app.state.db, settings, app.state.caddy_transport))
+                asyncio.create_task(
+                    watch(
+                        app.state.db,
+                        settings,
+                        app.state.caddy_transport,
+                        banner=app.state.autoban,
+                    )
+                )
+            )
+            tasks.append(
+                asyncio.create_task(watch_local(app.state.db, settings, app.state.caddy_transport))
             )
         yield
         for task in tasks:
@@ -58,6 +70,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.login_throttle = LoginThrottle()
     # Gastseite: falsche Codes pro IP bremsen
     app.state.enroll_throttle = LoginThrottle(limit=10, window=900)
+    # Auto-Sperre: Treffer des lokalen Caddy und der Agents zählen gemeinsam
+    app.state.autoban = AutoBan()
     # In Tests durch einen httpx.MockTransport ersetzt
     app.state.caddy_transport = None
     app.include_router(api_router, prefix="/api")

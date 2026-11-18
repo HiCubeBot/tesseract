@@ -35,9 +35,10 @@
 | **Caddy** | Caddy 2 + `coraza-caddy` + DNS-Module | Reverse Proxy, ACME, mTLS-Prüfung, WAF. |
 | **Agent** (ab Phase 4) | Python | Läuft auf jedem Node, hält die Verbindung zum Controller, spielt Config über die lokale Caddy-Admin-API ein, liefert Status, Logs, Metriken. |
 
-In **Phase 1** gibt es noch keinen Agent: Der Controller spricht direkt mit der Admin-API des
-Caddy im selben Compose-Netz (`TESSERACT_CADDY_ADMIN_URL`). Die Schnittstelle wird so gebaut,
-dass sie später durch den Agent ersetzt werden kann („Node-Treiber“: lokal vs. Agent).
+Der Caddy im selben Compose-Netz ist der Node `local`: Der Controller spricht direkt mit seiner
+Admin-API (`TESSERACT_CADDY_ADMIN_URL`). Alle weiteren Nodes (ab Phase 4) haben einen Agent,
+der sich ausgehend beim Controller meldet und die Config abholt – siehe
+[Nodes mit Agent](#nodes-mit-agent-phase-4) und [agent.md](agent.md).
 
 ## Weg einer Anfrage
 
@@ -61,7 +62,8 @@ dass sie später durch den Agent ersetzt werden kann („Node-Treiber“: lokal 
   Passwort-Reset nur lokal per CLI.
 - **Einzige öffentliche Fläche ohne Zertifikat:** die Einladungsseite (Rate-Limits!).
 - **Einladung:** Link + separat übermittelter Bestätigungscode + Freigabe durch den Admin.
-- **Nodes:** Agent verbindet sich ausgehend per mTLS; die Caddy-Admin-API ist nie öffentlich.
+- **Nodes:** Agent verbindet sich ausgehend per mTLS (Node-Zertifikat vom Zwischenzertifikat,
+  zusätzlich Agent-Token); die Caddy-Admin-API ist nie öffentlich.
 - **Audit-Log:** append-only, Einträge über Prüfsummen verkettet.
 
 ## mTLS in Caddy (umgesetzt in Phase 2)
@@ -152,7 +154,7 @@ dass sie später durch den Agent ersetzt werden kann („Node-Treiber“: lokal 
 - Gesperrte IPs stehen als eine `client_ip`-Route **nach** der Controller-Route und vor allen
   Hosts – so sperrt sich der Admin nicht von der Oberfläche aus.
 - Von Hand sperren/entsperren: `POST /api/bans`, `DELETE /api/bans/{id}`.
-- Ab Phase 4 liefern die Agents die Treffer der anderen Nodes.
+- Die Agents liefern die Treffer der anderen Nodes (`POST /api/agent/waf`, gepuffert).
 
 ## Interne Dienste (Phase 3b)
 
@@ -203,11 +205,33 @@ dass sie später durch den Agent ersetzt werden kann („Node-Treiber“: lokal 
 - „Erneuern“ ersetzt Zertifikat und Schlüssel und überträgt sofort; benutzte Zertifikate
   lassen sich nicht löschen. Die Übersicht kennzeichnet sie als „Eigenes · Name“.
 
+## Nodes mit Agent (Phase 4)
+
+- `nodes.kind`: `local` (Controller lädt per Admin-API) oder `agent`. Für Agent-Nodes merkt
+  sich „Übertragen“ nur den Soll-Stand (`desired_hash`); der Agent holt ihn per Long-Polling
+  ab (`GET /api/agent/config`, bis 25 s). Das braucht keine eingehende Verbindung zum Node
+  und keine WebSockets durch Proxys.
+- Beitritt: Token (SHA-256 in der DB, 30 Min., einmalig) → CSR des Agents → Bestätigung durch
+  den Admin → Zertifikat `node:<name>` (EKU clientAuth, 2 Jahre) + Agent-Token, beides einmal
+  abholbar. Node-Zertifikate stehen in keiner Freigabeliste.
+- Authentifizierung: Caddy prüft das Client-Zertifikat auf der Controller-Domain
+  (`verify_if_given`, Zwischenzertifikat) und reicht den Fingerabdruck weiter; der Controller
+  vergleicht ihn **und** das Agent-Token. `/api/agent/*` gehört zu den Pfaden, die auch bei
+  geschützter Oberfläche ohne Admin-Zertifikat erreichbar sind.
+- Config für Agent-Nodes ohne Route der Controller-Domain; die Admin-Adresse meldet der Agent
+  (`admin_listen`).
+- Abweichung: `applied_hash` (geladen) vs. `running_hash` (läuft in Caddy, `GET /config/` –
+  am echten Caddy geprüft: gleiche Prüfsumme wie die geladene Config). Bei Abweichung wird die
+  laufende Config gespeichert und als Pfad-Diff (mit Host) angezeigt. Überschreiben =
+  `force_seq + 1`, Übernehmen = `accepted_hash`. Den lokalen Node prüft der Controller alle 30 s.
+- Module: Probe-Caddyfiles über `POST /adapt` – der Adapter scheitert, wenn ein Modul fehlt.
+- WAF-Treffer der Agents laufen in dieselbe Auto-Sperre (`app.state.autoban`) wie die des
+  lokalen Caddy; Sperren gehen an alle Nodes.
+
 ## Offene Entscheidungen
 
 | Thema | Optionen | Notiz |
 |---|---|---|
 | Datenbank / ORM | SQLite + SQLModel oder SQLAlchemy 2 + Alembic | SQLite reicht für den Controller, Backup einfach. |
-| Agent-Protokoll | WebSocket über mTLS vs. gRPC vs. Long-Polling | WebSocket passt zu FastAPI. |
 | Log-Speicher | SQLite, DuckDB oder externe Lösung (Loki) | Abhängig vom erwarteten Volumen. |
 | Admin-Passkey | WebAuthn zusätzlich/alternativ zum Passwort | Design zeigt „per Passkey“ im Audit-Log. |

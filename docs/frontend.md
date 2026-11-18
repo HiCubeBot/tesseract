@@ -36,7 +36,8 @@ frontend/src/
     dc.svelte.ts          Brücke für die übernommene Screen-Logik (siehe unten)
     icons.ts              Strich-Icons als SVG-Pfade
     components/           wiederverwendbare Bausteine (idiomatisches Svelte 5, TypeScript)
-  pages/                  echte Seiten: Login, Overview, Hosts, HostWizard, HostHistory, Settings, Audit
+  pages/                  echte Seiten: Login, Overview, Hosts, HostWizard, HostHistory, HostSecurity,
+                          Certificates, Nodes, Users, Devices, Access, Settings…, Audit, Enroll
   screens/                30 Prototyp-Screens aus dem Canvas
 ```
 

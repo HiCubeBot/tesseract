@@ -136,10 +136,16 @@ def expire_bans(db: Session) -> list[Ban]:
     return expired
 
 
-async def watch(database: Database, settings, transport=None, interval: float = 5.0) -> None:
-    """Hintergrund-Aufgabe des Controllers."""
+async def watch(
+    database: Database,
+    settings,
+    transport=None,
+    interval: float = 5.0,
+    banner: AutoBan | None = None,
+) -> None:
+    """Hintergrund-Aufgabe des Controllers. `banner` teilt sie sich mit den Agents (Phase 4)."""
     tail = LogTail(settings.waf_log_path) if settings.waf_log_path else None
-    banner = AutoBan()
+    banner = banner or AutoBan()
     if tail is None:
         log.info("Kein WAF-Log konfiguriert (TESSERACT_WAF_LOG_PATH) – Auto-Sperre ohne Daten")
     while True:

@@ -63,7 +63,27 @@
 
   const live = $derived(hosts.filter((h) => h.enabled && !h.draft));
   const drafts = $derived(hosts.filter((h) => h.draft).length);
-  const outOfSync = $derived(nodes.filter((n) => !n.in_sync));
+  const joinedNodes = $derived(nodes.filter((n) => n.state !== 'pending'));
+  const outOfSync = $derived(joinedNodes.filter((n) => !n.in_sync || n.drift || n.state === 'offline'));
+  const joinRequests = $derived(nodes.filter((n) => n.join_state === 'pending'));
+
+  function nodeProblem(n: NodeInfo): { title: string; text: string } {
+    if (n.state === 'offline')
+      return { title: `${n.name} ist offline`, text: `Letzter Kontakt ${formatAgo(n.last_seen_at)}. Caddy läuft dort mit dem letzten Stand weiter.` };
+    if (n.drift)
+      return { title: `${n.name} wurde lokal geändert`, text: 'Die laufende Config weicht vom Stand des Controllers ab.' };
+    return {
+      title: `${n.name} ist nicht auf dem Stand des Controllers`,
+      text: n.last_apply_error ?? (n.kind === 'agent' ? 'Der Agent hat die neue Config noch nicht geladen.' : 'Die Config wurde noch nicht übertragen.')
+    };
+  }
+  const NODE_PILL = {
+    online: { tone: 'ok', label: 'online' },
+    drift: { tone: 'warn', label: 'lokal geändert' },
+    offline: { tone: 'bad', label: 'offline' },
+    error: { tone: 'bad', label: 'Fehler' },
+    pending: { tone: 'neutral', label: 'wartet auf Beitritt' }
+  } as const;
   const pending = $derived(
     invites.flatMap((i) =>
       i.enrollments.filter((e) => e.status === 'pending').map((e) => ({ ...e, person: i.person_name, personId: i.person_id }))
@@ -94,19 +114,26 @@
     />
   {/each}
 
-  {#each outOfSync as node (node.id)}
+  {#each joinRequests as node (node.id)}
     <Alert
-      tone="warn"
-      title={`${node.name} ist nicht auf dem Stand des Controllers`}
-      text={node.last_apply_error ?? 'Die Config wurde noch nicht übertragen.'}
+      tone="info"
+      title={`Agent möchte als „${node.name}“ beitreten`}
+      text="Schlüssel-Fingerabdruck vergleichen und den Node bestätigen."
+      actionLabel="Ansehen"
+      actionHref="#/nodes"
     />
+  {/each}
+
+  {#each outOfSync as node (node.id)}
+    {@const p = nodeProblem(node)}
+    <Alert tone={node.state === 'offline' ? 'bad' : 'warn'} title={p.title} text={p.text} actionLabel="Nodes" actionHref="#/nodes" />
   {/each}
 
   <div class="stats">
     <StatCard label="Aktive Hosts" value={String(live.length)} sub={drafts ? `${drafts} Entwurf/Entwürfe` : 'alle übertragen'} tone="ok" />
     <StatCard
       label="Nodes synchron"
-      value={`${nodes.length - outOfSync.length}/${nodes.length}`}
+      value={`${joinedNodes.length - outOfSync.length}/${joinedNodes.length}`}
       sub={outOfSync.length ? 'Abweichung – erneut übertragen' : 'alles übertragen'}
       tone={outOfSync.length ? 'warn' : 'ok'}
       subTone={outOfSync.length ? 'warn' : 'muted'}
@@ -121,21 +148,27 @@
         <div class="node">
           <div class="node-head">
             <span class="mono strong">{node.name}</span>
-            <StatusPill tone={node.in_sync ? 'ok' : 'warn'} label={node.in_sync ? 'synchron' : 'nicht synchron'} />
+            {#if node.state === 'online' && !node.in_sync}
+              <StatusPill tone="warn" label="nicht synchron" />
+            {:else}
+              <StatusPill tone={NODE_PILL[node.state].tone} label={NODE_PILL[node.state].label} />
+            {/if}
           </div>
           <span class="muted small">
-            {node.location} · {node.hosts} Hosts · zuletzt übertragen {formatAgo(node.last_applied_at)}
+            {node.location || '–'} · {node.hosts} Hosts · zuletzt übertragen {formatAgo(node.last_applied_at)}
           </span>
-          <div>
-            <Button
-              variant="secondary"
-              size="sm"
-              icon="refresh"
-              label={applying === node.id ? 'Überträgt …' : 'Config erneut übertragen'}
-              disabled={applying !== null}
-              onClick={() => apply(node)}
-            />
-          </div>
+          {#if node.state !== 'pending'}
+            <div>
+              <Button
+                variant="secondary"
+                size="sm"
+                icon="refresh"
+                label={applying === node.id ? 'Überträgt …' : 'Config erneut übertragen'}
+                disabled={applying !== null}
+                onClick={() => apply(node)}
+              />
+            </div>
+          {/if}
         </div>
       {/each}
     </section>

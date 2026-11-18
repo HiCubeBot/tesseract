@@ -57,19 +57,81 @@ class AdminSession(Base):
 
 
 class Node(Base):
-    """Ein Caddy-Server. In Phase 1 gibt es genau einen lokalen Node."""
+    """Ein Caddy-Server: der lokale im Compose-Stack oder ein entfernter mit Agent (Phase 4)."""
 
     __tablename__ = "nodes"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(64), unique=True)
     location: Mapped[str] = mapped_column(String(128), default="")
-    admin_url: Mapped[str] = mapped_column(String(255))
+    # "local" = Controller spricht direkt mit der Admin-API, "agent" = Agent holt die Config ab
+    kind: Mapped[str] = mapped_column(String(16), default="local")
+    admin_url: Mapped[str] = mapped_column(String(255), default="")
+    # Adresse der Admin-API in der erzeugten Config (None = TESSERACT_CADDY_ADMIN_LISTEN)
+    admin_listen: Mapped[str | None] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(default=utcnow)
     last_applied_at: Mapped[datetime | None]
     last_apply_error: Mapped[str | None]
-    # Prüfsumme der zuletzt übertragenen Config
+    # Prüfsumme der zuletzt übertragenen (beim Agent: geladenen) Config
     applied_hash: Mapped[str | None] = mapped_column(String(64))
+
+    # --- Agent: Beitritt ---
+    # SHA-256 des Beitritts-Tokens (einmalig, 30 Min.)
+    join_token_hash: Mapped[str | None] = mapped_column(String(64), unique=True)
+    join_expires_at: Mapped[datetime | None]
+    # Anfrage des Agents: CSR, Rechnername, Fingerabdruck seines öffentlichen Schlüssels
+    join_csr: Mapped[str | None]
+    join_key_fp: Mapped[str | None] = mapped_column(String(64))
+    join_hostname: Mapped[str | None] = mapped_column(String(255))
+    join_requested_at: Mapped[datetime | None]
+    # SHA-256 des Geheimnisses, mit dem der Agent nach der Bestätigung sein Zertifikat abholt
+    join_secret_hash: Mapped[str | None] = mapped_column(String(64))
+    # "pending" | "approved" | "rejected" (None = keine Anfrage)
+    join_state: Mapped[str | None] = mapped_column(String(16))
+
+    # --- Agent: Identität ---
+    cert_pem: Mapped[str | None]
+    cert_fingerprint: Mapped[str | None] = mapped_column(String(64), unique=True)
+    cert_not_after: Mapped[datetime | None]
+    # SHA-256 des Agent-Tokens (zusätzlich zum Zertifikat)
+    agent_token_hash: Mapped[str | None] = mapped_column(String(64))
+
+    # --- Status (vom Agent gemeldet bzw. vom Controller beim lokalen Node ermittelt) ---
+    last_seen_at: Mapped[datetime | None]
+    agent_version: Mapped[str | None] = mapped_column(String(32))
+    caddy_version: Mapped[str | None] = mapped_column(String(64))
+    # Erkannte Caddy-Module (None = noch nicht geprüft)
+    modules: Mapped[list[str] | None] = mapped_column(JSON)
+    # Config, die der Controller für den Node vorsieht (Agent holt sie ab)
+    desired_hash: Mapped[str | None] = mapped_column(String(64))
+    # Hochzählen = Agent soll neu laden, auch wenn sich nichts geändert hat („Überschreiben“)
+    force_seq: Mapped[int] = mapped_column(default=0)
+
+    # --- Abweichung ---
+    # Prüfsumme der Config, die gerade wirklich in Caddy läuft
+    running_hash: Mapped[str | None] = mapped_column(String(64))
+    # die laufende Config, nur gespeichert, solange sie abweicht
+    running_config: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    drift_since: Mapped[datetime | None]
+    # „Änderung übernehmen“: diese laufende Config gilt als in Ordnung
+    accepted_hash: Mapped[str | None] = mapped_column(String(64))
+
+    @property
+    def is_agent(self) -> bool:
+        return self.kind == "agent"
+
+    @property
+    def joined(self) -> bool:
+        return not self.is_agent or self.cert_fingerprint is not None
+
+    @property
+    def drift(self) -> bool:
+        return (
+            self.running_hash is not None
+            and self.applied_hash is not None
+            and self.running_hash != self.applied_hash
+            and self.running_hash != self.accepted_hash
+        )
 
 
 class Host(Base):

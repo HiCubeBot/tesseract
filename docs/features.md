@@ -75,12 +75,12 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 
 | Feature | Beschreibung | Phase |
 |---|---|---|
-| Node-Übersicht | Standort, Caddy-Version, Anzahl Hosts, letzter Kontakt, Status | 4 |
-| Node hinzufügen | Beitritts-Token (30 Min., einmalig) → Agent starten → im Controller bestätigen | 4 |
-| Agent | Erzeugt eigene Schlüssel, baut mTLS-Verbindung zum Controller auf; kein offener Admin-Port, funktioniert hinter NAT | 4 |
-| Config-Abweichung | Erkennt lokale Änderungen (Diff) – „Mit Controller überschreiben“ oder „Änderung übernehmen“ | 4 |
-| Modul-Übersicht | Welche Caddy-Module (coraza, dns.cloudflare …) je Node vorhanden sind; Features werden sonst gesperrt | 4 |
-| Offline-Pufferung | Node puffert Logs lokal und liefert nach | 4 |
+| Node-Übersicht | Standort, Caddy-Version, Anzahl Hosts, letzter Kontakt, Status (online, offline, lokal geändert, Fehler), Agent-Version, Zertifikat | 4 |
+| Node hinzufügen | Beitritts-Token (30 Min., einmalig) mit Befehl und Compose-Ausschnitt → Agent starten → Schlüssel-Fingerabdruck vergleichen und im Controller bestätigen | 4 |
+| Agent | Erzeugt eigene Schlüssel, baut mTLS-Verbindung zum Controller auf (Long-Polling über HTTPS); kein offener Admin-Port, funktioniert hinter NAT | 4 |
+| Config-Abweichung | Erkennt lokale Änderungen (Diff pro Host) – „Mit Controller überschreiben“ oder „Änderung übernehmen“ (gilt bis zur nächsten Übertragung) | 4 |
+| Modul-Übersicht | Welche Caddy-Module (Coraza, DNS Cloudflare) je Node vorhanden sind, Warnung bei fehlenden; Sperren der betroffenen Features folgt | 4 |
+| Offline-Pufferung | Ohne Controller läuft Caddy mit dem letzten Stand weiter; WAF-Treffer puffert der Agent und liefert sie nach (Zugriffs-Logs ab Phase 5) | 4 |
 
 ## 7. Statistik & Logs
 
