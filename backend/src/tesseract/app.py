@@ -1,5 +1,8 @@
 """FastAPI-Anwendung: API unter /api, optional das gebaute Frontend unter /."""
 
+import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -8,11 +11,22 @@ from fastapi.staticfiles import StaticFiles
 
 from tesseract import __version__
 from tesseract.api import api_router
+from tesseract.auth import LoginThrottle
+from tesseract.bootstrap import init_database
 from tesseract.config import Settings, get_settings
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
+    logging.basicConfig(
+        level=settings.log_level.upper(), format="%(levelname)s %(name)s: %(message)s"
+    )
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        app.state.db = init_database(settings)
+        yield
+        app.state.db.engine.dispose()
 
     app = FastAPI(
         title="Tesseract",
@@ -20,7 +34,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         docs_url="/api/docs",
         redoc_url=None,
         openapi_url="/api/openapi.json",
+        lifespan=lifespan,
     )
+    app.state.settings = settings
+    app.state.login_throttle = LoginThrottle()
     app.include_router(api_router, prefix="/api")
 
     if settings.static_dir and settings.static_dir.is_dir():
@@ -43,4 +60,6 @@ def _mount_frontend(app: FastAPI, static_dir: Path) -> None:
         return FileResponse(index)
 
 
-app = create_app()
+def app_factory() -> FastAPI:
+    """Für uvicorn --factory bzw. `fastapi dev`."""
+    return create_app()

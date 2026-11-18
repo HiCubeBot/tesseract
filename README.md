@@ -49,7 +49,8 @@ Backend (Port 8000):
 ```bash
 cd backend
 uv sync
-uv run fastapi dev src/tesseract/app.py
+cp .env.example .env
+uv run tesseract
 ```
 
 Frontend (Port 5173, leitet `/api` an das Backend weiter):
