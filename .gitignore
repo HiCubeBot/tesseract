@@ -16,3 +16,7 @@ agent/data
 .env
 *.log
 LOCAL-RULES.md
+
+# Lokale Daten für den Compose-Stack
+geoip/
+compose.override.yaml
