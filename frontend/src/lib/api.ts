@@ -134,6 +134,20 @@ export interface AreaInput {
 }
 export type IpMode = 'off' | 'block' | 'allow';
 
+export interface Ban {
+  id: number;
+  ip: string;
+  created_at: string;
+  expires_at: string;
+  reason: string;
+  hits: number;
+  host: string;
+  created_by: string;
+  lifted_at: string | null;
+  lifted_by: string | null;
+  active: boolean;
+}
+
 export const IP_MODES: Record<IpMode, string> = {
   off: 'Aus',
   block: 'Sperren',
@@ -261,6 +275,12 @@ export interface GeneralSettings {
   authelia_url: string;
   authelia_headers: string[];
   cloudflare_token_set: boolean;
+  autoban_enabled: boolean;
+  autoban_hits: number;
+  autoban_window_minutes: number;
+  autoban_hours: number;
+  autoban_exempt: string[];
+  autoban_log_ready: boolean;
   controller_domain: string;
   version: string;
 }
@@ -376,7 +396,9 @@ export const ACTION_LABELS: Record<string, string> = {
   admin_mtls_off: 'Admin-Zertifikat für Oberfläche abgeschaltet',
   iplist_created: 'IP-Liste angelegt',
   iplist_updated: 'IP-Liste geändert',
-  iplist_deleted: 'IP-Liste gelöscht'
+  iplist_deleted: 'IP-Liste gelöscht',
+  ip_banned: 'IP gesperrt',
+  ip_unbanned: 'IP entsperrt'
 };
 
 // ---------- Phase 2: CA, Personen, Geräte ----------

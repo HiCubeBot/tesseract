@@ -6,6 +6,7 @@ from tesseract.api import (
     access,
     audit,
     auth,
+    bans,
     ca,
     health,
     hosts,
@@ -29,3 +30,4 @@ api_router.include_router(access.router)
 api_router.include_router(invites.admin)
 api_router.include_router(invites.public)
 api_router.include_router(iplists.router)
+api_router.include_router(bans.router)

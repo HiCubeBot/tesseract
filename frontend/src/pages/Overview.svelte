@@ -6,6 +6,7 @@
   import Alert from '../lib/components/Alert.svelte';
   import Button from '../lib/components/Button.svelte';
   import StatusPill from '../lib/components/StatusPill.svelte';
+  import BansCard from '../lib/components/BansCard.svelte';
   import {
     api,
     formatAgo,
@@ -127,6 +128,8 @@
         </div>
       {/each}
     </section>
+
+    <BansCard compact />
 
     <section class="card" aria-labelledby="events-title">
       <div class="row">

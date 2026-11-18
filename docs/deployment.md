@@ -58,6 +58,7 @@ nicht auf dem Server; den hast du beim Einrichten heruntergeladen.
 | `tesseract-data` | Controller-Daten (`/data`): DB, CA-Zwischenzertifikat, Backups |
 | `caddy-data` | ACME-Konten und Zertifikate |
 | `caddy-config` | von Caddy gespeicherte Config |
+| `caddy-logs` | WAF-Treffer (`waf.log`) – Caddy schreibt, der Controller liest (Auto-Sperre) |
 
 ### Umgebungsvariablen (`.env`)
 

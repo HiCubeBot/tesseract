@@ -373,3 +373,23 @@ class HostArea(Base):
     ip_mode: Mapped[str | None] = mapped_column(String(16))
     ip_entries: Mapped[list[str]] = mapped_column(JSON, default=list)
     ip_list_ids: Mapped[list[int]] = mapped_column(JSON, default=list)
+
+
+# ---------- Phase 3: Auto-Sperre ----------
+
+
+class Ban(Base):
+    """Gesperrte IP – automatisch nach WAF-Treffern oder von Hand."""
+
+    __tablename__ = "bans"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    ip: Mapped[str] = mapped_column(String(64), index=True)
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+    expires_at: Mapped[datetime]
+    reason: Mapped[str] = mapped_column(String(255), default="")
+    hits: Mapped[int] = mapped_column(default=0)
+    host: Mapped[str] = mapped_column(String(253), default="")
+    created_by: Mapped[str] = mapped_column(String(64), default="system")
+    lifted_at: Mapped[datetime | None]
+    lifted_by: Mapped[str | None] = mapped_column(String(64))

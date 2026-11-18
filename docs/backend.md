@@ -174,6 +174,9 @@ Alle Einstellungen kommen aus Umgebungsvariablen oder einer `.env` im Arbeitsver
 | `TESSERACT_CONTROLLER_UPSTREAM` | `tesseract:8000` | Wie Caddy den Controller erreicht |
 | `TESSERACT_SYNC_ON_START` | `true` | Beim Start die Config an alle Nodes übertragen |
 | `TESSERACT_SECRET_KEY` | – | Hauptschlüssel (Base64, 32 Byte); leer = `secret.key` im Datenverzeichnis |
+| `TESSERACT_CADDY_WAF_LOG` | – | Pfad im Caddy-Container für WAF-Treffer (Auto-Sperre) |
+| `TESSERACT_WAF_LOG_PATH` | – | Pfad, unter dem der Controller dieselbe Datei liest |
+| `TESSERACT_BACKGROUND_TASKS` | `true` | Hintergrundaufgaben (Auto-Sperre) |
 | `TESSERACT_COOKIE_SECURE` | `true` | Session-Cookie nur über HTTPS |
 | `TESSERACT_SESSION_HOURS` | `12` | Session-Dauer ohne „angemeldet bleiben“ |
 | `TESSERACT_SESSION_REMEMBER_DAYS` | `30` | Session-Dauer mit „angemeldet bleiben“ |

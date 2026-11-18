@@ -28,13 +28,21 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.db = init_database(settings)
         app.state.secretbox = load_secretbox(settings)
-        task = None
+        tasks = []
         if settings.sync_on_start:
-            task = asyncio.create_task(
-                sync_nodes_on_start(app.state.db, settings, app.state.caddy_transport)
+            tasks.append(
+                asyncio.create_task(
+                    sync_nodes_on_start(app.state.db, settings, app.state.caddy_transport)
+                )
+            )
+        if settings.background_tasks:
+            from tesseract.autoban import watch
+
+            tasks.append(
+                asyncio.create_task(watch(app.state.db, settings, app.state.caddy_transport))
             )
         yield
-        if task:
+        for task in tasks:
             task.cancel()
         app.state.db.engine.dispose()
 

@@ -133,6 +133,10 @@ class NodeSpec:
     acme_email: str = ""
     # API-Token für DNS-01 bei Cloudflare (Zone:DNS:Edit)
     cloudflare_token: str = ""
+    # Gesperrte IPs/Netze (Auto-Sperre und von Hand) – gelten für alle Hosts
+    banned: tuple[str, ...] = ()
+    # Datei, in die Caddy WAF-Treffer schreibt (Pfad im Caddy-Container); leer = aus
+    waf_log_file: str = ""
     # Geräte-Zwischenzertifikat (DER, Base64) – Vertrauensanker für Client-Zertifikate
     client_ca_der_b64: str = ""
 
@@ -524,6 +528,17 @@ def build_config(spec: NodeSpec) -> JSON:
         http_routes.append(_redirect_route(spec.controller_domain))
         policy_hosts.append(controller_spec(spec))
 
+    # Gesperrte IPs: nach der Controller-Route (die Oberfläche bleibt erreichbar), vor allen Hosts
+    if spec.banned:
+        ban: JSON = {
+            "@id": "banned",
+            "match": [{"client_ip": {"ranges": list(spec.banned)}}],
+            "handle": [{"handler": "static_response", "status_code": 403, "body": "Gesperrt"}],
+            "terminal": True,
+        }
+        https_routes.append(ban)
+        http_routes.append({**ban, "@id": "banned-http"})
+
     authelia = (
         authelia_handler(spec.authelia_url, spec.authelia_headers) if spec.authelia_url else None
     )
@@ -570,6 +585,25 @@ def build_config(spec: NodeSpec) -> JSON:
     tls = tls_automation(spec, hosts)
     if tls is not None:
         config["apps"]["tls"] = tls
+    if spec.waf_log_file:
+        # Eigene Logdatei nur für WAF-Treffer – liest der Controller für die Auto-Sperre
+        config["logging"] = {
+            "logs": {
+                "tesseract_waf": {
+                    "writer": {
+                        "output": "file",
+                        "filename": spec.waf_log_file,
+                        "roll_size_mb": 10,
+                        "roll_keep": 3,
+                        # der Controller läuft als anderer Nutzer und muss mitlesen
+                        "mode": "0644",
+                    },
+                    "encoder": {"format": "json"},
+                    "level": "ERROR",
+                    "include": ["http.handlers.waf"],
+                }
+            }
+        }
     return config
 
 

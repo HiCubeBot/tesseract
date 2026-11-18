@@ -24,6 +24,7 @@ def settings(tmp_path: Path) -> Settings:
         caddy_admin_url="http://caddy.invalid:2019",
         controller_domain="tesseract.example.org",
         sync_on_start=False,
+        background_tasks=False,
     )
 
 

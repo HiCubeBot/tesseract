@@ -140,6 +140,20 @@ dass sie später durch den Agent ersetzt werden kann („Node-Treiber“: lokal 
 - Die einfachen „Pfad-Ausnahmen“ aus Phase 2 bleiben für den Alltag; Bereiche sind die
   ausführliche Variante.
 
+## Auto-Sperre (Phase 3)
+
+- Caddy schreibt WAF-Treffer (Logger `http.handlers.waf`, Level ERROR) als JSON in eine
+  eigene Datei (`TESSERACT_CADDY_WAF_LOG`, im Compose-Stack `/var/log/tesseract/waf.log`,
+  Rechte 0644, Rotation bei 10 MB). Der Controller liest dieselbe Datei über ein gemeinsames
+  Volume (`TESSERACT_WAF_LOG_PATH`) alle 5 Sekunden weiter.
+- Pro IP werden Treffer im Zeitfenster gezählt; ab der Schwelle (Standard 20 in 10 Min.) wird
+  die IP für die eingestellte Dauer (Standard 24 h) gesperrt – außer sie liegt in den
+  Ausnahmen (Standard: localhost). Sperren laufen automatisch ab.
+- Gesperrte IPs stehen als eine `client_ip`-Route **nach** der Controller-Route und vor allen
+  Hosts – so sperrt sich der Admin nicht von der Oberfläche aus.
+- Von Hand sperren/entsperren: `POST /api/bans`, `DELETE /api/bans/{id}`.
+- Ab Phase 4 liefern die Agents die Treffer der anderen Nodes.
+
 ## Offene Entscheidungen
 
 | Thema | Optionen | Notiz |

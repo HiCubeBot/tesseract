@@ -6,6 +6,8 @@
   import Alert from '../lib/components/Alert.svelte';
   import ChipInput from '../lib/components/ChipInput.svelte';
   import IpListEditor from '../lib/components/IpListEditor.svelte';
+  import BansCard from '../lib/components/BansCard.svelte';
+  import Toggle from '../lib/components/Toggle.svelte';
   import { api, WAF_MODES, type GeneralSettings, type IpList, type WafMode } from '../lib/api';
   import { toasts } from '../lib/toast.svelte';
 
@@ -40,7 +42,12 @@
         trusted_proxies: general.trusted_proxies,
         trusted_proxy_list_ids: general.trusted_proxy_list_ids,
         authelia_url: general.authelia_url,
-        authelia_headers: general.authelia_headers
+        authelia_headers: general.authelia_headers,
+        autoban_enabled: general.autoban_enabled,
+        autoban_hits: Number(general.autoban_hits),
+        autoban_window_minutes: Number(general.autoban_window_minutes),
+        autoban_hours: Number(general.autoban_hours),
+        autoban_exempt: general.autoban_exempt
       });
       ipLists = await api.get<IpList[]>('/ip-lists');
       toasts.show('ok', 'Gespeichert.');
@@ -125,12 +132,35 @@
           </select>
         </label>
       </div>
+      <div class="autoban">
+        <Toggle
+          label="Auto-Sperre"
+          description={`IP für ${general.autoban_hours} h sperren nach ${general.autoban_hits} WAF-Treffern in ${general.autoban_window_minutes} Min. – vor allen Hosts, die Oberfläche bleibt erreichbar.`}
+          bind:checked={general.autoban_enabled}
+        />
+        {#if general.autoban_enabled}
+          <div class="grid">
+            <label class="field">Treffer<input class="input" type="number" min="1" bind:value={general.autoban_hits} /></label>
+            <label class="field">in Minuten<input class="input" type="number" min="1" max="1440" bind:value={general.autoban_window_minutes} /></label>
+            <label class="field">sperren für Stunden<input class="input" type="number" min="1" bind:value={general.autoban_hours} /></label>
+          </div>
+          <div class="field">
+            Nie automatisch sperren (z. B. eigenes Netz)
+            <ChipInput bind:values={general.autoban_exempt} label="Ausnahme hinzufügen" placeholder="192.168.178.0/24" />
+          </div>
+          {#if !general.autoban_log_ready}
+            <Alert tone="warn" title="Kein WAF-Log angebunden" text="Der Controller liest keine Treffer – TESSERACT_CADDY_WAF_LOG und TESSERACT_WAF_LOG_PATH setzen (im Compose-Stack schon eingerichtet)." />
+          {/if}
+        {/if}
+      </div>
       <p class="muted small">
         Bestehende Hosts behalten ihre Einstellung – die änderst du pro Host unter „Sicherheit“.
         Empfehlung: neue Dienste erst „nur protokollieren“, nach ein paar Tagen ohne Fehlalarme auf „Blockieren“.
       </p>
       <div class="row"><Button type="submit" label={saving ? 'Speichert …' : 'Speichern'} disabled={saving} /></div>
     </form>
+
+    <BansCard />
 
     <section class="card" aria-labelledby="lists-title">
       <h2 id="lists-title">IP-Listen</h2>
@@ -232,6 +262,13 @@
   }
   .ok {
     color: var(--ok-text);
+  }
+  .autoban {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
   }
   .bad {
     color: var(--bad-text);

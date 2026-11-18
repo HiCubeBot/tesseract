@@ -9,8 +9,12 @@ services:
       TESSERACT_CADDY_ADMIN_URL: http://caddy:2019
       TESSERACT_CONTROLLER_DOMAIN: ${TESSERACT_DOMAIN:-localhost}
       TESSERACT_LOG_LEVEL: ${TESSERACT_LOG_LEVEL:-info}
+      # WAF-Treffer für die Auto-Sperre: Caddy schreibt, der Controller liest
+      TESSERACT_CADDY_WAF_LOG: /var/log/tesseract/waf.log
+      TESSERACT_WAF_LOG_PATH: /var/log/tesseract/waf.log
     volumes:
       - tesseract-data:/data
+      - caddy-logs:/var/log/tesseract:ro
     networks: [internal]
 
   caddy:
@@ -31,6 +35,7 @@ services:
     volumes:
       - caddy-data:/data
       - caddy-config:/config
+      - caddy-logs:/var/log/tesseract
     networks: [internal]
 
 networks:
@@ -40,3 +45,4 @@ volumes:
   tesseract-data:
   caddy-data:
   caddy-config:
+  caddy-logs:

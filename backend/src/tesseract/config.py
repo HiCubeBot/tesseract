@@ -43,6 +43,13 @@ class Settings(BaseSettings):
     # Beim Start die Config an alle Nodes übertragen
     sync_on_start: bool = True
 
+    # WAF-Log für die Auto-Sperre: Pfad im Caddy-Container und Pfad, unter dem der
+    # Controller dieselbe Datei liest (gemeinsames Volume). Leer = Auto-Sperre ohne Daten.
+    caddy_waf_log: str = ""
+    waf_log_path: Path | None = None
+    # Hintergrundaufgaben (Auto-Sperre); in Tests aus
+    background_tasks: bool = True
+
     log_level: str = "info"
 
     @property

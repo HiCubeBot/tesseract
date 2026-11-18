@@ -38,6 +38,17 @@ class GeneralIn(BaseModel):
     authelia_url: str = Field("", max_length=255)
     # None = unverändert lassen, "" = löschen
     cloudflare_token: str | None = Field(None, max_length=255)
+    autoban_enabled: bool = True
+    autoban_hits: int = Field(20, ge=1, le=10_000)
+    autoban_window_minutes: int = Field(10, ge=1, le=1440)
+    autoban_hours: int = Field(24, ge=1, le=24 * 365)
+    autoban_exempt: list[str] = Field(default_factory=list, max_length=200)
+
+    @field_validator("autoban_exempt")
+    @classmethod
+    def _exempt(cls, v: list[str]) -> list[str]:
+        return normalize_networks(v)
+
     authelia_headers: list[str] = Field(
         default_factory=lambda: ["Remote-User", "Remote-Groups", "Remote-Email", "Remote-Name"],
         max_length=20,
@@ -102,6 +113,13 @@ class GeneralOut(BaseModel):
     authelia_url: str
     authelia_headers: list[str]
     cloudflare_token_set: bool
+    autoban_enabled: bool
+    autoban_hits: int
+    autoban_window_minutes: int
+    autoban_hours: int
+    autoban_exempt: list[str]
+    # Liest der Controller das WAF-Log? (sonst sieht die Auto-Sperre keine Treffer)
+    autoban_log_ready: bool
     # nur lesbar – kommen aus der Umgebung
     controller_domain: str
     version: str
@@ -121,6 +139,12 @@ def get_settings_general(db: DB, _: CurrentActor, settings: AppSettings) -> Gene
         authelia_url=g["authelia_url"],
         authelia_headers=g["authelia_headers"],
         cloudflare_token_set=bool(g["cloudflare_token_enc"]),
+        autoban_enabled=g["autoban_enabled"],
+        autoban_hits=g["autoban_hits"],
+        autoban_window_minutes=g["autoban_window_minutes"],
+        autoban_hours=g["autoban_hours"],
+        autoban_exempt=g["autoban_exempt"],
+        autoban_log_ready=bool(settings.caddy_waf_log and settings.waf_log_path),
         controller_domain=settings.controller_domain,
         version=__version__,
     )

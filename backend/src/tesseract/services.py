@@ -10,6 +10,7 @@ from tesseract.caddy.client import CaddyClient, CaddyError
 from tesseract.caddy.config import AreaSpec, HostSpec, NodeSpec, build_config, config_hash
 from tesseract.config import Settings
 from tesseract.db.models import (
+    Ban,
     Device,
     Group,
     Host,
@@ -68,6 +69,13 @@ GENERAL_DEFAULTS: dict[str, Any] = {
     "authelia_headers": ["Remote-User", "Remote-Groups", "Remote-Email", "Remote-Name"],
     # Cloudflare-API-Token für DNS-01 – verschlüsselt (secretbox), nie im Klartext ausgeliefert
     "cloudflare_token_enc": "",
+    # Auto-Sperre nach WAF-Treffern
+    "autoban_enabled": True,
+    "autoban_hits": 20,
+    "autoban_window_minutes": 10,
+    "autoban_hours": 24,
+    # nie automatisch sperren (z. B. eigenes Netz)
+    "autoban_exempt": ["127.0.0.0/8", "::1/128"],
 }
 CLOUDFLARE_CONTEXT = "cloudflare-token"
 ADMIN_GROUP = "Admin"
@@ -400,6 +408,14 @@ def client_ca_der_b64(db: Session) -> str:
     return pki.der_b64(pki.load_cert(inter.cert_pem)) if inter else ""
 
 
+def active_bans(db: Session) -> list[str]:
+    now = utcnow()
+    ips = db.scalars(
+        select(Ban.ip).where(Ban.lifted_at.is_(None), Ban.expires_at > now).order_by(Ban.ip)
+    )
+    return list(dict.fromkeys(ips))
+
+
 def cloudflare_token(db: Session, settings: Settings) -> str:
     enc = get_general(db)["cloudflare_token_enc"]
     if not enc:
@@ -438,6 +454,8 @@ def node_config(db: Session, node: Node, settings: Settings) -> dict[str, Any]:
         authelia_url=general["authelia_url"],
         authelia_headers=tuple(general["authelia_headers"]),
         cloudflare_token=cloudflare_token(db, settings),
+        banned=tuple(active_bans(db)),
+        waf_log_file=settings.caddy_waf_log,
     )
     return build_config(spec)
 

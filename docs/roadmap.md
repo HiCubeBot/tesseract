@@ -8,7 +8,7 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 | 0 | Fundament | Projektstruktur, Docker, Doku – **fertig** |
 | 1 | Proxy-Manager (Single-Node) | Ersetzt NPM für einen lokalen Caddy – **fertig** |
 | 2 | mTLS & Identitäten | Private Dienste ohne VPN, Einladungen – **fertig** |
-| 3 | WAF & Zugriffsschutz | Coraza, IP-Filter, Authelia |
+| 3 | WAF & Zugriffsschutz | Coraza, IP-Filter, Authelia – **fertig** |
 | 4 | Multi-Node | Agent, mehrere Server, auch hinter NAT |
 | 5 | Beobachtbarkeit | Logs, Statistik, Audit, Metriken, Benachrichtigungen |
 | 6 | Betrieb & Release | Backup, CA-Rotation, Härtung, v1.0 |
@@ -80,12 +80,19 @@ Zertifikat, `/admin/*` nur mit.
 
 **Ziel:** Öffentliche Dienste absichern.
 
-- Coraza WAF pro Host (Aus / Protokollieren / Blockieren), OWASP CRS, Paranoia-Level
-- Regel-Ausnahmen pro Host und pro Pfadbereich
-- IP-Filter (Sperren / Nur erlauben), benannte IP-Listen, Auto-Sperre nach WAF-Treffern
-- Authelia als optionale Middleware pro Host (Caddy `forward_auth` auf eine bestehende Instanz), weitergereichte Header – nicht als Login für die Tesseract-Oberfläche
-- Vertrauenswürdige Proxys (z. B. Cloudflare) für korrekte Client-IP
-- DNS-01-Challenge (Cloudflare) für Wildcards
+- [x] Coraza WAF pro Host (Aus / Protokollieren / Blockieren), OWASP CRS, Paranoia-Level, Standards für neue Hosts, WAF für die Oberfläche
+- [x] Regel-Ausnahmen pro Host und pro Bereich
+- [x] IP-Filter (Sperren / Nur erlauben), benannte IP-Listen (Vorlage Cloudflare)
+- [x] Auto-Sperre nach WAF-Treffern, Sperren von Hand, automatischer Ablauf
+- [x] Authelia-Integration (Forward-Auth) als Host-Middleware, weitergereichte Header
+- [x] Vertrauenswürdige Proxys für die korrekte Client-IP
+- [x] DNS-01-Challenge (Cloudflare) für Wildcards und Hosts ohne Port 80
+- [x] Host-Bereiche: Pfade mit eigenen Regeln für Zugriff/Freigaben, WAF, IP-Filter, Authelia
+
+Offen / bewusst verschoben:
+- „Aktionen aus Logs“ (Ausnahme direkt aus einem Treffer anlegen, IP aus dem Log sperren) → Phase 5 mit der Log-Ansicht
+- weitere DNS-Anbieter neben Cloudflare → Backlog
+- echter Zertifikatsabruf per DNS-01 nur mit Format-Prüfung getestet (braucht echte Zone)
 
 **Fertig, wenn:** Ein SQL-Injection-Versuch wird blockiert, protokolliert und führt nach Schwellwert
 zur automatischen IP-Sperre.
