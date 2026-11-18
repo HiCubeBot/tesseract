@@ -53,6 +53,34 @@
 
   const modes = Object.entries(WAF_MODES) as [WafMode, string][];
 
+  let cfToken = $state('');
+  let cfSaving = $state(false);
+
+  async function saveToken(token: string) {
+    if (!general) return;
+    cfSaving = true;
+    try {
+      general = await api.put<GeneralSettings>('/settings/general', {
+        acme_email: general.acme_email || null,
+        public_ips: general.public_ips,
+        waf_default_mode: general.waf_default_mode,
+        waf_default_paranoia: Number(general.waf_default_paranoia),
+        controller_waf_mode: general.controller_waf_mode,
+        trusted_proxies: general.trusted_proxies,
+        trusted_proxy_list_ids: general.trusted_proxy_list_ids,
+        authelia_url: general.authelia_url,
+        authelia_headers: general.authelia_headers,
+        cloudflare_token: token
+      });
+      cfToken = '';
+      toasts.show('ok', token ? 'Cloudflare-Token gespeichert.' : 'Cloudflare-Token gelöscht.');
+    } catch (e) {
+      toasts.show('bad', e instanceof Error ? e.message : String(e));
+    } finally {
+      cfSaving = false;
+    }
+  }
+
   let testing = $state(false);
   let testResult = $state<{ ok: boolean; detail: string } | null>(null);
 
@@ -134,6 +162,31 @@
         </fieldset>
       {/if}
       <div class="row"><Button type="submit" label={saving ? 'Speichert …' : 'Speichern'} disabled={saving} /></div>
+    </form>
+
+    <form class="card" onsubmit={(e) => (e.preventDefault(), saveToken(cfToken))} aria-labelledby="dns-title">
+      <h2 id="dns-title">DNS-01 über Cloudflare</h2>
+      <p class="muted small">
+        Damit holt Caddy Zertifikate auch ohne offenen Port 80 und für Wildcard-Hosts (<code>*.beispiel.de</code>).
+        Nötig ist ein API-Token mit dem Recht „Zone · DNS · Bearbeiten“ für deine Zone. Er wird verschlüsselt
+        gespeichert und nie wieder angezeigt.
+      </p>
+      <label class="field">
+        API-Token {general.cloudflare_token_set ? '· hinterlegt' : ''}
+        <input
+          class="input mono"
+          type="password"
+          autocomplete="off"
+          placeholder={general.cloudflare_token_set ? 'neuen Token eintragen, um ihn zu ersetzen' : 'Token einfügen'}
+          bind:value={cfToken}
+        />
+      </label>
+      <div class="row">
+        <Button type="submit" label={cfSaving ? 'Speichert …' : 'Token speichern'} disabled={cfSaving || !cfToken.trim()} />
+        {#if general.cloudflare_token_set}
+          <Button variant="ghost" label="Token löschen" disabled={cfSaving} onClick={() => saveToken('')} />
+        {/if}
+      </div>
     </form>
 
     <form class="card" onsubmit={save} aria-labelledby="authelia-title">

@@ -45,6 +45,7 @@ SNAPSHOT_FIELDS = (
     "ip_entries",
     "ip_lists",
     "authelia",
+    "tls_challenge",
     "enabled",
     "draft",
 )
@@ -63,7 +64,10 @@ GENERAL_DEFAULTS: dict[str, Any] = {
     # Authelia als Middleware für Hosts (kein Login für die Oberfläche)
     "authelia_url": "",
     "authelia_headers": ["Remote-User", "Remote-Groups", "Remote-Email", "Remote-Name"],
+    # Cloudflare-API-Token für DNS-01 – verschlüsselt (secretbox), nie im Klartext ausgeliefert
+    "cloudflare_token_enc": "",
 }
+CLOUDFLARE_CONTEXT = "cloudflare-token"
 ADMIN_GROUP = "Admin"
 
 
@@ -295,6 +299,7 @@ def host_spec(
         ip_mode=getattr(host, "ip_mode", "off"),
         ip_ranges=tuple(ip_ranges or ()),
         authelia=bool(getattr(host, "authelia", False)),
+        tls_challenge=getattr(host, "tls_challenge", "http"),
     )
 
 
@@ -304,6 +309,15 @@ def client_ca_der_b64(db: Session) -> str:
 
     inter = active_authority(db, "intermediate")
     return pki.der_b64(pki.load_cert(inter.cert_pem)) if inter else ""
+
+
+def cloudflare_token(db: Session, settings: Settings) -> str:
+    enc = get_general(db)["cloudflare_token_enc"]
+    if not enc:
+        return ""
+    from tesseract.secretbox import load_secretbox
+
+    return load_secretbox(settings).decrypt(enc, CLOUDFLARE_CONTEXT).decode()
 
 
 def node_config(db: Session, node: Node, settings: Settings) -> dict[str, Any]:
@@ -333,6 +347,7 @@ def node_config(db: Session, node: Node, settings: Settings) -> dict[str, Any]:
         ),
         authelia_url=general["authelia_url"],
         authelia_headers=tuple(general["authelia_headers"]),
+        cloudflare_token=cloudflare_token(db, settings),
     )
     return build_config(spec)
 

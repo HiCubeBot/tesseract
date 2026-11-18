@@ -14,6 +14,7 @@
     api,
     formatDate,
     type CAStatus,
+    type GeneralSettings,
     type Group,
     type Host,
     type HostInput,
@@ -33,6 +34,7 @@
   let groups = $state<Group[]>([]);
   let persons = $state<Person[]>([]);
   let caConfigured = $state(false);
+  let dnsAvailable = $state(false);
   let loaded = $state(false);
   let loadError = $state('');
   let filter = $state(0);
@@ -50,14 +52,17 @@
   async function load() {
     try {
       let ca: CAStatus;
-      [hosts, nodes, groups, persons, ca] = await Promise.all([
+      let general: GeneralSettings;
+      [hosts, nodes, groups, persons, ca, general] = await Promise.all([
         api.get<Host[]>('/hosts'),
         api.get<NodeInfo[]>('/nodes'),
         api.get<Group[]>('/groups'),
         api.get<Person[]>('/persons'),
-        api.get<CAStatus>('/ca')
+        api.get<CAStatus>('/ca'),
+        api.get<GeneralSettings>('/settings/general')
       ]);
       caConfigured = ca.configured;
+      dnsAvailable = general.cloudflare_token_set;
       loadError = '';
     } catch (e) {
       loadError = e instanceof Error ? e.message : String(e);
@@ -223,7 +228,7 @@
           <Alert tone="warn" title="Entwurf" text="Dieser Host ist gespeichert, aber noch nicht an Caddy übertragen." />
         {/if}
 
-        <HostForm bind:value={edit} {nodes} compact />
+        <HostForm bind:value={edit} {nodes} {dnsAvailable} compact />
         <div class="divider"></div>
         <AccessForm bind:value={edit} {groups} {persons} {caConfigured} compact />
 

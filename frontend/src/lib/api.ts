@@ -103,6 +103,7 @@ export interface Host {
   ip_entries: string[];
   ip_list_ids: number[];
   authelia: boolean;
+  tls_challenge: 'http' | 'dns';
   paths: string[];
   grants: GrantRef[];
   granted_persons: number;
@@ -241,6 +242,7 @@ export interface GeneralSettings {
   trusted_proxy_list_ids: number[];
   authelia_url: string;
   authelia_headers: string[];
+  cloudflare_token_set: boolean;
   controller_domain: string;
   version: string;
 }
@@ -296,6 +298,7 @@ export const FIELD_LABELS: Record<string, string> = {
   ip_entries: 'IPs/Netze',
   ip_lists: 'IP-Listen',
   authelia: 'Login über Authelia',
+  tls_challenge: 'Zertifikats-Prüfung',
   enabled: 'Aktiv',
   draft: 'Entwurf'
 };
@@ -303,6 +306,8 @@ export const FIELD_LABELS: Record<string, string> = {
 export function formatValue(v: unknown): string {
   if (Array.isArray(v)) return v.length ? v.map(formatValue).join(', ') : '–';
   if (v === 'reject') return 'Verbindung ablehnen';
+  if (v === 'http') return 'HTTP-01';
+  if (v === 'dns') return 'DNS-01 (Cloudflare)';
   if (v === 'off') return 'Aus';
   if (v === 'detect') return 'Nur protokollieren';
   if (v === 'block') return 'Blockieren/Sperren';

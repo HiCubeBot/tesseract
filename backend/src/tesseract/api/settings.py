@@ -12,13 +12,22 @@ from sqlalchemy import select
 from tesseract import __version__, audit
 from tesseract.api.iplists import normalize_networks
 from tesseract.db.models import Host, IpList, Node
-from tesseract.deps import DB, AppSettings, CurrentActor, admin_device_for
-from tesseract.services import admin_devices, apply_all, apply_node, get_general, set_general
+from tesseract.deps import DB, AppSettings, Box, CurrentActor, admin_device_for
+from tesseract.services import (
+    CLOUDFLARE_CONTEXT,
+    admin_devices,
+    apply_all,
+    apply_node,
+    get_general,
+    set_general,
+)
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
 
 class GeneralIn(BaseModel):
+    """Nur mitgeschickte Felder werden geändert (Teil-Aktualisierung)."""
+
     acme_email: EmailStr | None = None
     public_ips: list[str] = Field(default_factory=list, max_length=16)
     waf_default_mode: Literal["off", "detect", "block"] = "detect"
@@ -27,6 +36,8 @@ class GeneralIn(BaseModel):
     trusted_proxies: list[str] = Field(default_factory=list, max_length=200)
     trusted_proxy_list_ids: list[int] = Field(default_factory=list, max_length=20)
     authelia_url: str = Field("", max_length=255)
+    # None = unverändert lassen, "" = löschen
+    cloudflare_token: str | None = Field(None, max_length=255)
     authelia_headers: list[str] = Field(
         default_factory=lambda: ["Remote-User", "Remote-Groups", "Remote-Email", "Remote-Name"],
         max_length=20,
@@ -90,6 +101,7 @@ class GeneralOut(BaseModel):
     trusted_proxy_list_ids: list[int]
     authelia_url: str
     authelia_headers: list[str]
+    cloudflare_token_set: bool
     # nur lesbar – kommen aus der Umgebung
     controller_domain: str
     version: str
@@ -108,6 +120,7 @@ def get_settings_general(db: DB, _: CurrentActor, settings: AppSettings) -> Gene
         trusted_proxy_list_ids=g["trusted_proxy_list_ids"],
         authelia_url=g["authelia_url"],
         authelia_headers=g["authelia_headers"],
+        cloudflare_token_set=bool(g["cloudflare_token_enc"]),
         controller_domain=settings.controller_domain,
         version=__version__,
     )
@@ -115,26 +128,36 @@ def get_settings_general(db: DB, _: CurrentActor, settings: AppSettings) -> Gene
 
 @router.put("/general")
 def put_settings_general(
-    body: GeneralIn, request: Request, db: DB, actor: CurrentActor, settings: AppSettings
+    body: GeneralIn,
+    request: Request,
+    db: DB,
+    box: Box,
+    actor: CurrentActor,
+    settings: AppSettings,
 ) -> GeneralOut:
     before = get_general(db)
-    value = {
-        "acme_email": body.acme_email or "",
-        "public_ips": body.public_ips,
-        "waf_default_mode": body.waf_default_mode,
-        "waf_default_paranoia": body.waf_default_paranoia,
-        "controller_waf_mode": body.controller_waf_mode,
-        "trusted_proxies": body.trusted_proxies,
-        "trusted_proxy_list_ids": body.trusted_proxy_list_ids,
-        "authelia_url": body.authelia_url,
-        "authelia_headers": body.authelia_headers,
-    }
-    if not body.authelia_url and db.scalar(select(Host.id).where(Host.authelia).limit(1)):
+    value = body.model_dump(exclude_unset=True, exclude={"cloudflare_token"})
+    if "acme_email" in value:
+        value["acme_email"] = value["acme_email"] or ""
+    if body.cloudflare_token is not None:
+        token = body.cloudflare_token.strip()
+        if not token and db.scalar(select(Host.id).where(Host.tls_challenge == "dns").limit(1)):
+            raise HTTPException(
+                status.HTTP_409_CONFLICT, "DNS-01 wird noch von Hosts genutzt – dort erst umstellen"
+            )
+        value["cloudflare_token_enc"] = (
+            box.encrypt(token.encode(), CLOUDFLARE_CONTEXT) if token else ""
+        )
+    if (
+        "authelia_url" in value
+        and not value["authelia_url"]
+        and db.scalar(select(Host.id).where(Host.authelia).limit(1))
+    ):
         raise HTTPException(
             status.HTTP_409_CONFLICT,
             "Authelia wird noch von Hosts genutzt – dort erst abschalten",
         )
-    for i in body.trusted_proxy_list_ids:
+    for i in value.get("trusted_proxy_list_ids", []):
         if db.get(IpList, i) is None:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"IP-Liste {i} unbekannt")
     set_general(db, value)
@@ -143,7 +166,7 @@ def put_settings_general(
         actor=actor.name,
         action="settings_changed",
         target="general",
-        details={"before": before, "after": value},
+        details=_audit_diff(before, value),
         ip=actor.ip,
     )
     db.commit()
@@ -154,12 +177,26 @@ def put_settings_general(
         "trusted_proxy_list_ids",
         "authelia_url",
         "authelia_headers",
+        "cloudflare_token_enc",
     )
-    if any(before.get(k) != value[k] for k in relevant):
+    if any(before.get(k) != value.get(k, before.get(k)) for k in relevant):
         for node in db.scalars(select(Node)):
             apply_node(db, node, settings, request.app.state.caddy_transport)
         db.commit()
     return get_settings_general(db, actor, settings)
+
+
+def _audit_diff(before: dict, after: dict) -> dict:
+    """Nur geänderte Werte ins Audit-Log – Geheimnisse ohne Inhalt."""
+    changes = {}
+    for k, v in after.items():
+        if before.get(k) == v:
+            continue
+        if k.endswith("_enc"):
+            changes[k.removesuffix("_enc")] = "geändert" if v else "gelöscht"
+        else:
+            changes[k] = {"before": before.get(k), "after": v}
+    return changes
 
 
 def _admin_access(request: Request, db, settings) -> AdminAccessOut:

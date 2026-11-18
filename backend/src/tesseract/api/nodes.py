@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from sqlalchemy import func, select
 
 from tesseract import audit
+from tesseract.caddy.config import redact
 from tesseract.db.models import Host, Node
 from tesseract.deps import DB, AppSettings, CurrentActor
 from tesseract.services import apply_node, node_config, node_in_sync
@@ -49,8 +50,8 @@ def list_nodes(db: DB, _: CurrentActor, settings: AppSettings) -> list[NodeOut]:
 
 @router.get("/{node_id}/config")
 def get_config(node_id: int, db: DB, _: CurrentActor, settings: AppSettings) -> dict[str, Any]:
-    """Die Caddy-Config, die der Controller für diesen Node erzeugt."""
-    return node_config(db, _get(db, node_id), settings)
+    """Die Caddy-Config, die der Controller für diesen Node erzeugt (ohne Geheimnisse)."""
+    return redact(node_config(db, _get(db, node_id), settings))
 
 
 @router.post("/{node_id}/apply")

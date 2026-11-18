@@ -100,6 +100,8 @@ class Host(Base):
     ip_list_ids: Mapped[list[int]] = mapped_column(JSON, default=list)
     # Login über Authelia vor dem Dienst (forward_auth)
     authelia: Mapped[bool] = mapped_column(default=False)
+    # ACME-Prüfung: "http" (HTTP-01, Port 80) oder "dns" (DNS-01 über Cloudflare, auch Wildcards)
+    tls_challenge: Mapped[str] = mapped_column(String(8), default="http")
     # Entwürfe werden gespeichert, aber nicht an Caddy übertragen
     draft: Mapped[bool] = mapped_column(default=False)
     enabled: Mapped[bool] = mapped_column(default=True)

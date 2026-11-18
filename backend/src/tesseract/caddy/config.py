@@ -61,6 +61,8 @@ class HostSpec:
     ip_ranges: tuple[str, ...] = ()
     # Login über Authelia (forward_auth); greift nur mit gesetzter Authelia-Adresse
     authelia: bool = False
+    # ACME-Prüfung: "http" (HTTP-01) oder "dns" (DNS-01 über Cloudflare)
+    tls_challenge: str = "http"
 
     @property
     def needs_client_auth(self) -> bool:
@@ -97,6 +99,8 @@ class NodeSpec:
         "Remote-Name",
     )
     acme_email: str = ""
+    # API-Token für DNS-01 bei Cloudflare (Zone:DNS:Edit)
+    cloudflare_token: str = ""
     # Geräte-Zwischenzertifikat (DER, Base64) – Vertrauensanker für Client-Zertifikate
     client_ca_der_b64: str = ""
 
@@ -411,8 +415,42 @@ def _controller_route(spec: NodeSpec) -> JSON:
     return route
 
 
+def _route_order(h: HostSpec) -> tuple[int, str]:
+    # Wildcards nach den konkreten Namen, sonst fängt *.example.org alles ab
+    return (1 if h.domain.startswith("*.") else 0, h.domain)
+
+
+def tls_automation(spec: NodeSpec, hosts: list[HostSpec]) -> JSON | None:
+    """ACME-Richtlinien: HTTP-01 (Standard) und DNS-01 über Cloudflare."""
+    http_subjects = [
+        h.domain for h in hosts if is_public_name(h.domain) and h.tls_challenge != "dns"
+    ]
+    dns_subjects = [
+        h.domain for h in hosts if is_public_name(h.domain) and h.tls_challenge == "dns"
+    ]
+    if spec.controller_domain and is_public_name(spec.controller_domain):
+        http_subjects.insert(0, spec.controller_domain)
+
+    def issuer(dns: bool) -> JSON:
+        acme: JSON = {"module": "acme"}
+        if spec.acme_email:
+            acme["email"] = spec.acme_email
+        if dns:
+            acme["challenges"] = {
+                "dns": {"provider": {"name": "cloudflare", "api_token": spec.cloudflare_token}}
+            }
+        return acme
+
+    policies: list[JSON] = []
+    if dns_subjects and spec.cloudflare_token:
+        policies.append({"subjects": dns_subjects, "issuers": [issuer(True)]})
+    if http_subjects and spec.acme_email:
+        policies.append({"subjects": http_subjects, "issuers": [issuer(False)]})
+    return {"automation": {"policies": policies}} if policies else None
+
+
 def build_config(spec: NodeSpec) -> JSON:
-    hosts = sorted(spec.hosts, key=lambda h: h.domain)
+    hosts = sorted(spec.hosts, key=_route_order)
     https_routes: list[JSON] = []
     http_routes: list[JSON] = []
     policy_hosts: list[HostSpec] = []
@@ -465,21 +503,22 @@ def build_config(spec: NodeSpec) -> JSON:
         },
     }
 
-    public = [h.domain for h in hosts if is_public_name(h.domain)]
-    if spec.controller_domain and is_public_name(spec.controller_domain):
-        public.insert(0, spec.controller_domain)
-    if spec.acme_email and public:
-        config["apps"]["tls"] = {
-            "automation": {
-                "policies": [
-                    {
-                        "subjects": public,
-                        "issuers": [{"module": "acme", "email": spec.acme_email}],
-                    }
-                ]
-            }
-        }
+    tls = tls_automation(spec, hosts)
+    if tls is not None:
+        config["apps"]["tls"] = tls
     return config
+
+
+def redact(config: JSON) -> JSON:
+    """Kopie ohne Geheimnisse – für die Anzeige im UI."""
+    raw = json.dumps(config)
+    data = json.loads(raw)
+    for policy in data.get("apps", {}).get("tls", {}).get("automation", {}).get("policies", []):
+        for issuer in policy.get("issuers", []):
+            provider = issuer.get("challenges", {}).get("dns", {}).get("provider")
+            if provider and "api_token" in provider:
+                provider["api_token"] = "***"
+    return data
 
 
 def config_hash(config: JSON) -> str:

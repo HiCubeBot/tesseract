@@ -132,3 +132,16 @@ def test_settings(auth_client: TestClient, caddy: FakeCaddy) -> None:
     assert issuer["email"] == "admin@example.org"
     r = auth_client.put("/api/settings/general", json={"public_ips": ["keine-ip"]})
     assert r.status_code == 422
+
+
+def test_settings_partial_update(auth_client: TestClient) -> None:
+    auth_client.put(
+        "/api/settings/general",
+        json={"waf_default_mode": "block", "authelia_url": "http://authelia:9091"},
+    )
+    # Seite „Allgemein“ schickt nur ihre Felder – der Rest bleibt erhalten
+    r = auth_client.put("/api/settings/general", json={"acme_email": "x@example.org"})
+    g = r.json()
+    assert g["acme_email"] == "x@example.org"
+    assert g["waf_default_mode"] == "block"
+    assert g["authelia_url"] == "http://authelia:9091"

@@ -35,8 +35,10 @@ PATH_RE = re.compile(r"^/[A-Za-z0-9/_\-.~%*]*$")
 MAX_PATHS = 32
 
 
-def normalize_domain(value: str) -> str:
+def normalize_domain(value: str, allow_wildcard: bool = False) -> str:
     value = value.strip().lower().rstrip(".")
+    if allow_wildcard and value.startswith("*."):
+        return "*." + normalize_domain(value[2:])
     try:
         value = value.encode("idna").decode("ascii")
     except UnicodeError as e:
@@ -80,6 +82,7 @@ class HostIn(BaseModel):
     ip_entries: list[str] = Field(default_factory=list, max_length=500)
     ip_list_ids: list[int] = Field(default_factory=list, max_length=50)
     authelia: bool = False
+    tls_challenge: Literal["http", "dns"] = "http"
     enabled: bool = True
     draft: bool = False
     comment: str = Field("", max_length=255)
@@ -121,7 +124,13 @@ class HostIn(BaseModel):
     @field_validator("domain")
     @classmethod
     def _domain(cls, v: str) -> str:
-        return normalize_domain(v)
+        return normalize_domain(v, allow_wildcard=True)
+
+    @model_validator(mode="after")
+    def _wildcard_needs_dns(self) -> "HostIn":
+        if self.domain.startswith("*.") and self.tls_challenge != "dns":
+            raise ValueError("Wildcard-Domains brauchen die DNS-Prüfung (DNS-01)")
+        return self
 
     @field_validator("upstream_host")
     @classmethod
@@ -167,6 +176,7 @@ class HostOut(BaseModel):
     ip_entries: list[str]
     ip_list_ids: list[int]
     authelia: bool
+    tls_challenge: str
     paths: list[str]
     grants: list[GrantRef]
     granted_persons: int
@@ -235,6 +245,11 @@ def _check_ip_lists(db: Session, body: HostIn) -> None:
 
 def _check_grants(db: Session, body: HostIn) -> None:
     _check_ip_lists(db, body)
+    if body.tls_challenge == "dns" and not get_general(db)["cloudflare_token_enc"]:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Für DNS-01 erst unter Einstellungen › Integrationen den Cloudflare-Token eintragen",
+        )
     if body.authelia and not get_general(db)["authelia_url"]:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
@@ -305,12 +320,13 @@ def list_hosts(db: DB, _: CurrentActor) -> list[HostOut]:
 @router.post("/check")
 def run_checks(body: CheckIn, db: DB, _: CurrentActor, settings: AppSettings) -> list[dict]:
     try:
-        domain = normalize_domain(body.domain)
+        domain = normalize_domain(body.domain, allow_wildcard=True)
     except ValueError as e:
         return [checks.Check("domain", "Domain", "bad", str(e)).dict()]
     result = [
         checks.check_domain_free(db, domain, body.exclude_id, settings.controller_domain),
-        checks.check_dns(domain, list(get_general(db)["public_ips"])),
+        # Bei Wildcards einen Beispielnamen prüfen
+        checks.check_dns(domain.replace("*.", "test.", 1), list(get_general(db)["public_ips"])),
     ]
     if body.upstream_host and body.upstream_port:
         try:

@@ -9,6 +9,7 @@
     api,
     type CAStatus,
     type Check,
+    type GeneralSettings,
     type Group,
     type HostInput,
     type HostSaved,
@@ -32,18 +33,23 @@
   let groups = $state<Group[]>([]);
   let persons = $state<Person[]>([]);
   let caConfigured = $state(false);
+  let dnsAvailable = $state(false);
 
   api.get<NodeInfo[]>('/nodes').then((n) => {
     nodes = n;
     if (!host.node_id && n.length) host.node_id = n[0].id;
   });
-  Promise.all([api.get<Group[]>('/groups'), api.get<Person[]>('/persons'), api.get<CAStatus>('/ca')]).then(
-    ([g, p, c]) => {
-      groups = g;
-      persons = p;
-      caConfigured = c.configured;
-    }
-  );
+  Promise.all([
+    api.get<Group[]>('/groups'),
+    api.get<Person[]>('/persons'),
+    api.get<CAStatus>('/ca'),
+    api.get<GeneralSettings>('/settings/general')
+  ]).then(([g, p, c, s]) => {
+    groups = g;
+    persons = p;
+    caConfigured = c.configured;
+    dnsAvailable = s.cloudflare_token_set;
+  });
 
   const grantNames = $derived([
     ...groups.filter((g) => host.grant_group_ids.includes(g.id)).map((g) => `Gruppe ${g.name}`),
@@ -149,7 +155,7 @@
   {#if step === 1}
     <div class="layout">
       <section class="card main" aria-label="Domain und Ziel">
-        <HostForm bind:value={host} {nodes} />
+        <HostForm bind:value={host} {nodes} {dnsAvailable} />
       </section>
       <aside class="card side" aria-label="Automatische Prüfungen">
         <h2>Vorab geprüft</h2>
@@ -179,7 +185,8 @@
           <dt>Domain</dt><dd class="mono">{domain}</dd>
           <dt>Ziel</dt><dd class="mono">{upstreamLabel(host)}</dd>
           <dt>Node</dt><dd>{nodeName}</dd>
-          <dt>Zertifikat</dt><dd>{localName ? 'lokales Zertifikat von Caddy' : "Let's Encrypt"}</dd>
+          <dt>Zertifikat</dt>
+          <dd>{localName ? 'lokales Zertifikat von Caddy' : `Let's Encrypt · ${host.tls_challenge === 'dns' ? 'DNS-01 (Cloudflare)' : 'HTTP-01'}`}</dd>
           <dt>Zugriff</dt>
           <dd>
             {host.access === 'mtls' ? 'Nur mit Zertifikat' : 'Öffentlich'}

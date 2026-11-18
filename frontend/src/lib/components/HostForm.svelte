@@ -4,11 +4,18 @@
   interface Props {
     value: HostInput;
     nodes: NodeInfo[];
-    /** Domain sperren (z. B. im kompakten Bearbeiten-Panel nicht) */
+    /** kompakte Darstellung im Bearbeiten-Panel */
     compact?: boolean;
+    /** Cloudflare-Token hinterlegt → DNS-01 möglich */
+    dnsAvailable?: boolean;
   }
 
-  let { value = $bindable(), nodes, compact = false }: Props = $props();
+  let { value = $bindable(), nodes, compact = false, dnsAvailable = false }: Props = $props();
+  const wildcard = $derived(value.domain.trim().startsWith('*.'));
+  // Wildcard geht nur per DNS-01
+  $effect(() => {
+    if (wildcard && dnsAvailable && value.tls_challenge !== 'dns') value.tls_challenge = 'dns';
+  });
   const id = $props.id();
 </script>
 
@@ -26,6 +33,17 @@
       required
       bind:value={value.domain}
     />
+  </label>
+
+  <label class="field" for="{id}-challenge">
+    Zertifikat von Let's Encrypt prüfen über
+    <select id="{id}-challenge" class="input" bind:value={value.tls_challenge}>
+      <option value="http" disabled={wildcard}>HTTP-01 – Port 80 muss von außen erreichbar sein</option>
+      <option value="dns" disabled={!dnsAvailable}>DNS-01 über Cloudflare – auch Wildcards (*.domain){dnsAvailable ? '' : ' · Token fehlt'}</option>
+    </select>
+    {#if wildcard && !dnsAvailable}
+      <span class="field-error">Wildcard-Domains brauchen DNS-01 – Cloudflare-Token unter Einstellungen › Integrationen eintragen.</span>
+    {/if}
   </label>
 
   {#if !compact}
