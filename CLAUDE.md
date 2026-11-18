@@ -8,7 +8,6 @@ Caddy-Verwaltung (NPM-Alternative) mit mTLS statt VPN und Coraza WAF. Sprache in
 
 ## Git
 - Nie direkt auf `main` arbeiten. Pro Feature ein Branch (`feature/…`, `fix/…`, `docs/…`), fertig → PR gegen `main` → mergen.
-- Commits nur mit `git@criehe.de` (lokal gesetzt, vor dem Commit prüfen).
 
 ## Vor jedem PR
 - `cd backend && uv run pytest && uv run ruff check . && uv run ruff format --check .`
