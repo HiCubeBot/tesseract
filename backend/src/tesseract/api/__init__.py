@@ -19,6 +19,7 @@ from tesseract.api import (
     nodes,
     people,
     settings,
+    stats,
 )
 
 api_router = APIRouter()
@@ -39,3 +40,4 @@ api_router.include_router(certificates.router)
 api_router.include_router(customcerts.router)
 api_router.include_router(agent.router)
 api_router.include_router(logs.router)
+api_router.include_router(stats.router)

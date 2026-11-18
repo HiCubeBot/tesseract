@@ -21,12 +21,14 @@
   import { toasts } from '../lib/toast.svelte';
 
   const FILTERS = ['all', 'denied', 'mtls', 'waf', 'ip'] as const;
+  // Links aus der Statistik: #/logs?q=…&filter=…
+  const hashParams = new URLSearchParams(location.hash.split('?')[1] ?? '');
 
   let entries = $state<LogEntry[]>([]);
   let sources = $state<LogSource[]>([]);
   let geoip = $state(false);
-  let filter = $state(0);
-  const initialQuery = new URLSearchParams(location.hash.split('?')[1] ?? '').get('q') ?? '';
+  let filter = $state(Math.max(0, FILTERS.indexOf((hashParams.get('filter') ?? 'all') as (typeof FILTERS)[number])));
+  const initialQuery = hashParams.get('q') ?? '';
   let query = $state(initialQuery);
   let applied = $state(initialQuery);
   let node = $state('');
