@@ -56,6 +56,9 @@ class HostSpec:
     waf_mode: str = "off"
     waf_paranoia: int = 1
     waf_exclusions: tuple[int, ...] = ()
+    # IP-Filter: "off" | "block" | "allow", aufgelöste Netze (CIDR)
+    ip_mode: str = "off"
+    ip_ranges: tuple[str, ...] = ()
 
     @property
     def needs_client_auth(self) -> bool:
@@ -81,6 +84,8 @@ class NodeSpec:
     controller_protected: bool = False
     controller_allowed: tuple[tuple[str, str], ...] = ()
     controller_waf_mode: str = "off"
+    # Vertrauenswürdige Proxys davor (z. B. Cloudflare) – nur dann zählt X-Forwarded-For
+    trusted_proxies: tuple[str, ...] = ()
     acme_email: str = ""
     # Geräte-Zwischenzertifikat (DER, Base64) – Vertrauensanker für Client-Zertifikate
     client_ca_der_b64: str = ""
@@ -207,9 +212,33 @@ def waf_handler(host: HostSpec) -> JSON:
     }
 
 
+def ip_route(host: HostSpec) -> JSON | None:
+    """IP-Filter – als Erstes, er ist am billigsten."""
+    if host.ip_mode == "off":
+        return None
+    if host.ip_mode == "allow" and not host.ip_ranges:
+        matcher: JSON = {}  # leere Erlaubt-Liste → niemand
+    elif host.ip_mode == "allow":
+        matcher = {"not": [{"client_ip": {"ranges": list(host.ip_ranges)}}]}
+    elif host.ip_ranges:
+        matcher = {"client_ip": {"ranges": list(host.ip_ranges)}}
+    else:
+        return None
+    route: JSON = {
+        "handle": [{"handler": "static_response", "status_code": 403, "body": "Zugriff gesperrt"}],
+        "terminal": True,
+    }
+    if matcher:
+        route["match"] = [matcher]
+    return route
+
+
 def host_handlers(host: HostSpec) -> list[JSON]:
     """Die Handler-Kette eines Hosts (ohne Host-Matcher)."""
     routes: list[JSON] = []
+    ip = ip_route(host)
+    if ip is not None:
+        routes.append(ip)
     gate = gate_route(host)
     if gate is not None:
         routes.append(gate)
@@ -332,6 +361,12 @@ def build_config(spec: NodeSpec) -> JSON:
         "routes": https_routes,
         "automatic_https": {"disable_redirects": True},
     }
+    http_server: JSON = {"listen": [":80"], "routes": http_routes}
+    if spec.trusted_proxies:
+        proxies = {"source": "static", "ranges": list(spec.trusted_proxies)}
+        for server in (https_server, http_server):
+            server["trusted_proxies"] = proxies
+            server["client_ip_headers"] = ["X-Forwarded-For"]
     policy_hosts += [h for h in hosts if h.wants_tls_policy]
     if policy_hosts and spec.client_ca_der_b64:
         https_server["tls_connection_policies"] = [
@@ -345,7 +380,7 @@ def build_config(spec: NodeSpec) -> JSON:
             "http": {
                 "servers": {
                     "https": https_server,
-                    "http": {"listen": [":80"], "routes": http_routes},
+                    "http": http_server,
                 }
             }
         },

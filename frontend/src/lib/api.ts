@@ -99,6 +99,9 @@ export interface Host {
   waf_mode: WafMode;
   waf_paranoia: number;
   waf_exclusions: number[];
+  ip_mode: IpMode;
+  ip_entries: string[];
+  ip_list_ids: number[];
   paths: string[];
   grants: GrantRef[];
   granted_persons: number;
@@ -111,6 +114,31 @@ export interface Host {
 }
 
 export type WafMode = 'off' | 'detect' | 'block';
+export type IpMode = 'off' | 'block' | 'allow';
+
+export const IP_MODES: Record<IpMode, string> = {
+  off: 'Aus',
+  block: 'Sperren',
+  allow: 'Nur erlauben'
+};
+
+export interface IpList {
+  id: number;
+  name: string;
+  description: string;
+  entries: string[];
+  used_by: string[];
+  updated_at: string;
+}
+
+/** Vorlage: Netze von Cloudflare (Stand der Veröffentlichung, bitte gelegentlich prüfen) */
+export const CLOUDFLARE_RANGES = [
+  '173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22', '141.101.64.0/18',
+  '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20', '197.234.240.0/22', '198.41.128.0/17',
+  '162.158.0.0/15', '104.16.0.0/13', '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22',
+  '2400:cb00::/32', '2606:4700::/32', '2803:f800::/32', '2405:b500::/32', '2405:8100::/32',
+  '2a06:98c0::/29', '2c0f:f248::/32'
+];
 
 export const WAF_MODES: Record<WafMode, string> = {
   off: 'Aus',
@@ -208,6 +236,8 @@ export interface GeneralSettings {
   waf_default_mode: WafMode;
   waf_default_paranoia: number;
   controller_waf_mode: WafMode;
+  trusted_proxies: string[];
+  trusted_proxy_list_ids: number[];
   controller_domain: string;
   version: string;
 }
@@ -259,6 +289,9 @@ export const FIELD_LABELS: Record<string, string> = {
   waf_mode: 'WAF',
   waf_paranoia: 'Paranoia-Level',
   waf_exclusions: 'Regel-Ausnahmen',
+  ip_mode: 'IP-Filter',
+  ip_entries: 'IPs/Netze',
+  ip_lists: 'IP-Listen',
   enabled: 'Aktiv',
   draft: 'Entwurf'
 };
@@ -268,7 +301,8 @@ export function formatValue(v: unknown): string {
   if (v === 'reject') return 'Verbindung ablehnen';
   if (v === 'off') return 'Aus';
   if (v === 'detect') return 'Nur protokollieren';
-  if (v === 'block') return 'Blockieren';
+  if (v === 'block') return 'Blockieren/Sperren';
+  if (v === 'allow') return 'Nur erlauben';
   if (v === 'hint') return 'Hinweisseite';
   if (v === true) return 'an';
   if (v === false) return 'aus';
@@ -307,7 +341,10 @@ export const ACTION_LABELS: Record<string, string> = {
   enrollment_rejected: 'Gerät abgelehnt',
   enrollment_code_wrong: 'Falscher Einladungscode',
   admin_mtls_on: 'Oberfläche nur noch mit Admin-Zertifikat',
-  admin_mtls_off: 'Admin-Zertifikat für Oberfläche abgeschaltet'
+  admin_mtls_off: 'Admin-Zertifikat für Oberfläche abgeschaltet',
+  iplist_created: 'IP-Liste angelegt',
+  iplist_updated: 'IP-Liste geändert',
+  iplist_deleted: 'IP-Liste gelöscht'
 };
 
 // ---------- Phase 2: CA, Personen, Geräte ----------

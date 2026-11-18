@@ -4,16 +4,22 @@
   import SettingsTabs from '../lib/components/SettingsTabs.svelte';
   import Button from '../lib/components/Button.svelte';
   import Alert from '../lib/components/Alert.svelte';
-  import { api, WAF_MODES, type GeneralSettings, type WafMode } from '../lib/api';
+  import ChipInput from '../lib/components/ChipInput.svelte';
+  import IpListEditor from '../lib/components/IpListEditor.svelte';
+  import { api, WAF_MODES, type GeneralSettings, type IpList, type WafMode } from '../lib/api';
   import { toasts } from '../lib/toast.svelte';
 
   let general = $state<GeneralSettings | null>(null);
+  let ipLists = $state<IpList[]>([]);
   let error = $state('');
   let saving = $state(false);
 
   async function load() {
     try {
-      general = await api.get<GeneralSettings>('/settings/general');
+      [general, ipLists] = await Promise.all([
+        api.get<GeneralSettings>('/settings/general'),
+        api.get<IpList[]>('/ip-lists')
+      ]);
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
     }
@@ -30,8 +36,11 @@
         public_ips: general.public_ips,
         waf_default_mode: general.waf_default_mode,
         waf_default_paranoia: Number(general.waf_default_paranoia),
-        controller_waf_mode: general.controller_waf_mode
+        controller_waf_mode: general.controller_waf_mode,
+        trusted_proxies: general.trusted_proxies,
+        trusted_proxy_list_ids: general.trusted_proxy_list_ids
       });
+      ipLists = await api.get<IpList[]>('/ip-lists');
       toasts.show('ok', 'Gespeichert.');
     } catch (err) {
       error = err instanceof Error ? err.message : String(err);
@@ -79,9 +88,41 @@
       <div class="row"><Button type="submit" label={saving ? 'Speichert …' : 'Speichern'} disabled={saving} /></div>
     </form>
 
+    <section class="card" aria-labelledby="lists-title">
+      <h2 id="lists-title">IP-Listen</h2>
+      <p class="muted small">Benannte Listen nutzt du im IP-Filter der Hosts und für vertrauenswürdige Proxys.</p>
+      <IpListEditor lists={ipLists} onChange={load} />
+    </section>
+
+    <form class="card" onsubmit={save} aria-labelledby="proxy-title">
+      <h2 id="proxy-title">Vertrauenswürdige Proxys</h2>
+      <p class="muted small">
+        Steht ein Proxy wie Cloudflare vor Caddy, sieht Caddy sonst nur dessen IP. Nur von diesen Netzen wird
+        <code>X-Forwarded-For</code> als echte Client-IP übernommen – wichtig für IP-Filter und Logs.
+        Ohne Eintrag: direkte Verbindung.
+      </p>
+      <div class="field">
+        Netze
+        <ChipInput bind:values={general.trusted_proxies} label="Proxy-Netz hinzufügen" placeholder="10.0.0.0/8" />
+      </div>
+      {#if ipLists.length}
+        <fieldset>
+          <legend>IP-Listen</legend>
+          <div class="chips">
+            {#each ipLists as l (l.id)}
+              <label class="chip" class:on={general.trusted_proxy_list_ids.includes(l.id)}>
+                <input type="checkbox" value={l.id} bind:group={general.trusted_proxy_list_ids} />Liste „{l.name}“
+              </label>
+            {/each}
+          </div>
+        </fieldset>
+      {/if}
+      <div class="row"><Button type="submit" label={saving ? 'Speichert …' : 'Speichern'} disabled={saving} /></div>
+    </form>
+
     <section class="card muted-card">
-      <h2>IP-Listen, vertrauenswürdige Proxys, Authelia</h2>
-      <p class="muted small">Folgen in den nächsten Schritten von Phase 3. Vorschau: <a href="#/design/settings-integrations">Design</a>.</p>
+      <h2>Authelia</h2>
+      <p class="muted small">Folgt im nächsten Schritt von Phase 3.</p>
     </section>
   {/if}
 </AppShell>
@@ -103,5 +144,45 @@
   }
   .muted-card {
     opacity: 0.75;
+  }
+  code {
+    font-family: var(--font-mono);
+    color: var(--text-soft);
+  }
+  fieldset {
+    margin: 0;
+    padding: 0;
+    border: none;
+  }
+  legend {
+    padding: 0;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 34px;
+    padding: 0 12px;
+    border-radius: var(--radius-pill);
+    background: var(--surface-raised);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .chip.on {
+    background: var(--accent-soft);
+    color: #d6d0ff;
+  }
+  .chip input {
+    margin: 0;
+    accent-color: var(--accent);
   }
 </style>

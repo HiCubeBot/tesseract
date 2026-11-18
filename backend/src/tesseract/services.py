@@ -16,6 +16,7 @@ from tesseract.db.models import (
     HostGrant,
     HostPath,
     HostVersion,
+    IpList,
     Node,
     Person,
     PersonGroup,
@@ -40,6 +41,9 @@ SNAPSHOT_FIELDS = (
     "waf_mode",
     "waf_paranoia",
     "waf_exclusions",
+    "ip_mode",
+    "ip_entries",
+    "ip_lists",
     "enabled",
     "draft",
 )
@@ -52,6 +56,9 @@ GENERAL_DEFAULTS: dict[str, Any] = {
     "waf_default_mode": "detect",
     "waf_default_paranoia": 1,
     "controller_waf_mode": "off",
+    # Vertrauenswürdige Proxys: einzelne Netze und IDs von IP-Listen
+    "trusted_proxies": [],
+    "trusted_proxy_list_ids": [],
 }
 ADMIN_GROUP = "Admin"
 
@@ -87,12 +94,29 @@ def grant_labels(host: Host) -> list[str]:
     return sorted(labels)
 
 
+def ip_list_names(db: Session, ids: list[int]) -> list[str]:
+    if not ids:
+        return []
+    return sorted(db.scalars(select(IpList.name).where(IpList.id.in_(ids))))
+
+
+def resolve_ranges(db: Session, entries: list[str], list_ids: list[int]) -> list[str]:
+    """Einzelne Einträge + Inhalte der IP-Listen, ohne Dubletten."""
+    ranges = list(entries)
+    if list_ids:
+        for lst in db.scalars(select(IpList).where(IpList.id.in_(list_ids)).order_by(IpList.id)):
+            ranges += lst.entries
+    return list(dict.fromkeys(ranges))
+
+
 def snapshot(host: Host) -> dict[str, Any]:
-    special = {"node", "paths", "grants"}
+    special = {"node", "paths", "grants", "ip_lists"}
     data = {f: getattr(host, f) for f in SNAPSHOT_FIELDS if f not in special}
     data["node"] = host.node.name
     data["paths"] = [p.path for p in host.paths]
     data["grants"] = grant_labels(host)
+    session = Session.object_session(host)
+    data["ip_lists"] = ip_list_names(session, list(host.ip_list_ids or [])) if session else []
     return {f: data[f] for f in SNAPSHOT_FIELDS}
 
 
@@ -138,6 +162,14 @@ def apply_snapshot(db: Session, host: Host, snap: dict[str, Any]) -> list[str]:
                 host.node_id = node.id
         elif f == "paths":
             set_paths(host, list(snap["paths"]))
+        elif f == "ip_lists":
+            ids = [
+                i
+                for name in snap["ip_lists"]
+                if (i := db.scalar(select(IpList.id).where(IpList.name == name))) is not None
+            ]
+            missing += [f"Liste {n}" for n in snap["ip_lists"] if n not in ip_list_names(db, ids)]
+            host.ip_list_ids = ids
         elif f == "grants":
             group_ids, person_ids = [], []
             for label in snap["grants"]:
@@ -236,6 +268,7 @@ def host_spec(
     host_id: int = 0,
     allowed: list[Device] | None = None,
     paths: list[str] | None = None,
+    ip_ranges: list[str] | None = None,
 ) -> HostSpec:
     if paths is None:
         paths = [p.path for p in host.paths] if isinstance(host, Host) else []
@@ -255,6 +288,8 @@ def host_spec(
         waf_mode=getattr(host, "waf_mode", "off"),
         waf_paranoia=getattr(host, "waf_paranoia", 1),
         waf_exclusions=tuple(getattr(host, "waf_exclusions", None) or ()),
+        ip_mode=getattr(host, "ip_mode", "off"),
+        ip_ranges=tuple(ip_ranges or ()),
     )
 
 
@@ -273,7 +308,14 @@ def node_config(db: Session, node: Node, settings: Settings) -> dict[str, Any]:
     general = get_general(db)
     spec = NodeSpec(
         admin_listen=settings.caddy_admin_listen,
-        hosts=[host_spec(h, allowed=allowed_devices(db, h)) for h in hosts],
+        hosts=[
+            host_spec(
+                h,
+                allowed=allowed_devices(db, h),
+                ip_ranges=resolve_ranges(db, h.ip_entries or [], h.ip_list_ids or []),
+            )
+            for h in hosts
+        ],
         controller_domain=settings.controller_domain,
         controller_upstream=settings.controller_upstream,
         acme_email=general["acme_email"],
@@ -281,6 +323,9 @@ def node_config(db: Session, node: Node, settings: Settings) -> dict[str, Any]:
         controller_protected=bool(general["admin_mtls"]),
         controller_allowed=tuple((d.fingerprint, d.cert_pem) for d in admin_devices(db)),
         controller_waf_mode=general["controller_waf_mode"],
+        trusted_proxies=tuple(
+            resolve_ranges(db, general["trusted_proxies"], general["trusted_proxy_list_ids"])
+        ),
     )
     return build_config(spec)
 

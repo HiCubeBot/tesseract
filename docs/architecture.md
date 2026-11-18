@@ -95,6 +95,16 @@ dass sie später durch den Agent ersetzt werden kann („Node-Treiber“: lokal 
 - Treffer schreibt das Modul als `WAF rule violation detected` mit `client_ip` und `hostname`
   ins Caddy-Log – Grundlage für die Auto-Sperre.
 
+## IP-Filter und Proxys (Phase 3)
+
+- Pro Host `off` / `block` / `allow` mit einzelnen IPs/Netzen und benannten IP-Listen
+  (werden beim Erzeugen aufgelöst). Der Filter ist die erste Route im Host – noch vor
+  Zertifikats-Sperre und WAF. Leere „Nur erlauben“-Liste wird abgelehnt.
+- Caddy-Matcher `client_ip`: berücksichtigt `X-Forwarded-For` nur von **vertrauenswürdigen
+  Proxys** (`trusted_proxies` am Server, z. B. Liste „Cloudflare“ aus der Vorlage).
+- Ändert sich eine Liste, werden alle Nodes neu übertragen; benutzte Listen lassen sich
+  nicht löschen.
+
 ## Offene Entscheidungen
 
 | Thema | Optionen | Notiz |

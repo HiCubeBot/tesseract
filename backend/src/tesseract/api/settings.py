@@ -1,12 +1,13 @@
 import ipaddress
 from typing import Literal
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from sqlalchemy import select
 
 from tesseract import __version__, audit
-from tesseract.db.models import Node
+from tesseract.api.iplists import normalize_networks
+from tesseract.db.models import IpList, Node
 from tesseract.deps import DB, AppSettings, CurrentActor, admin_device_for
 from tesseract.services import admin_devices, apply_all, apply_node, get_general, set_general
 
@@ -19,6 +20,13 @@ class GeneralIn(BaseModel):
     waf_default_mode: Literal["off", "detect", "block"] = "detect"
     waf_default_paranoia: int = Field(1, ge=1, le=4)
     controller_waf_mode: Literal["off", "detect", "block"] = "off"
+    trusted_proxies: list[str] = Field(default_factory=list, max_length=200)
+    trusted_proxy_list_ids: list[int] = Field(default_factory=list, max_length=20)
+
+    @field_validator("trusted_proxies")
+    @classmethod
+    def _proxies(cls, v: list[str]) -> list[str]:
+        return normalize_networks(v)
 
     @field_validator("public_ips")
     @classmethod
@@ -46,6 +54,8 @@ class GeneralOut(BaseModel):
     waf_default_mode: str
     waf_default_paranoia: int
     controller_waf_mode: str
+    trusted_proxies: list[str]
+    trusted_proxy_list_ids: list[int]
     # nur lesbar – kommen aus der Umgebung
     controller_domain: str
     version: str
@@ -60,6 +70,8 @@ def get_settings_general(db: DB, _: CurrentActor, settings: AppSettings) -> Gene
         waf_default_mode=g["waf_default_mode"],
         waf_default_paranoia=g["waf_default_paranoia"],
         controller_waf_mode=g["controller_waf_mode"],
+        trusted_proxies=g["trusted_proxies"],
+        trusted_proxy_list_ids=g["trusted_proxy_list_ids"],
         controller_domain=settings.controller_domain,
         version=__version__,
     )
@@ -76,7 +88,12 @@ def put_settings_general(
         "waf_default_mode": body.waf_default_mode,
         "waf_default_paranoia": body.waf_default_paranoia,
         "controller_waf_mode": body.controller_waf_mode,
+        "trusted_proxies": body.trusted_proxies,
+        "trusted_proxy_list_ids": body.trusted_proxy_list_ids,
     }
+    for i in body.trusted_proxy_list_ids:
+        if db.get(IpList, i) is None:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"IP-Liste {i} unbekannt")
     set_general(db, value)
     audit.record(
         db,
@@ -87,7 +104,8 @@ def put_settings_general(
         ip=actor.ip,
     )
     db.commit()
-    if any(before.get(k) != value[k] for k in ("acme_email", "controller_waf_mode")):
+    relevant = ("acme_email", "controller_waf_mode", "trusted_proxies", "trusted_proxy_list_ids")
+    if any(before.get(k) != value[k] for k in relevant):
         for node in db.scalars(select(Node)):
             apply_node(db, node, settings, request.app.state.caddy_transport)
         db.commit()

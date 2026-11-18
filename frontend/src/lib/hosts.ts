@@ -15,6 +15,9 @@ export function emptyHost(nodeId = 0): HostInput {
     waf_mode: null,
     waf_paranoia: null,
     waf_exclusions: [],
+    ip_mode: 'off',
+    ip_entries: [],
+    ip_list_ids: [],
     paths: [],
     grant_group_ids: [],
     grant_person_ids: [],
@@ -38,6 +41,9 @@ export function toInput(h: Host): HostInput {
     waf_mode: h.waf_mode,
     waf_paranoia: h.waf_paranoia,
     waf_exclusions: [...h.waf_exclusions],
+    ip_mode: h.ip_mode,
+    ip_entries: [...h.ip_entries],
+    ip_list_ids: [...h.ip_list_ids],
     paths: [...h.paths],
     grant_group_ids: h.grants.filter((g) => g.kind === 'group').map((g) => g.id),
     grant_person_ids: h.grants.filter((g) => g.kind === 'person').map((g) => g.id),
@@ -60,6 +66,7 @@ export function hostStatus(h: Host): { tone: 'ok' | 'warn' | 'neutral'; label: s
 /** Schutz-Kurzfassung für Listen, z. B. „WAF“ oder „WAF (Log)“ */
 export function protectionLabel(h: Host): string {
   const parts: string[] = [];
+  if (h.ip_mode !== 'off') parts.push('IP');
   if (h.waf_mode === 'block') parts.push('WAF');
   if (h.waf_mode === 'detect') parts.push('WAF (Log)');
   return parts.join(' · ') || '–';

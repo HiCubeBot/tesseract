@@ -4,13 +4,14 @@ from datetime import datetime
 from typing import Any, Literal
 
 from fastapi import APIRouter, HTTPException, Request, status
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from tesseract import audit, checks
+from tesseract.api.iplists import normalize_networks
 from tesseract.caddy.config import host_route
-from tesseract.db.models import Group, Host, HostVersion, Node, Person
+from tesseract.db.models import Group, Host, HostVersion, IpList, Node, Person
 from tesseract.deps import DB, AppSettings, CurrentActor
 from tesseract.services import (
     add_version,
@@ -75,9 +76,23 @@ class HostIn(BaseModel):
     waf_mode: Literal["off", "detect", "block"] | None = None
     waf_paranoia: int | None = Field(None, ge=1, le=4)
     waf_exclusions: list[int] = Field(default_factory=list, max_length=200)
+    ip_mode: Literal["off", "block", "allow"] = "off"
+    ip_entries: list[str] = Field(default_factory=list, max_length=500)
+    ip_list_ids: list[int] = Field(default_factory=list, max_length=50)
     enabled: bool = True
     draft: bool = False
     comment: str = Field("", max_length=255)
+
+    @field_validator("ip_entries")
+    @classmethod
+    def _ip_entries(cls, v: list[str]) -> list[str]:
+        return normalize_networks(v)
+
+    @model_validator(mode="after")
+    def _allow_needs_entries(self) -> "HostIn":
+        if self.ip_mode == "allow" and not self.ip_entries and not self.ip_list_ids:
+            raise ValueError("„Nur erlauben“ braucht mindestens eine IP, ein Netz oder eine Liste")
+        return self
 
     @field_validator("waf_exclusions")
     @classmethod
@@ -147,6 +162,9 @@ class HostOut(BaseModel):
     waf_mode: str
     waf_paranoia: int
     waf_exclusions: list[int]
+    ip_mode: str
+    ip_entries: list[str]
+    ip_list_ids: list[int]
     paths: list[str]
     grants: list[GrantRef]
     granted_persons: int
@@ -207,7 +225,14 @@ def _out(db: Session, host: Host) -> HostOut:
     )
 
 
+def _check_ip_lists(db: Session, body: HostIn) -> None:
+    for i in body.ip_list_ids:
+        if db.get(IpList, i) is None:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"IP-Liste {i} unbekannt")
+
+
 def _check_grants(db: Session, body: HostIn) -> None:
+    _check_ip_lists(db, body)
     for model, ids, what in (
         (Group, body.grant_group_ids, "Gruppe"),
         (Person, body.grant_person_ids, "Person"),
@@ -408,7 +433,7 @@ def list_versions(host_id: int, db: DB, _: CurrentActor) -> list[VersionOut]:
 
 def _route_for(snap: dict[str, Any], host_id: int) -> dict[str, Any]:
     """Route eines alten Stands (ohne Geräteliste – die ändert sich laufend)."""
-    skip = {"node", "enabled", "draft", "grants"}
+    skip = {"node", "enabled", "draft", "grants", "ip_lists"}
     fields = {k: snap[k] for k in snap if k not in skip}
     if fields.get("waf_mode") is None:
         fields.pop("waf_mode", None)

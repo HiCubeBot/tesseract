@@ -93,6 +93,11 @@ class Host(Base):
     waf_paranoia: Mapped[int] = mapped_column(default=1)
     # Regel-IDs, die für diesen Host abgeschaltet sind (Fehlalarme)
     waf_exclusions: Mapped[list[int]] = mapped_column(JSON, default=list)
+    # IP-Filter: "off" | "block" (Liste sperren) | "allow" (nur Liste erlauben)
+    ip_mode: Mapped[str] = mapped_column(String(16), default="off")
+    # einzelne IPs/Netze (CIDR) und IDs benannter IP-Listen
+    ip_entries: Mapped[list[str]] = mapped_column(JSON, default=list)
+    ip_list_ids: Mapped[list[int]] = mapped_column(JSON, default=list)
     # Entwürfe werden gespeichert, aber nicht an Caddy übertragen
     draft: Mapped[bool] = mapped_column(default=False)
     enabled: Mapped[bool] = mapped_column(default=True)
@@ -319,3 +324,19 @@ class Enrollment(Base):
     device_id: Mapped[int | None] = mapped_column(ForeignKey("devices.id", ondelete="SET NULL"))
 
     invite: Mapped[Invite] = relationship(back_populates="enrollments")
+
+
+# ---------- Phase 3: IP-Listen ----------
+
+
+class IpList(Base):
+    """Benannte Liste von IPs/Netzen, z. B. „Heimnetz“, „Scanner“ oder „Cloudflare“."""
+
+    __tablename__ = "ip_lists"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(64), unique=True)
+    description: Mapped[str] = mapped_column(String(255), default="")
+    entries: Mapped[list[str]] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(default=utcnow, onupdate=utcnow)

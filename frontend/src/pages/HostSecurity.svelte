@@ -4,7 +4,18 @@
   import Alert from '../lib/components/Alert.svelte';
   import SegmentedControl from '../lib/components/SegmentedControl.svelte';
   import Icon from '../lib/components/Icon.svelte';
-  import { api, WAF_MODES, type Host, type HostInput, type HostSaved, type WafMode } from '../lib/api';
+  import ChipInput from '../lib/components/ChipInput.svelte';
+  import {
+    api,
+    IP_MODES,
+    WAF_MODES,
+    type Host,
+    type HostInput,
+    type HostSaved,
+    type IpList,
+    type IpMode,
+    type WafMode
+  } from '../lib/api';
   import { toInput } from '../lib/hosts';
   import { reportApply } from '../lib/nodes';
 
@@ -19,12 +30,16 @@
 
   const modes: WafMode[] = ['off', 'detect', 'block'];
   let modeIndex = $state(0);
+  const ipModes: IpMode[] = ['off', 'block', 'allow'];
+  let ipIndex = $state(0);
+  let ipLists = $state<IpList[]>([]);
 
   async function load() {
     try {
-      host = await api.get<Host>(`/hosts/${hostId}`);
+      [host, ipLists] = await Promise.all([api.get<Host>(`/hosts/${hostId}`), api.get<IpList[]>('/ip-lists')]);
       form = toInput(host);
       modeIndex = modes.indexOf(host.waf_mode);
+      ipIndex = ipModes.indexOf(host.ip_mode);
       error = '';
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
@@ -35,14 +50,14 @@
   $effect(() => {
     if (form) form.waf_mode = modes[modeIndex];
   });
+  $effect(() => {
+    if (form) form.ip_mode = ipModes[ipIndex];
+  });
 
-  const dirty = $derived(
-    !!host &&
-      !!form &&
-      (form.waf_mode !== host.waf_mode ||
-        form.waf_paranoia !== host.waf_paranoia ||
-        form.waf_exclusions.join(',') !== host.waf_exclusions.join(','))
-  );
+  const KEYS = ['waf_mode', 'waf_paranoia', 'waf_exclusions', 'ip_mode', 'ip_entries', 'ip_list_ids'] as const;
+  const pick = (o: Record<string, unknown>) => JSON.stringify(KEYS.map((k) => o[k]));
+  const dirty = $derived(!!host && !!form && pick(form) !== pick(toInput(host)));
+  const ipEmpty = $derived(!!form && form.ip_mode === 'allow' && !form.ip_entries.length && !form.ip_list_ids.length);
 
   function addRule() {
     if (!form) return;
@@ -69,7 +84,7 @@
   const steps = $derived(
     host
       ? [
-          { label: 'IP-Filter', on: false, note: 'folgt' },
+          { label: 'IP-Filter', on: (form?.ip_mode ?? host.ip_mode) !== 'off', note: IP_MODES[form?.ip_mode ?? host.ip_mode] },
           {
             label: 'Zertifikat',
             on: host.access === 'mtls' || host.paths.length > 0,
@@ -157,16 +172,52 @@
         </form>
         <span class="muted small">Die Regel-ID steht im Log beim jeweiligen Treffer (z. B. 942100 = SQL-Injection erkannt).</span>
       </fieldset>
-
-      <div class="row">
-        <Button label={saving ? 'Überträgt …' : 'Speichern & übertragen'} disabled={!dirty || saving} onClick={save} />
-        <Button variant="secondary" label="Verwerfen" disabled={!dirty || saving} onClick={load} />
-      </div>
     </section>
 
+    <section class="card" aria-labelledby="ip-title">
+      <h2 id="ip-title">IP-Filter</h2>
+      <SegmentedControl groupLabel="IP-Filter-Modus" options={ipModes.map((m) => IP_MODES[m])} bind:selected={ipIndex} />
+      <p class="muted small">
+        {#if form.ip_mode === 'off'}
+          Alle IPs dürfen (weitere Regeln wie Zertifikat und WAF gelten trotzdem).
+        {:else if form.ip_mode === 'block'}
+          Anfragen von diesen IPs/Netzen werden sofort mit „403“ abgewiesen.
+        {:else}
+          Nur diese IPs/Netze kommen durch – alle anderen bekommen „403“.
+        {/if}
+      </p>
+      {#if form.ip_mode !== 'off'}
+        <div class="field">
+          IP, Netz (CIDR) – auch mehrere auf einmal einfügen
+          <ChipInput bind:values={form.ip_entries} label="IP oder Netz hinzufügen" placeholder="192.168.178.0/24" />
+        </div>
+        {#if ipLists.length}
+          <fieldset>
+            <legend>IP-Listen</legend>
+            <div class="chips">
+              {#each ipLists as l (l.id)}
+                <label class="chip" class:on={form.ip_list_ids.includes(l.id)}>
+                  <input type="checkbox" value={l.id} bind:group={form.ip_list_ids} />{l.name}
+                  <span class="muted tiny">{l.entries.length}</span>
+                </label>
+              {/each}
+            </div>
+          </fieldset>
+        {/if}
+        <span class="muted small">Listen verwaltest du unter <a href="#/settings-integrations">Einstellungen › Integrationen</a>.</span>
+        {#if ipEmpty}<p class="field-error">„Nur erlauben“ braucht mindestens einen Eintrag.</p>{/if}
+      {/if}
+    </section>
+
+    <div class="row sticky">
+      <Button label={saving ? 'Überträgt …' : 'Speichern & übertragen'} disabled={!dirty || saving || ipEmpty} onClick={save} />
+      <Button variant="secondary" label="Verwerfen" disabled={!dirty || saving} onClick={load} />
+      {#if dirty}<span class="muted small">Ungespeicherte Änderungen</span>{/if}
+    </div>
+
     <section class="card muted-card">
-      <h2>IP-Filter und Authelia</h2>
-      <p class="muted small">Folgen in den nächsten Schritten von Phase 3.</p>
+      <h2>Authelia</h2>
+      <p class="muted small">Folgt im nächsten Schritt von Phase 3.</p>
     </section>
   {/if}
 </AppShell>
@@ -280,5 +331,41 @@
   }
   .muted-card {
     opacity: 0.75;
+  }
+  .tiny {
+    font-size: 11px;
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 34px;
+    padding: 0 12px;
+    border-radius: var(--radius-pill);
+    background: var(--surface-raised);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .chip.on {
+    background: var(--accent-soft);
+    color: #d6d0ff;
+  }
+  .chip input {
+    margin: 0;
+    accent-color: var(--accent);
+  }
+  .sticky {
+    position: sticky;
+    bottom: 0;
+    padding: 12px 0;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    z-index: 5;
   }
 </style>
