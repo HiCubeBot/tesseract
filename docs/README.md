@@ -5,6 +5,8 @@ und in dieser Übersicht verlinken.
 
 | Dokument | Inhalt |
 |---|---|
+| [installation.md](installation.md) | Installation Schritt für Schritt, erste Schritte, Fehlersuche |
+| [operations.md](operations.md) | Betrieb: Aktualisieren, Sichern, Wiederherstellen, CA, Überwachen |
 | [features.md](features.md) | Vollständige Featureliste, abgeleitet aus dem Design |
 | [roadmap.md](roadmap.md) | Projektphasen mit Zielen und Abnahmekriterien |
 | [architecture.md](architecture.md) | Komponenten, Datenfluss, Sicherheitsmodell, offene Entscheidungen |

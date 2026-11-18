@@ -3,7 +3,8 @@ name: tesseract
 services:
   tesseract:
     build: .
-    image: tesseract:dev
+    # Veröffentlichtes Image (docker compose pull) – oder lokal bauen: docker compose up -d --build
+    image: ghcr.io/hicubebot/tesseract:${TESSERACT_VERSION:-latest}
     restart: unless-stopped
     # Alle TESSERACT_*-Einstellungen aus der .env (Vorlage: .env.example).
     # Die Werte unter environment: gehören zum Stack und haben Vorrang.
@@ -36,7 +37,7 @@ services:
 
   caddy:
     build: ./docker/caddy
-    image: tesseract-caddy:dev
+    image: ghcr.io/hicubebot/tesseract-caddy:${TESSERACT_VERSION:-latest}
     restart: unless-stopped
     depends_on: [tesseract]
     # --resume: nach einem Neustart die zuletzt vom Controller geladene Config verwenden

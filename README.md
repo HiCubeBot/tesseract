@@ -13,11 +13,9 @@ mit **mTLS statt VPN** und eingebauter **Coraza WAF**.
 - **Einladungen per Link**: Gäste registrieren ihr Gerät selbst und installieren das Zertifikat
   mit einer Schritt-für-Schritt-Anleitung.
 
-> Status: **Phase 3 und 3b fertig** – Proxy-Hosts mit Let's Encrypt (HTTP-01/DNS-01, Wildcards),
-> eigene CA und Geräte-Zertifikate (mTLS) statt VPN, Einladungen per Link, Coraza WAF,
-> IP-Filter, Auto-Sperre, Authelia als Middleware, Regeln pro Pfad, interne Dienste,
-> geteilte Wildcard- und eigene Zertifikate mit Zertifikatsübersicht. Bereiche ohne Funktion
-> (Nodes, Statistik, Logs …) zeigt das UI als Prototyp. Siehe [Roadmap](docs/roadmap.md).
+> Status: **Version 1.0** – alle Phasen der [Roadmap](docs/roadmap.md) sind umgesetzt.
+> Installation: [docs/installation.md](docs/installation.md) · Betrieb und Updates:
+> [docs/operations.md](docs/operations.md) · Änderungen: [CHANGELOG.md](CHANGELOG.md)
 
 ## Projektstruktur
 
@@ -27,7 +25,9 @@ tesseract/
 ├─ backend/           Python 3.13, FastAPI, verwaltet mit uv – Controller
 │  ├─ src/tesseract/  Anwendungscode
 │  └─ tests/          pytest
+├─ agent/            Agent für weitere Nodes (Python, uv)
 ├─ docker/caddy/      Caddy-Image mit Coraza- und DNS-Modulen
+├─ docker/node/       Compose-Vorlage für weitere Nodes
 ├─ docs/              gesamte Dokumentation
 ├─ Dockerfile         Controller-Image (baut Frontend + Backend)
 └─ compose.yaml       Controller + Caddy

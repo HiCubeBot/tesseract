@@ -12,7 +12,7 @@ name: tesseract-node
 
 services:
   caddy:
-    image: tesseract-caddy:dev
+    image: ghcr.io/hicubebot/tesseract-caddy:${TESSERACT_VERSION:-latest}
     restart: unless-stopped
     # Erster Start ohne Config: nur die Admin-API im internen Netz. Danach lädt der Agent
     # die Config des Controllers; --resume startet nach einem Neustart mit dem letzten Stand.
@@ -40,7 +40,7 @@ services:
     networks: [node]
 
   agent:
-    image: tesseract-agent:dev
+    image: ghcr.io/hicubebot/tesseract-agent:${TESSERACT_VERSION:-latest}
     restart: unless-stopped
     depends_on: [caddy]
     read_only: true

@@ -41,7 +41,7 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | Gruppen | z. B. Familie, Freunde, Gäste, Admin | 2 |
 | Geräte | Ein Gerät = ein Client-Zertifikat, gehört genau einer Person | 2 |
 | Geräteliste | Suche nach Gerät/Person/Fingerabdruck; Status (aktiv, läuft bald ab, gesperrt); zuletzt gesehen | 2 |
-| Gerät sperren / verlängern | Einzelnes Zertifikat widerrufen oder neu ausstellen | 2 |
+| Gerät sperren / verlängern | Einzelnes Zertifikat widerrufen; verlängern ohne neue Registrierung (neue .p12, Freigaben bleiben), Erinnerung 30/7 Tage vorher | 2 / 6 |
 | Gültigkeit | Befristet (z. B. 1 Jahr) oder „unbegrenzt“ (begrenzt durch Zwischenzertifikat) | 2 |
 | Export gesperrter Zertifikate | Liste der widerrufenen Zertifikate | 2 |
 | LDAP-Sync *(niedrige Priorität)* | Personen und Gruppen aus einem LDAP-Verzeichnis übernehmen und abgleichen, damit Freigaben über LDAP-Gruppen laufen können. Geräte und Zertifikate bleiben in Tesseract | Backlog |
@@ -107,11 +107,11 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 |---|---|---|
 | Allgemein | Controller-Domain, Let's-Encrypt-Konto, Standards für alle Nodes | 1 |
 | Zertifizierungsstelle | Root-CA offline (z. B. USB-Stick), Geräte-Zwischenzertifikat verschlüsselt auf dem Controller, ECDSA P-384, Root-Zertifikat herunterladen | 2 |
-| CA-Wechsel | Wechsel auf neues Zwischenzertifikat vorbereiten; Warnung, wenn Geräte länger gültig sind als das Zwischenzertifikat; Erinnerung 30 Tage vorher | 6 |
+| CA-Wechsel | Neues Zwischenzertifikat mit dem offline aufbewahrten Root-Schlüssel; das alte bleibt vertraut, bis seine Geräte verlängert sind; Warnung, wenn Geräte länger gültig sind als das Zwischenzertifikat; Erinnerung 90/30/7 Tage vorher | 6 |
 | Integrationen | Authelia-Instanz für die Host-Middleware (URL, weitergereichte Header), IP-Listen, vertrauenswürdige Proxys (X-Forwarded-For), Coraza-Standards, Caddy-Module pro Node | 3 |
 | Benachrichtigungen | E-Mail, Webhook, ntfy; Ereignis × Kanal × Stufe; Bündeln (max. 1× / 15 Min.), Ruhezeit nachts | 5 |
 | Metriken | Prometheus-Endpunkt für Controller und alle Nodes, Schutz per Bearer-Token / mTLS / IP-Liste, `prometheus.yml`-Snippet, Grafana-Dashboard (JSON) | 5 |
-| Backup | Zeitplan (stündlich/täglich/wöchentlich), Ziele, verschlüsselt mit Passphrase; Root-Schlüssel nie enthalten; Wiederherstellen | 6 |
+| Backup | Zeitplan (stündlich/täglich/wöchentlich), Ziele lokal und S3-kompatibel, verschlüsselt mit Passphrase (AES-256-GCM, scrypt); Root-Schlüssel nie enthalten; Wiederherstellungstest; Wiederherstellen aus Ziel oder Datei, auch per Kommandozeile | 6 |
 
 ## 10. Admin-Zugang
 

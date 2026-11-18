@@ -2,6 +2,10 @@
 
 ## Images
 
+Veröffentlicht unter `ghcr.io/hicubebot/<image>:<version>` (amd64, arm64) bei jedem
+Versions-Tag (`.github/workflows/release.yml`); `compose.yaml` nutzt sie mit
+`TESSERACT_VERSION` (Standard `latest`).
+
 | Image | Quelle | Inhalt |
 |---|---|---|
 | `tesseract` | `Dockerfile` (Repo-Wurzel) | Mehrstufig: baut das Svelte-Frontend (Node 22), installiert das Backend mit uv, Laufzeit auf `python:3.13-slim` als Nicht-Root-Nutzer. Liefert UI unter `/` und API unter `/api`. |

@@ -12,7 +12,7 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 | 3b | Interne Dienste & Zertifikate | Zugriffsart „Intern“, Wildcard-Zertifikate, Zertifikatsübersicht – **fertig** |
 | 4 | Multi-Node | Agent, mehrere Server, auch hinter NAT – **fertig** |
 | 5 | Beobachtbarkeit | Logs, Statistik, Audit, Metriken, Benachrichtigungen – **fertig** |
-| 6 | Betrieb & Release | Backup, CA-Rotation, Härtung, v1.0 |
+| 6 | Betrieb & Release | Backup, CA-Rotation, Härtung, v1.0 – **fertig** |
 | – | Backlog | Niedrige Priorität, ohne festen Zeitpunkt |
 
 ---
@@ -26,7 +26,7 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 - [x] Dockerfile (Frontend + Backend in einem Image), Caddy-Image mit Coraza, `compose.yaml`
 - [x] Dokumentation in `docs/`, Featureliste, Roadmap
 - [x] Git-Repository
-- [ ] CI (Lint, Tests, `svelte-check`, Image-Build)
+- [x] CI (Lint, Tests, `svelte-check`, Image-Build) – mit Phase 6
 - [ ] Architekturentscheidungen aus [architecture.md](architecture.md#offene-entscheidungen) treffen
 
 **Fertig, wenn:** `docker compose up` startet Controller + Caddy, UI und `/api/health` sind erreichbar.
@@ -67,9 +67,9 @@ Offen / bewusst verschoben:
 - [x] Admin-UI nur mit Admin-Gerätezertifikat (+ Passwort), Notausgang `tesseract admin mtls off`
 
 Offen / bewusst verschoben:
-- Verlängern eines Geräts ohne neue Registrierung und Ablauf-Erinnerungen → Phase 6
+- Verlängern eines Geräts ohne neue Registrierung und Ablauf-Erinnerungen → in Phase 6 erledigt
 - Passkey als Alternative zum Passwort → Backlog/Phase 6
-- Import einer bestehenden CA bzw. Signieren eines neuen Zwischenzertifikats mit dem Root-Schlüssel → Phase 6
+- Signieren eines neuen Zwischenzertifikats mit dem Root-Schlüssel → in Phase 6 erledigt; Import einer bestehenden CA → Backlog
 - Eigene Freigaben pro Pfad (heute gelten die Freigaben des Hosts für alle geschützten Pfade) → Phase 3 („Host-Bereiche“)
 
 **Fertig, wenn:** Ein eingeladener Gast registriert ein iPhone und einen Laptop, erreicht genau die
@@ -141,7 +141,7 @@ Offen / bewusst verschoben:
 - Erreichbarkeit des Ziels wird weiter vom Controller aus geprüft, nicht vom Node → Backlog
 - Zertifikatsübersicht liest nur den lokalen Caddy → Backlog
 - Zugriffs-Logs der Nodes (nicht nur WAF-Treffer) puffern und sammeln → in Phase 5 erledigt
-- Node-Zertifikat verlängern (gilt 2 Jahre) → Phase 6
+- Node-Zertifikat verlängern (gilt 2 Jahre) → in Phase 6 erledigt
 
 **Fertig, wenn:** Ein Raspberry Pi hinter NAT tritt bei, bekommt Hosts zugewiesen, und eine
 lokale Änderung auf dem Pi wird im UI als Abweichung angezeigt.
@@ -167,7 +167,7 @@ Offen / bewusst verschoben:
 - Logs liegen in SQLite (Standard 14 Tage); für sehr viel Verkehr wäre ein eigener Speicher
   (DuckDB, Loki) besser → Backlog
 - Zertifikatsübersicht weiterhin nur für den lokalen Caddy → Backlog
-- Ablauf-Erinnerungen für Zertifikate und Geräte als Benachrichtigung → Phase 6
+- Ablauf-Erinnerungen für Zertifikate und Geräte als Benachrichtigung → in Phase 6 erledigt
 
 **Fertig, wenn:** Ein blockierter Angriff erscheint live in den Logs, in der Statistik und als
 ntfy-Meldung.
@@ -176,10 +176,21 @@ ntfy-Meldung.
 
 **Ziel:** Stabil genug für den Dauerbetrieb – Version 1.0.
 
-- Verschlüsselte Backups (Zeitplan, Ziele), Wiederherstellen mit automatischer Neuverteilung an Nodes
-- Wechsel des Zwischenzertifikats, Ablauf-Erinnerungen für Geräte
-- Sicherheits-Review, Härtung der Images, Rate-Limits auf öffentlichen Endpunkten (Einladungsseite)
-- Installations- und Betriebsanleitung, Upgrade-Pfad, veröffentlichte Images
+- [x] Verschlüsselte Backups (Zeitplan, Ziele lokal und S3), Wiederherstellungstest,
+  Wiederherstellen mit automatischer Neuverteilung an Nodes, `tesseract backup create|restore`
+- [x] Wechsel des Zwischenzertifikats mit Übergang, Geräte verlängern, Node-Zertifikate
+  erneuern sich selbst, Ablauf-Erinnerungen (Geräte, CA, Nodes, eigene Zertifikate)
+- [x] Sicherheits-Review ([security.md](security.md)), Härtung der Images und Container,
+  Rate-Limits auf öffentlichen Endpunkten, Sicherheits-Header/CSP, echte Client-IP hinter Caddy
+- [x] Installations- und Betriebsanleitung ([installation.md](installation.md),
+  [operations.md](operations.md)), Upgrade-Pfad, CI, veröffentlichte Images (amd64/arm64)
+  über GitHub Actions bei einem Versions-Tag, [CHANGELOG](../CHANGELOG.md)
+
+Offen / bewusst verschoben:
+- Git-Spiegel der Configs als Backup-Ziel → Backlog
+- Gäste verlängern ihr Gerät selbst über einen Link (heute verlängert der Admin) → Backlog
+- Import einer bestehenden CA, Wechsel des Root-Zertifikats → Backlog
+- Passkey für die Admin-Anmeldung → Backlog
 
 ## Backlog (niedrige Priorität)
 
