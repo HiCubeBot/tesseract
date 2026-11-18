@@ -21,7 +21,7 @@
     type NodeInfo,
     type Person
   } from '../lib/api';
-  import { accessLabel, hostStatus, toInput, upstreamLabel } from '../lib/hosts';
+  import { accessLabel, hostStatus, protectionLabel, toInput, upstreamLabel } from '../lib/hosts';
   import { reportApply } from '../lib/nodes';
   import { router } from '../lib/router.svelte';
   import { toasts } from '../lib/toast.svelte';
@@ -176,6 +176,7 @@
                 <th scope="col">Ziel</th>
                 <th scope="col">Node</th>
                 <th scope="col">Zugriff</th>
+                <th scope="col">Schutz</th>
                 <th scope="col">Status</th>
               </tr>
             </thead>
@@ -194,10 +195,13 @@
                     {/if}
                     <span class="muted tiny block">{accessLabel(h)}</span>
                   </td>
+                  <td class="small nowrap">
+                    <a class="plain" href={`#/hosts/${h.id}/security`}>{protectionLabel(h)}</a>
+                  </td>
                   <td><StatusPill tone={st.tone} label={st.label} /></td>
                 </tr>
               {:else}
-                <tr><td colspan="5" class="muted">Keine Treffer.</td></tr>
+                <tr><td colspan="6" class="muted">Keine Treffer.</td></tr>
               {/each}
             </tbody>
           </table>
@@ -235,6 +239,7 @@
             <Button label={saving ? 'Überträgt …' : 'Speichern & übertragen'} disabled={saving} onClick={() => save(false)} />
           {/if}
           <Button variant="secondary" label="Verlauf" href={`#/hosts/${selected.id}/history`} />
+          <Button variant="secondary" label="Sicherheit" href={`#/hosts/${selected.id}/security`} />
           <span class="spacer"></span>
           <Button variant="danger" icon="trash" label="Löschen" onClick={() => (confirmDelete = true)} />
         </div>
@@ -341,6 +346,16 @@
   }
   .tiny {
     font-size: 11px;
+  }
+  .nowrap {
+    white-space: nowrap;
+  }
+  .plain {
+    color: var(--text-soft);
+    text-decoration: none;
+  }
+  .plain:hover {
+    text-decoration: underline;
   }
   .block {
     display: block;

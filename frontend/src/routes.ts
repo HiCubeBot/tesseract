@@ -42,6 +42,8 @@ import UsersPage from "./pages/Users.svelte";
 import DevicesPage from "./pages/Devices.svelte";
 import SettingsCAPage from "./pages/SettingsCA.svelte";
 import AccessPage from "./pages/Access.svelte";
+import HostSecurityPage from "./pages/HostSecurity.svelte";
+import SettingsIntegrationsPage from "./pages/SettingsIntegrations.svelte";
 
 export interface Page {
   /** Muster ohne "#/", Parameter mit ":" – z. B. "hosts/:id/history" */
@@ -60,6 +62,8 @@ export const pages: Page[] = [
   { pattern: "hosts/new", title: "Host anlegen", component: HostWizardPage },
   { pattern: "hosts/:id", title: "Proxy-Hosts", component: HostsPage },
   { pattern: "hosts/:id/history", title: "Host · Verlauf", component: HostHistoryPage },
+  { pattern: "hosts/:id/security", title: "Host · Sicherheit", component: HostSecurityPage },
+  { pattern: "settings-integrations", title: "Einstellungen · Integrationen", component: SettingsIntegrationsPage },
   { pattern: "settings", title: "Einstellungen", component: SettingsPage },
   { pattern: "audit", title: "Audit-Log", component: AuditPage },
   { pattern: "users", title: "Nutzer", component: UsersPage },

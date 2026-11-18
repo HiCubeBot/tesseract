@@ -37,11 +37,22 @@ SNAPSHOT_FIELDS = (
     "no_cert_action",
     "paths",
     "grants",
+    "waf_mode",
+    "waf_paranoia",
+    "waf_exclusions",
     "enabled",
     "draft",
 )
 
-GENERAL_DEFAULTS: dict[str, Any] = {"acme_email": "", "public_ips": [], "admin_mtls": False}
+GENERAL_DEFAULTS: dict[str, Any] = {
+    "acme_email": "",
+    "public_ips": [],
+    "admin_mtls": False,
+    # Coraza: Standard für neue Hosts und Schutz der Oberfläche
+    "waf_default_mode": "detect",
+    "waf_default_paranoia": 1,
+    "controller_waf_mode": "off",
+}
 ADMIN_GROUP = "Admin"
 
 
@@ -241,6 +252,9 @@ def host_spec(
         no_cert_action=getattr(host, "no_cert_action", "reject"),
         paths=tuple(paths),
         allowed=tuple((d.fingerprint, d.cert_pem) for d in (allowed or [])),
+        waf_mode=getattr(host, "waf_mode", "off"),
+        waf_paranoia=getattr(host, "waf_paranoia", 1),
+        waf_exclusions=tuple(getattr(host, "waf_exclusions", None) or ()),
     )
 
 
@@ -266,6 +280,7 @@ def node_config(db: Session, node: Node, settings: Settings) -> dict[str, Any]:
         client_ca_der_b64=client_ca_der_b64(db),
         controller_protected=bool(general["admin_mtls"]),
         controller_allowed=tuple((d.fingerprint, d.cert_pem) for d in admin_devices(db)),
+        controller_waf_mode=general["controller_waf_mode"],
     )
     return build_config(spec)
 

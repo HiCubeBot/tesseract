@@ -88,6 +88,11 @@ class Host(Base):
     access: Mapped[str] = mapped_column(String(16), default="public")
     # Verhalten ohne gültiges Zertifikat: "reject" (TLS-Handshake scheitert) oder "hint"
     no_cert_action: Mapped[str] = mapped_column(String(16), default="reject")
+    # Coraza WAF: "off" | "detect" (nur protokollieren) | "block"
+    waf_mode: Mapped[str] = mapped_column(String(16), default="off")
+    waf_paranoia: Mapped[int] = mapped_column(default=1)
+    # Regel-IDs, die für diesen Host abgeschaltet sind (Fehlalarme)
+    waf_exclusions: Mapped[list[int]] = mapped_column(JSON, default=list)
     # Entwürfe werden gespeichert, aber nicht an Caddy übertragen
     draft: Mapped[bool] = mapped_column(default=False)
     enabled: Mapped[bool] = mapped_column(default=True)

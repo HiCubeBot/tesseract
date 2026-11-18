@@ -12,6 +12,9 @@ export function emptyHost(nodeId = 0): HostInput {
     compression: false,
     access: 'public',
     no_cert_action: 'reject',
+    waf_mode: null,
+    waf_paranoia: null,
+    waf_exclusions: [],
     paths: [],
     grant_group_ids: [],
     grant_person_ids: [],
@@ -32,6 +35,9 @@ export function toInput(h: Host): HostInput {
     compression: h.compression,
     access: h.access,
     no_cert_action: h.no_cert_action,
+    waf_mode: h.waf_mode,
+    waf_paranoia: h.waf_paranoia,
+    waf_exclusions: [...h.waf_exclusions],
     paths: [...h.paths],
     grant_group_ids: h.grants.filter((g) => g.kind === 'group').map((g) => g.id),
     grant_person_ids: h.grants.filter((g) => g.kind === 'person').map((g) => g.id),
@@ -49,6 +55,14 @@ export function hostStatus(h: Host): { tone: 'ok' | 'warn' | 'neutral'; label: s
   if (h.draft) return { tone: 'warn', label: 'Entwurf' };
   if (!h.enabled) return { tone: 'neutral', label: 'deaktiviert' };
   return { tone: 'ok', label: 'aktiv' };
+}
+
+/** Schutz-Kurzfassung für Listen, z. B. „WAF“ oder „WAF (Log)“ */
+export function protectionLabel(h: Host): string {
+  const parts: string[] = [];
+  if (h.waf_mode === 'block') parts.push('WAF');
+  if (h.waf_mode === 'detect') parts.push('WAF (Log)');
+  return parts.join(' · ') || '–';
 }
 
 /** Kurzbeschreibung des Zugriffs für Listen */

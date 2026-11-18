@@ -1,4 +1,5 @@
 import ipaddress
+from typing import Literal
 
 from fastapi import APIRouter, Request
 from pydantic import BaseModel, EmailStr, Field, field_validator
@@ -15,6 +16,9 @@ router = APIRouter(prefix="/settings", tags=["settings"])
 class GeneralIn(BaseModel):
     acme_email: EmailStr | None = None
     public_ips: list[str] = Field(default_factory=list, max_length=16)
+    waf_default_mode: Literal["off", "detect", "block"] = "detect"
+    waf_default_paranoia: int = Field(1, ge=1, le=4)
+    controller_waf_mode: Literal["off", "detect", "block"] = "off"
 
     @field_validator("public_ips")
     @classmethod
@@ -39,6 +43,9 @@ class AdminAccessOut(BaseModel):
 class GeneralOut(BaseModel):
     acme_email: str
     public_ips: list[str]
+    waf_default_mode: str
+    waf_default_paranoia: int
+    controller_waf_mode: str
     # nur lesbar – kommen aus der Umgebung
     controller_domain: str
     version: str
@@ -50,6 +57,9 @@ def get_settings_general(db: DB, _: CurrentActor, settings: AppSettings) -> Gene
     return GeneralOut(
         acme_email=g["acme_email"],
         public_ips=g["public_ips"],
+        waf_default_mode=g["waf_default_mode"],
+        waf_default_paranoia=g["waf_default_paranoia"],
+        controller_waf_mode=g["controller_waf_mode"],
         controller_domain=settings.controller_domain,
         version=__version__,
     )
@@ -60,7 +70,13 @@ def put_settings_general(
     body: GeneralIn, request: Request, db: DB, actor: CurrentActor, settings: AppSettings
 ) -> GeneralOut:
     before = get_general(db)
-    value = {"acme_email": body.acme_email or "", "public_ips": body.public_ips}
+    value = {
+        "acme_email": body.acme_email or "",
+        "public_ips": body.public_ips,
+        "waf_default_mode": body.waf_default_mode,
+        "waf_default_paranoia": body.waf_default_paranoia,
+        "controller_waf_mode": body.controller_waf_mode,
+    }
     set_general(db, value)
     audit.record(
         db,
@@ -71,7 +87,7 @@ def put_settings_general(
         ip=actor.ip,
     )
     db.commit()
-    if before["acme_email"] != value["acme_email"]:
+    if any(before.get(k) != value[k] for k in ("acme_email", "controller_waf_mode")):
         for node in db.scalars(select(Node)):
             apply_node(db, node, settings, request.app.state.caddy_transport)
         db.commit()

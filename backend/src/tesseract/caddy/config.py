@@ -52,6 +52,10 @@ class HostSpec:
     pass_fingerprint: bool = False
     # Client-Zertifikat erfragen, auch wenn nichts geschützt ist (Geräteerkennung)
     ask_client_cert: bool = False
+    # Coraza WAF: "off" | "detect" | "block"
+    waf_mode: str = "off"
+    waf_paranoia: int = 1
+    waf_exclusions: tuple[int, ...] = ()
 
     @property
     def needs_client_auth(self) -> bool:
@@ -76,6 +80,7 @@ class NodeSpec:
     # Oberfläche nur mit Admin-Zertifikat (Einladungsseite bleibt öffentlich)
     controller_protected: bool = False
     controller_allowed: tuple[tuple[str, str], ...] = ()
+    controller_waf_mode: str = "off"
     acme_email: str = ""
     # Geräte-Zwischenzertifikat (DER, Base64) – Vertrauensanker für Client-Zertifikate
     client_ca_der_b64: str = ""
@@ -177,12 +182,39 @@ def gate_route(host: HostSpec) -> JSON | None:
     return {"match": [matcher], "handle": [_deny(host)], "terminal": True}
 
 
+def waf_directives(mode: str, paranoia: int, exclusions: tuple[int, ...] | list[int]) -> str:
+    """Coraza-Konfiguration: empfohlene Basis + OWASP CRS, Paranoia-Level, Ausnahmen."""
+    level = min(max(int(paranoia), 1), 4)
+    lines = [
+        "Include @coraza.conf-recommended",
+        # Antworten nicht puffern/prüfen – spart Speicher, stört kein Streaming
+        "SecResponseBodyAccess Off",
+        "Include @crs-setup.conf.example",
+        'SecAction "id:900000,phase:1,pass,t:none,nolog,'
+        f'setvar:tx.blocking_paranoia_level={level}"',
+        "Include @owasp_crs/*.conf",
+        f"SecRuleEngine {'On' if mode == 'block' else 'DetectionOnly'}",
+    ]
+    lines += [f"SecRuleRemoveById {rule_id}" for rule_id in sorted(set(exclusions))]
+    return "\n".join(lines)
+
+
+def waf_handler(host: HostSpec) -> JSON:
+    return {
+        "handler": "waf",
+        "load_owasp_crs": True,
+        "directives": waf_directives(host.waf_mode, host.waf_paranoia, host.waf_exclusions),
+    }
+
+
 def host_handlers(host: HostSpec) -> list[JSON]:
     """Die Handler-Kette eines Hosts (ohne Host-Matcher)."""
     routes: list[JSON] = []
     gate = gate_route(host)
     if gate is not None:
         routes.append(gate)
+    if host.waf_mode in ("detect", "block"):
+        routes.append({"handle": [waf_handler(host)]})
     if not host.websockets:
         routes.append(
             {
@@ -264,6 +296,7 @@ def controller_spec(spec: NodeSpec) -> HostSpec:
         allowed=spec.controller_allowed,
         pass_fingerprint=True,
         ask_client_cert=True,
+        waf_mode=spec.controller_waf_mode,
     )
 
 

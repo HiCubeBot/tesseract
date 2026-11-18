@@ -84,6 +84,17 @@ dass sie später durch den Agent ersetzt werden kann („Node-Treiber“: lokal 
 - Schlüssel der Geräte erzeugt der Controller beim Ausstellen und liefert sie als `.p12`
   mit Einmal-Passwort aus – gespeichert wird nur das Zertifikat.
 
+## Coraza WAF (Phase 3)
+
+- Pro Host `off` / `detect` (nur protokollieren) / `block`, Paranoia-Level 1–4,
+  Regel-Ausnahmen (`SecRuleRemoveById`). Neue Hosts übernehmen die Standards aus
+  Einstellungen › Integrationen (Werkseinstellung: nur protokollieren, Level 1).
+- Erzeugte Direktiven: `coraza.conf-recommended` + OWASP CRS (im Modul eingebaut),
+  `SecResponseBodyAccess Off` (kein Puffern der Antworten), Paranoia per `tx.blocking_paranoia_level`.
+- Reihenfolge im Host: Zertifikats-Sperre → WAF → WebSocket-Sperre → Kompression → Proxy.
+- Treffer schreibt das Modul als `WAF rule violation detected` mit `client_ip` und `hostname`
+  ins Caddy-Log – Grundlage für die Auto-Sperre.
+
 ## Offene Entscheidungen
 
 | Thema | Optionen | Notiz |

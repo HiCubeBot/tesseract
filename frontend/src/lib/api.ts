@@ -96,6 +96,9 @@ export interface Host {
   compression: boolean;
   access: 'public' | 'mtls';
   no_cert_action: 'reject' | 'hint';
+  waf_mode: WafMode;
+  waf_paranoia: number;
+  waf_exclusions: number[];
   paths: string[];
   grants: GrantRef[];
   granted_persons: number;
@@ -107,6 +110,14 @@ export interface Host {
   updated_at: string;
 }
 
+export type WafMode = 'off' | 'detect' | 'block';
+
+export const WAF_MODES: Record<WafMode, string> = {
+  off: 'Aus',
+  detect: 'Nur protokollieren',
+  block: 'Blockieren'
+};
+
 export interface GrantRef {
   kind: 'group' | 'person';
   id: number;
@@ -115,11 +126,23 @@ export interface GrantRef {
 
 export type HostInput = Omit<
   Host,
-  'id' | 'node' | 'version' | 'created_at' | 'updated_at' | 'grants' | 'granted_persons' | 'allowed_devices'
+  | 'id'
+  | 'node'
+  | 'version'
+  | 'created_at'
+  | 'updated_at'
+  | 'grants'
+  | 'granted_persons'
+  | 'allowed_devices'
+  | 'waf_mode'
+  | 'waf_paranoia'
 > & {
   node_id: number;
   grant_group_ids: number[];
   grant_person_ids: number[];
+  /** null = Standard aus den Einstellungen */
+  waf_mode: WafMode | null;
+  waf_paranoia: number | null;
   comment?: string;
 };
 
@@ -182,6 +205,9 @@ export interface NodeInfo {
 export interface GeneralSettings {
   acme_email: string;
   public_ips: string[];
+  waf_default_mode: WafMode;
+  waf_default_paranoia: number;
+  controller_waf_mode: WafMode;
   controller_domain: string;
   version: string;
 }
@@ -230,6 +256,9 @@ export const FIELD_LABELS: Record<string, string> = {
   no_cert_action: 'Ohne Zertifikat',
   paths: 'Pfade',
   grants: 'Freigegeben für',
+  waf_mode: 'WAF',
+  waf_paranoia: 'Paranoia-Level',
+  waf_exclusions: 'Regel-Ausnahmen',
   enabled: 'Aktiv',
   draft: 'Entwurf'
 };
@@ -237,6 +266,9 @@ export const FIELD_LABELS: Record<string, string> = {
 export function formatValue(v: unknown): string {
   if (Array.isArray(v)) return v.length ? v.map(formatValue).join(', ') : '–';
   if (v === 'reject') return 'Verbindung ablehnen';
+  if (v === 'off') return 'Aus';
+  if (v === 'detect') return 'Nur protokollieren';
+  if (v === 'block') return 'Blockieren';
   if (v === 'hint') return 'Hinweisseite';
   if (v === true) return 'an';
   if (v === false) return 'aus';

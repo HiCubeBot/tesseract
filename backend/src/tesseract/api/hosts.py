@@ -71,9 +71,21 @@ class HostIn(BaseModel):
     paths: list[str] = Field(default_factory=list, max_length=MAX_PATHS)
     grant_group_ids: list[int] = Field(default_factory=list)
     grant_person_ids: list[int] = Field(default_factory=list)
+    # None = Standard aus den Einstellungen (nur beim Anlegen)
+    waf_mode: Literal["off", "detect", "block"] | None = None
+    waf_paranoia: int | None = Field(None, ge=1, le=4)
+    waf_exclusions: list[int] = Field(default_factory=list, max_length=200)
     enabled: bool = True
     draft: bool = False
     comment: str = Field("", max_length=255)
+
+    @field_validator("waf_exclusions")
+    @classmethod
+    def _exclusions(cls, v: list[int]) -> list[int]:
+        for rule_id in v:
+            if not 1 <= rule_id <= 99_999_999:
+                raise ValueError(f"Ungültige Regel-ID: {rule_id}")
+        return sorted(set(v))
 
     @field_validator("paths")
     @classmethod
@@ -132,6 +144,9 @@ class HostOut(BaseModel):
     compression: bool
     access: str
     no_cert_action: str
+    waf_mode: str
+    waf_paranoia: int
+    waf_exclusions: list[int]
     paths: list[str]
     grants: list[GrantRef]
     granted_persons: int
@@ -205,8 +220,14 @@ def _check_grants(db: Session, body: HostIn) -> None:
 _RELATIONS = {"comment", "paths", "grant_group_ids", "grant_person_ids"}
 
 
-def _assign(host: Host, body: HostIn) -> None:
-    for k, v in body.model_dump(exclude=_RELATIONS).items():
+def _assign(host: Host, body: HostIn, defaults: dict[str, Any] | None = None) -> None:
+    data = body.model_dump(exclude=_RELATIONS)
+    # Nicht angegebene WAF-Werte: beim Anlegen Standard, beim Ändern unverändert
+    if data["waf_mode"] is None:
+        data["waf_mode"] = (defaults or {}).get("waf_default_mode", host.waf_mode or "off")
+    if data["waf_paranoia"] is None:
+        data["waf_paranoia"] = (defaults or {}).get("waf_default_paranoia", host.waf_paranoia or 1)
+    for k, v in data.items():
         setattr(host, k, v)
     set_paths(host, body.paths)
     set_grants(host, body.grant_group_ids, body.grant_person_ids)
@@ -283,7 +304,7 @@ def create_host(
     _check_grants(db, body)
     _ensure_free(db, body.domain, None, settings.controller_domain)
     host = Host(version=1)
-    _assign(host, body)
+    _assign(host, body, get_general(db))
     db.add(host)
     add_version(db, host, actor=actor.name, comment=body.comment or "Angelegt")
     audit.record(
@@ -387,7 +408,10 @@ def list_versions(host_id: int, db: DB, _: CurrentActor) -> list[VersionOut]:
 
 def _route_for(snap: dict[str, Any], host_id: int) -> dict[str, Any]:
     """Route eines alten Stands (ohne Geräteliste – die ändert sich laufend)."""
-    fields = {k: snap[k] for k in snap if k not in {"node", "enabled", "draft", "grants"}}
+    skip = {"node", "enabled", "draft", "grants"}
+    fields = {k: snap[k] for k in snap if k not in skip}
+    if fields.get("waf_mode") is None:
+        fields.pop("waf_mode", None)
     paths = list(fields.pop("paths", []))
     spec = host_spec(HostIn.model_construct(**fields), host_id=host_id, paths=paths)
     return host_route(spec)
