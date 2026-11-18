@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from tesseract import audit, checks
 from tesseract.api.iplists import normalize_networks
 from tesseract.caddy.config import host_route
-from tesseract.db.models import Group, Host, HostVersion, IpList, Node, Person
+from tesseract.db.models import Group, Host, HostArea, HostVersion, IpList, Node, Person
 from tesseract.deps import DB, AppSettings, CurrentActor
 from tesseract.services import (
     add_version,
@@ -59,6 +59,67 @@ def normalize_upstream_host(value: str) -> str:
     return normalize_domain(value)
 
 
+def _clean_paths(v: list[str]) -> list[str]:
+    out = []
+    for p in v:
+        p = p.strip()
+        if not p:
+            continue
+        if not p.startswith("/"):
+            p = "/" + p
+        if len(p) > 255 or not PATH_RE.match(p):
+            raise ValueError(f"Ungültiger Pfad: {p}")
+        out.append(p)
+    return list(dict.fromkeys(out))
+
+
+class AreaIn(BaseModel):
+    """Bereich mit abweichenden Regeln. None = wie beim Host."""
+
+    name: str = Field("", max_length=64)
+    paths: list[str] = Field(min_length=1, max_length=MAX_PATHS)
+    access: Literal["public", "mtls"] | None = None
+    grant_group_ids: list[int] = Field(default_factory=list)
+    grant_person_ids: list[int] = Field(default_factory=list)
+    waf_mode: Literal["off", "detect", "block"] | None = None
+    waf_exclusions: list[int] = Field(default_factory=list, max_length=200)
+    authelia: bool | None = None
+    ip_mode: Literal["off", "block", "allow"] | None = None
+    ip_entries: list[str] = Field(default_factory=list, max_length=500)
+    ip_list_ids: list[int] = Field(default_factory=list, max_length=50)
+
+    @field_validator("paths")
+    @classmethod
+    def _paths(cls, v: list[str]) -> list[str]:
+        out = _clean_paths(v)
+        if not out:
+            raise ValueError("Ein Bereich braucht mindestens einen Pfad")
+        return out
+
+    @field_validator("ip_entries")
+    @classmethod
+    def _ip_entries(cls, v: list[str]) -> list[str]:
+        return normalize_networks(v)
+
+    @field_validator("waf_exclusions")
+    @classmethod
+    def _exclusions(cls, v: list[int]) -> list[int]:
+        for rule_id in v:
+            if not 1 <= rule_id <= 99_999_999:
+                raise ValueError(f"Ungültige Regel-ID: {rule_id}")
+        return sorted(set(v))
+
+    @model_validator(mode="after")
+    def _allow_needs_entries(self) -> "AreaIn":
+        if self.ip_mode == "allow" and not self.ip_entries and not self.ip_list_ids:
+            raise ValueError("„Nur erlauben“ braucht mindestens eine IP, ein Netz oder eine Liste")
+        return self
+
+
+class AreaOut(AreaIn):
+    id: int
+
+
 class HostIn(BaseModel):
     domain: str
     node_id: int
@@ -83,6 +144,7 @@ class HostIn(BaseModel):
     ip_list_ids: list[int] = Field(default_factory=list, max_length=50)
     authelia: bool = False
     tls_challenge: Literal["http", "dns"] = "http"
+    areas: list[AreaIn] = Field(default_factory=list, max_length=20)
     enabled: bool = True
     draft: bool = False
     comment: str = Field("", max_length=255)
@@ -109,17 +171,7 @@ class HostIn(BaseModel):
     @field_validator("paths")
     @classmethod
     def _paths(cls, v: list[str]) -> list[str]:
-        out = []
-        for p in v:
-            p = p.strip()
-            if not p:
-                continue
-            if not p.startswith("/"):
-                p = "/" + p
-            if len(p) > 255 or not PATH_RE.match(p):
-                raise ValueError(f"Ungültiger Pfad: {p}")
-            out.append(p)
-        return list(dict.fromkeys(out))
+        return _clean_paths(v)
 
     @field_validator("domain")
     @classmethod
@@ -177,6 +229,7 @@ class HostOut(BaseModel):
     ip_list_ids: list[int]
     authelia: bool
     tls_challenge: str
+    areas: list[AreaOut]
     paths: list[str]
     grants: list[GrantRef]
     granted_persons: int
@@ -214,7 +267,7 @@ class VersionDetail(VersionOut):
     previous_route: dict[str, Any] | None
 
 
-_COMPUTED = {"node", "paths", "grants", "granted_persons", "allowed_devices"}
+_COMPUTED = {"node", "paths", "grants", "granted_persons", "allowed_devices", "areas"}
 
 
 def _out(db: Session, host: Host) -> HostOut:
@@ -231,6 +284,20 @@ def _out(db: Session, host: Host) -> HostOut:
         **data,
         node=NodeRef(id=host.node.id, name=host.node.name),
         paths=[p.path for p in host.paths],
+        areas=[
+            AreaOut.model_validate(
+                {
+                    **{k: getattr(a, k) for k in AreaIn.model_fields},
+                    "id": a.id,
+                    "grant_group_ids": a.grant_group_ids or [],
+                    "grant_person_ids": a.grant_person_ids or [],
+                    "waf_exclusions": a.waf_exclusions or [],
+                    "ip_entries": a.ip_entries or [],
+                    "ip_list_ids": a.ip_list_ids or [],
+                }
+            )
+            for a in host.areas
+        ],
         grants=grants,
         granted_persons=len(granted_persons(db, host)),
         allowed_devices=len(allowed_devices(db, host)),
@@ -238,6 +305,26 @@ def _out(db: Session, host: Host) -> HostOut:
 
 
 def _check_ip_lists(db: Session, body: HostIn) -> None:
+    for area in body.areas:
+        for i in area.ip_list_ids:
+            if db.get(IpList, i) is None:
+                raise HTTPException(
+                    status.HTTP_422_UNPROCESSABLE_CONTENT, f"IP-Liste {i} unbekannt"
+                )
+        for model, ids, what in (
+            (Group, area.grant_group_ids, "Gruppe"),
+            (Person, area.grant_person_ids, "Person"),
+        ):
+            for i in ids:
+                if db.get(model, i) is None:
+                    raise HTTPException(
+                        status.HTTP_422_UNPROCESSABLE_CONTENT, f"{what} {i} unbekannt"
+                    )
+        if area.authelia and not get_general(db)["authelia_url"]:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "Erst unter Einstellungen › Integrationen die Authelia-Adresse eintragen",
+            )
     for i in body.ip_list_ids:
         if db.get(IpList, i) is None:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"IP-Liste {i} unbekannt")
@@ -264,7 +351,7 @@ def _check_grants(db: Session, body: HostIn) -> None:
                 raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"{what} {i} unbekannt")
 
 
-_RELATIONS = {"comment", "paths", "grant_group_ids", "grant_person_ids"}
+_RELATIONS = {"comment", "paths", "grant_group_ids", "grant_person_ids", "areas"}
 
 
 def _assign(host: Host, body: HostIn, defaults: dict[str, Any] | None = None) -> None:
@@ -278,6 +365,7 @@ def _assign(host: Host, body: HostIn, defaults: dict[str, Any] | None = None) ->
         setattr(host, k, v)
     set_paths(host, body.paths)
     set_grants(host, body.grant_group_ids, body.grant_person_ids)
+    host.areas = [HostArea(position=i, **a.model_dump()) for i, a in enumerate(body.areas)]
 
 
 def _get_host(db: Session, host_id: int) -> Host:
@@ -395,7 +483,7 @@ def update_host(
     old_node = host.node_id
     _assign(host, body)
     db.flush()
-    db.refresh(host, ["node", "paths", "grants"])
+    db.refresh(host, ["node", "paths", "grants", "areas"])
     changes = diff(before, snapshot(host))
     if not changes:
         db.rollback()
@@ -456,7 +544,7 @@ def list_versions(host_id: int, db: DB, _: CurrentActor) -> list[VersionOut]:
 
 def _route_for(snap: dict[str, Any], host_id: int) -> dict[str, Any]:
     """Route eines alten Stands (ohne Geräteliste – die ändert sich laufend)."""
-    skip = {"node", "enabled", "draft", "grants", "ip_lists"}
+    skip = {"node", "enabled", "draft", "grants", "ip_lists", "areas"}
     fields = {k: snap[k] for k in snap if k not in skip}
     if fields.get("waf_mode") is None:
         fields.pop("waf_mode", None)

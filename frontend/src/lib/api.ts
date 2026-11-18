@@ -104,6 +104,7 @@ export interface Host {
   ip_list_ids: number[];
   authelia: boolean;
   tls_challenge: 'http' | 'dns';
+  areas: (AreaInput & { id: number })[];
   paths: string[];
   grants: GrantRef[];
   granted_persons: number;
@@ -116,6 +117,21 @@ export interface Host {
 }
 
 export type WafMode = 'off' | 'detect' | 'block';
+
+/** Host-Bereich: null = wie beim Host */
+export interface AreaInput {
+  name: string;
+  paths: string[];
+  access: 'public' | 'mtls' | null;
+  grant_group_ids: number[];
+  grant_person_ids: number[];
+  waf_mode: WafMode | null;
+  waf_exclusions: number[];
+  authelia: boolean | null;
+  ip_mode: 'off' | 'block' | 'allow' | null;
+  ip_entries: string[];
+  ip_list_ids: number[];
+}
 export type IpMode = 'off' | 'block' | 'allow';
 
 export const IP_MODES: Record<IpMode, string> = {
@@ -166,6 +182,7 @@ export type HostInput = Omit<
   | 'allowed_devices'
   | 'waf_mode'
   | 'waf_paranoia'
+  | 'areas'
 > & {
   node_id: number;
   grant_group_ids: number[];
@@ -173,6 +190,7 @@ export type HostInput = Omit<
   /** null = Standard aus den Einstellungen */
   waf_mode: WafMode | null;
   waf_paranoia: number | null;
+  areas: AreaInput[];
   comment?: string;
 };
 
@@ -299,12 +317,17 @@ export const FIELD_LABELS: Record<string, string> = {
   ip_lists: 'IP-Listen',
   authelia: 'Login über Authelia',
   tls_challenge: 'Zertifikats-Prüfung',
+  areas: 'Bereiche',
   enabled: 'Aktiv',
   draft: 'Entwurf'
 };
 
 export function formatValue(v: unknown): string {
   if (Array.isArray(v)) return v.length ? v.map(formatValue).join(', ') : '–';
+  if (v && typeof v === 'object' && 'paths' in v) {
+    const a = v as { name?: string; paths: string[] };
+    return `${a.name ? a.name + ' ' : ''}(${a.paths.join(', ')})`;
+  }
   if (v === 'reject') return 'Verbindung ablehnen';
   if (v === 'http') return 'HTTP-01';
   if (v === 'dns') return 'DNS-01 (Cloudflare)';

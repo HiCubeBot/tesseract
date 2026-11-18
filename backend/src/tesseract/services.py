@@ -7,12 +7,13 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from tesseract.caddy.client import CaddyClient, CaddyError
-from tesseract.caddy.config import HostSpec, NodeSpec, build_config, config_hash
+from tesseract.caddy.config import AreaSpec, HostSpec, NodeSpec, build_config, config_hash
 from tesseract.config import Settings
 from tesseract.db.models import (
     Device,
     Group,
     Host,
+    HostArea,
     HostGrant,
     HostPath,
     HostVersion,
@@ -46,6 +47,7 @@ SNAPSHOT_FIELDS = (
     "ip_lists",
     "authelia",
     "tls_challenge",
+    "areas",
     "enabled",
     "draft",
 )
@@ -117,20 +119,48 @@ def resolve_ranges(db: Session, entries: list[str], list_ids: list[int]) -> list
     return list(dict.fromkeys(ranges))
 
 
+AREA_FIELDS = (
+    "name",
+    "paths",
+    "access",
+    "waf_mode",
+    "waf_exclusions",
+    "authelia",
+    "ip_mode",
+    "ip_entries",
+)
+
+
+def _names(db: Session, model, ids: list[int]) -> list[str]:
+    if not ids:
+        return []
+    return sorted(db.scalars(select(model.name).where(model.id.in_(ids))))
+
+
+def area_snapshot(db: Session, area: HostArea) -> dict[str, Any]:
+    data = {f: getattr(area, f) for f in AREA_FIELDS}
+    data["grants"] = [
+        f"Gruppe {n}" for n in _names(db, Group, area.grant_group_ids or [])
+    ] + _names(db, Person, area.grant_person_ids or [])
+    data["ip_lists"] = _names(db, IpList, area.ip_list_ids or [])
+    return data
+
+
 def snapshot(host: Host) -> dict[str, Any]:
-    special = {"node", "paths", "grants", "ip_lists"}
+    special = {"node", "paths", "grants", "ip_lists", "areas"}
     data = {f: getattr(host, f) for f in SNAPSHOT_FIELDS if f not in special}
     data["node"] = host.node.name
     data["paths"] = [p.path for p in host.paths]
     data["grants"] = grant_labels(host)
     session = Session.object_session(host)
     data["ip_lists"] = ip_list_names(session, list(host.ip_list_ids or [])) if session else []
+    data["areas"] = [area_snapshot(session, a) for a in host.areas] if session else []
     return {f: data[f] for f in SNAPSHOT_FIELDS}
 
 
 def add_version(db: Session, host: Host, *, actor: str, comment: str = "") -> HostVersion:
     db.flush()
-    db.refresh(host, ["node", "paths", "grants"])
+    db.refresh(host, ["node", "paths", "grants", "areas"])
     version = HostVersion(
         host_id=host.id, version=host.version, snapshot=snapshot(host), actor=actor, comment=comment
     )
@@ -170,6 +200,32 @@ def apply_snapshot(db: Session, host: Host, snap: dict[str, Any]) -> list[str]:
                 host.node_id = node.id
         elif f == "paths":
             set_paths(host, list(snap["paths"]))
+        elif f == "areas":
+            areas = []
+            for i, a in enumerate(snap["areas"]):
+                groups, persons = [], []
+                for label in a.get("grants", []):
+                    if label.startswith("Gruppe "):
+                        gid = db.scalar(select(Group.id).where(Group.name == label[7:]))
+                        groups += [gid] if gid else []
+                    else:
+                        pid = db.scalar(select(Person.id).where(Person.name == label))
+                        persons += [pid] if pid else []
+                lists = [
+                    lid
+                    for n in a.get("ip_lists", [])
+                    if (lid := db.scalar(select(IpList.id).where(IpList.name == n)))
+                ]
+                areas.append(
+                    HostArea(
+                        position=i,
+                        **{k: a.get(k) for k in AREA_FIELDS},
+                        grant_group_ids=groups,
+                        grant_person_ids=persons,
+                        ip_list_ids=lists,
+                    )
+                )
+            host.areas = areas
         elif f == "ip_lists":
             ids = [
                 i
@@ -203,8 +259,15 @@ def apply_snapshot(db: Session, host: Host, snap: dict[str, Any]) -> list[str]:
 
 def granted_persons(db: Session, host: Host) -> list[Person]:
     """Alle nicht gesperrten Personen, die direkt oder über eine Gruppe freigegeben sind."""
-    group_ids = [g.group_id for g in host.grants if g.group_id is not None]
-    person_ids = {g.person_id for g in host.grants if g.person_id is not None}
+    return persons_for(
+        db,
+        [g.group_id for g in host.grants if g.group_id is not None],
+        [g.person_id for g in host.grants if g.person_id is not None],
+    )
+
+
+def persons_for(db: Session, group_ids: list[int], person_ids_in: list[int]) -> list[Person]:
+    person_ids = set(person_ids_in)
     if group_ids:
         person_ids |= set(
             db.scalars(select(PersonGroup.person_id).where(PersonGroup.group_id.in_(group_ids)))
@@ -277,6 +340,7 @@ def host_spec(
     allowed: list[Device] | None = None,
     paths: list[str] | None = None,
     ip_ranges: list[str] | None = None,
+    areas: list[AreaSpec] | None = None,
 ) -> HostSpec:
     if paths is None:
         paths = [p.path for p in host.paths] if isinstance(host, Host) else []
@@ -300,7 +364,32 @@ def host_spec(
         ip_ranges=tuple(ip_ranges or ()),
         authelia=bool(getattr(host, "authelia", False)),
         tls_challenge=getattr(host, "tls_challenge", "http"),
+        areas=tuple(areas or ()),
     )
+
+
+def area_specs(db: Session, host: Host) -> list[AreaSpec]:
+    out = []
+    for a in host.areas:
+        allowed = None
+        if a.access == "mtls" and (a.grant_group_ids or a.grant_person_ids):
+            devices = _active_devices_of(
+                db, persons_for(db, a.grant_group_ids or [], a.grant_person_ids or [])
+            )
+            allowed = tuple((d.fingerprint, d.cert_pem) for d in devices)
+        out.append(
+            AreaSpec(
+                paths=tuple(a.paths or ()),
+                access=a.access,
+                allowed=allowed,
+                waf_mode=a.waf_mode,
+                waf_exclusions=tuple(a.waf_exclusions or ()),
+                authelia=a.authelia,
+                ip_mode=a.ip_mode,
+                ip_ranges=tuple(resolve_ranges(db, a.ip_entries or [], a.ip_list_ids or [])),
+            )
+        )
+    return out
 
 
 def client_ca_der_b64(db: Session) -> str:
@@ -332,6 +421,7 @@ def node_config(db: Session, node: Node, settings: Settings) -> dict[str, Any]:
                 h,
                 allowed=allowed_devices(db, h),
                 ip_ranges=resolve_ranges(db, h.ip_entries or [], h.ip_list_ids or []),
+                areas=area_specs(db, h),
             )
             for h in hosts
         ],

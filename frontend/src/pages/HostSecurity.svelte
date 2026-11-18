@@ -6,6 +6,7 @@
   import Icon from '../lib/components/Icon.svelte';
   import ChipInput from '../lib/components/ChipInput.svelte';
   import Toggle from '../lib/components/Toggle.svelte';
+  import AreaEditor from '../lib/components/AreaEditor.svelte';
   import {
     api,
     IP_MODES,
@@ -13,6 +14,8 @@
     type Host,
     type HostInput,
     type GeneralSettings,
+    type Group,
+    type Person,
     type HostSaved,
     type IpList,
     type IpMode,
@@ -36,14 +39,18 @@
   let ipIndex = $state(0);
   let ipLists = $state<IpList[]>([]);
   let autheliaUrl = $state('');
+  let groups = $state<Group[]>([]);
+  let persons = $state<Person[]>([]);
 
   async function load() {
     try {
       let general: GeneralSettings;
-      [host, ipLists, general] = await Promise.all([
+      [host, ipLists, general, groups, persons] = await Promise.all([
         api.get<Host>(`/hosts/${hostId}`),
         api.get<IpList[]>('/ip-lists'),
-        api.get<GeneralSettings>('/settings/general')
+        api.get<GeneralSettings>('/settings/general'),
+        api.get<Group[]>('/groups'),
+        api.get<Person[]>('/persons')
       ]);
       autheliaUrl = general.authelia_url;
       form = toInput(host);
@@ -63,7 +70,17 @@
     if (form) form.ip_mode = ipModes[ipIndex];
   });
 
-  const KEYS = ['waf_mode', 'waf_paranoia', 'waf_exclusions', 'ip_mode', 'ip_entries', 'ip_list_ids', 'authelia'] as const;
+  const KEYS = [
+    'waf_mode',
+    'waf_paranoia',
+    'waf_exclusions',
+    'ip_mode',
+    'ip_entries',
+    'ip_list_ids',
+    'authelia',
+    'areas'
+  ] as const;
+  const areasInvalid = $derived(!!form && form.areas.some((a) => !a.paths.length));
   const pick = (o: Record<string, unknown>) => JSON.stringify(KEYS.map((k) => o[k]));
   const dirty = $derived(!!host && !!form && pick(form) !== pick(toInput(host)));
   const ipEmpty = $derived(!!form && form.ip_mode === 'allow' && !form.ip_entries.length && !form.ip_list_ids.length);
@@ -236,8 +253,17 @@
       {/if}
     </section>
 
+    <section class="card" aria-labelledby="areas-title">
+      <h2 id="areas-title">Bereiche</h2>
+      <p class="muted small">
+        Pfade mit abweichenden Regeln, z. B. <code>/api</code> ohne WAF-Blockade, <code>/admin</code> nur für Ben per
+        Zertifikat oder <code>/.well-known</code> öffentlich.
+      </p>
+      <AreaEditor bind:areas={form.areas} {groups} {persons} {ipLists} autheliaAvailable={!!autheliaUrl} />
+    </section>
+
     <div class="row sticky">
-      <Button label={saving ? 'Überträgt …' : 'Speichern & übertragen'} disabled={!dirty || saving || ipEmpty} onClick={save} />
+      <Button label={saving ? 'Überträgt …' : 'Speichern & übertragen'} disabled={!dirty || saving || ipEmpty || areasInvalid} onClick={save} />
       <Button variant="secondary" label="Verwerfen" disabled={!dirty || saving} onClick={load} />
       {#if dirty}<span class="muted small">Ungespeicherte Änderungen</span>{/if}
     </div>
@@ -353,6 +379,10 @@
   }
   .tiny {
     font-size: 11px;
+  }
+  code {
+    font-family: var(--font-mono);
+    color: var(--text-soft);
   }
   .chips {
     display: flex;

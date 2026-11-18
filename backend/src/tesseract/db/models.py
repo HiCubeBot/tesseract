@@ -118,6 +118,9 @@ class Host(Base):
         cascade="all, delete-orphan", order_by="HostPath.position"
     )
     grants: Mapped[list["HostGrant"]] = relationship(cascade="all, delete-orphan")
+    areas: Mapped[list["HostArea"]] = relationship(
+        cascade="all, delete-orphan", order_by="HostArea.position"
+    )
 
 
 class HostVersion(Base):
@@ -344,3 +347,29 @@ class IpList(Base):
     entries: Mapped[list[str]] = mapped_column(JSON, default=list)
     created_at: Mapped[datetime] = mapped_column(default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(default=utcnow, onupdate=utcnow)
+
+
+# ---------- Phase 3: Host-Bereiche ----------
+
+
+class HostArea(Base):
+    """Pfade eines Hosts mit abweichenden Regeln. None = wie beim Host."""
+
+    __tablename__ = "host_areas"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    host_id: Mapped[int] = mapped_column(ForeignKey("hosts.id", ondelete="CASCADE"))
+    position: Mapped[int] = mapped_column(default=0)
+    name: Mapped[str] = mapped_column(String(64), default="")
+    paths: Mapped[list[str]] = mapped_column(JSON, default=list)
+    # Zugriff: None | "public" | "mtls" (mit eigenen Freigaben, leer = wie Host)
+    access: Mapped[str | None] = mapped_column(String(16))
+    grant_group_ids: Mapped[list[int]] = mapped_column(JSON, default=list)
+    grant_person_ids: Mapped[list[int]] = mapped_column(JSON, default=list)
+    waf_mode: Mapped[str | None] = mapped_column(String(16))
+    # zusätzliche Regel-Ausnahmen nur für diesen Bereich
+    waf_exclusions: Mapped[list[int]] = mapped_column(JSON, default=list)
+    authelia: Mapped[bool | None]
+    ip_mode: Mapped[str | None] = mapped_column(String(16))
+    ip_entries: Mapped[list[str]] = mapped_column(JSON, default=list)
+    ip_list_ids: Mapped[list[int]] = mapped_column(JSON, default=list)

@@ -126,6 +126,20 @@ dass sie später durch den Agent ersetzt werden kann („Node-Treiber“: lokal 
   `GET /api/nodes/{id}/config` geschwärzt. In die an Caddy übertragene Config muss er im Klartext.
 - Eine eigene ACME-Richtlinie je Prüfart; die Let's-Encrypt-E-Mail gilt für beide.
 
+## Host-Bereiche (Phase 3)
+
+- Ein Bereich = Pfade (z. B. `/api`, `/admin`) mit abweichenden Regeln; jede Einstellung
+  ist „wie Host“ (`null`) oder überschrieben: Zugriff (öffentlich / Zertifikat mit eigenen
+  Freigaben), WAF-Modus + zusätzliche Ausnahmen, Authelia an/aus, IP-Filter.
+- Caddy: pro Bereich eine Route mit `path`-Matcher und einer vollständigen eigenen Kette
+  (IP → Zertifikat → WAF → Authelia → Dienst) vor der Kette des Hosts; der erste passende
+  Bereich gewinnt (Reihenfolge im UI).
+- Bereiche mit „öffentlich“ machen einen geschützten Host weich (`verify_if_given`), Bereiche
+  mit Zertifikat lassen auch einen öffentlichen Host nach Zertifikaten fragen. Für den
+  Handshake zählen alle Geräte, die irgendwo auf dem Host durchdürfen.
+- Die einfachen „Pfad-Ausnahmen“ aus Phase 2 bleiben für den Alltag; Bereiche sind die
+  ausführliche Variante.
+
 ## Offene Entscheidungen
 
 | Thema | Optionen | Notiz |

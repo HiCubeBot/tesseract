@@ -18,7 +18,7 @@ mTLS (Phase 2):
 import hashlib
 import ipaddress
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 JSON = dict[str, Any]
@@ -28,6 +28,21 @@ FINGERPRINT = "{http.request.tls.client.fingerprint}"
 FINGERPRINT_HEADER = "X-Tesseract-Client-Fingerprint"
 # Auf der Controller-Domain immer ohne Zertifikat erreichbar (Einladungsseite + Dateien)
 CONTROLLER_PUBLIC_PATHS = ("/e/*", "/api/enroll/*", "/assets/*", "/api/health", "/favicon.ico")
+
+
+@dataclass(frozen=True)
+class AreaSpec:
+    """Pfade mit abweichenden Regeln. None = wie beim Host."""
+
+    paths: tuple[str, ...]
+    access: str | None = None  # "public" | "mtls"
+    # eigene Freigaben (None = die des Hosts)
+    allowed: tuple[tuple[str, str], ...] | None = None
+    waf_mode: str | None = None
+    waf_exclusions: tuple[int, ...] = ()
+    authelia: bool | None = None
+    ip_mode: str | None = None
+    ip_ranges: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -63,10 +78,22 @@ class HostSpec:
     authelia: bool = False
     # ACME-Prüfung: "http" (HTTP-01) oder "dns" (DNS-01 über Cloudflare)
     tls_challenge: str = "http"
+    areas: tuple[AreaSpec, ...] = ()
 
     @property
     def needs_client_auth(self) -> bool:
-        return self.access == "mtls" or bool(self.paths)
+        return (
+            self.access == "mtls" or bool(self.paths) or any(a.access == "mtls" for a in self.areas)
+        )
+
+    @property
+    def all_allowed(self) -> tuple[tuple[str, str], ...]:
+        """Alle Geräte, die irgendwo auf diesem Host durchdürfen (für den Handshake)."""
+        seen = dict(self.allowed)
+        for a in self.areas:
+            for fp, pem in a.allowed or ():
+                seen.setdefault(fp, pem)
+        return tuple(seen.items())
 
     @property
     def wants_tls_policy(self) -> bool:
@@ -75,7 +102,12 @@ class HostSpec:
     @property
     def strict(self) -> bool:
         """Ganzer Host geschützt, ohne Zertifikat den Handshake ablehnen."""
-        return self.access == "mtls" and not self.paths and self.no_cert_action == "reject"
+        return (
+            self.access == "mtls"
+            and not self.paths
+            and self.no_cert_action == "reject"
+            and not any(a.access == "public" for a in self.areas)
+        )
 
 
 @dataclass(frozen=True)
@@ -297,9 +329,40 @@ def authelia_handler(url: str, headers: tuple[str, ...] | list[str]) -> JSON:
     return handler
 
 
+def area_spec(host: HostSpec, area: AreaSpec) -> HostSpec:
+    """Host-Einstellungen mit den Abweichungen des Bereichs."""
+    changes: dict = {"areas": ()}
+    if area.access is not None:
+        changes["access"] = area.access
+        changes["paths"] = ()
+        if area.allowed is not None:
+            changes["allowed"] = area.allowed
+    if area.waf_mode is not None:
+        changes["waf_mode"] = area.waf_mode
+    if area.waf_exclusions:
+        changes["waf_exclusions"] = tuple(sorted({*host.waf_exclusions, *area.waf_exclusions}))
+    if area.authelia is not None:
+        changes["authelia"] = area.authelia
+    if area.ip_mode is not None:
+        changes["ip_mode"] = area.ip_mode
+        changes["ip_ranges"] = area.ip_ranges
+    return replace(host, **changes)
+
+
 def host_handlers(host: HostSpec, authelia: JSON | None = None) -> list[JSON]:
     """Die Handler-Kette eines Hosts (ohne Host-Matcher)."""
     routes: list[JSON] = []
+    # Bereiche zuerst: eigene, vollständige Kette für ihre Pfade
+    for area in host.areas:
+        if not area.paths:
+            continue
+        routes.append(
+            {
+                "match": [{"path": path_patterns(area.paths)}],
+                "handle": host_handlers(area_spec(host, area), authelia),
+                "terminal": True,
+            }
+        )
     ip = ip_route(host)
     if ip is not None:
         routes.append(ip)
@@ -364,12 +427,13 @@ def tls_policy(host: HostSpec, ca_der_b64: str) -> JSON:
     }
     if host.strict:
         client_auth["mode"] = "require_and_verify"
-        if host.allowed:
+        allowed = host.all_allowed
+        if allowed:
             client_auth["verifiers"] = [
                 {
                     "verifier": "leaf",
                     "leaf_certs_loaders": [
-                        {"loader": "pem", "certificates": [pem for _, pem in host.allowed]}
+                        {"loader": "pem", "certificates": [pem for _, pem in allowed]}
                     ],
                 }
             ]
