@@ -38,7 +38,9 @@
         waf_default_paranoia: Number(general.waf_default_paranoia),
         controller_waf_mode: general.controller_waf_mode,
         trusted_proxies: general.trusted_proxies,
-        trusted_proxy_list_ids: general.trusted_proxy_list_ids
+        trusted_proxy_list_ids: general.trusted_proxy_list_ids,
+        authelia_url: general.authelia_url,
+        authelia_headers: general.authelia_headers
       });
       ipLists = await api.get<IpList[]>('/ip-lists');
       toasts.show('ok', 'Gespeichert.');
@@ -50,6 +52,20 @@
   }
 
   const modes = Object.entries(WAF_MODES) as [WafMode, string][];
+
+  let testing = $state(false);
+  let testResult = $state<{ ok: boolean; detail: string } | null>(null);
+
+  async function testAuthelia() {
+    testing = true;
+    try {
+      testResult = await api.post<{ ok: boolean; detail: string }>('/settings/authelia/test');
+    } catch (e) {
+      testResult = { ok: false, detail: e instanceof Error ? e.message : String(e) };
+    } finally {
+      testing = false;
+    }
+  }
 </script>
 
 <AppShell active="settings">
@@ -120,10 +136,29 @@
       <div class="row"><Button type="submit" label={saving ? 'Speichert …' : 'Speichern'} disabled={saving} /></div>
     </form>
 
-    <section class="card muted-card">
-      <h2>Authelia</h2>
-      <p class="muted small">Folgt im nächsten Schritt von Phase 3.</p>
-    </section>
+    <form class="card" onsubmit={save} aria-labelledby="authelia-title">
+      <h2 id="authelia-title">Authelia</h2>
+      <p class="muted small">
+        Optionales Login vor einzelnen Hosts. Nutzer, Gruppen und Regeln (ein/zwei Faktoren) pflegst du in Authelia.
+        Tesseract richtet nur die Weiterleitung ein – die Tesseract-Oberfläche selbst nutzt Authelia nicht.
+      </p>
+      <label class="field">
+        Adresse der Authelia-Instanz (vom Node aus)
+        <input class="input mono" placeholder="http://authelia:9091 oder https://auth.beispiel.de" bind:value={general.authelia_url} />
+      </label>
+      <div class="field">
+        An den Dienst weitergereichte Header
+        <ChipInput bind:values={general.authelia_headers} label="Header hinzufügen" placeholder="Remote-User" />
+      </div>
+      <div class="row">
+        <Button type="submit" label={saving ? 'Speichert …' : 'Speichern'} disabled={saving} />
+        <Button variant="secondary" label={testing ? 'Prüft …' : 'Verbindung testen'} disabled={testing || !general.authelia_url} onClick={testAuthelia} />
+        {#if testResult}
+          <span class="small" class:ok={testResult.ok} class:bad={!testResult.ok}>{testResult.detail}</span>
+        {/if}
+      </div>
+      <p class="muted small">Getestet wird vom Controller aus; erst speichern, dann testen.</p>
+    </form>
   {/if}
 </AppShell>
 
@@ -142,8 +177,11 @@
     margin: 0;
     line-height: 1.5;
   }
-  .muted-card {
-    opacity: 0.75;
+  .ok {
+    color: var(--ok-text);
+  }
+  .bad {
+    color: var(--bad-text);
   }
   code {
     font-family: var(--font-mono);

@@ -105,6 +105,17 @@ dass sie später durch den Agent ersetzt werden kann („Node-Treiber“: lokal 
 - Ändert sich eine Liste, werden alle Nodes neu übertragen; benutzte Listen lassen sich
   nicht löschen.
 
+## Authelia als Host-Middleware (Phase 3)
+
+- Einstellungen › Integrationen: Adresse der Authelia-Instanz (vom Node aus) und die
+  Header, die an den Dienst gehen (Standard `Remote-User`, `-Groups`, `-Email`, `-Name`).
+- Pro Host „Login über Authelia“ → Caddy-`forward_auth` an `/api/authz/forward-auth`
+  (Authelia ≥ 4.38). Bei 2xx werden die Header übernommen – vorher immer gelöscht, damit
+  ein Client sie nicht fälschen kann; sonst geht Authelias Antwort (Login-Weiterleitung)
+  an den Browser. Ist Authelia nicht erreichbar, bleibt der Host zu (502), ohne Adresse 503.
+- Reihenfolge: IP-Filter → Zertifikat → WAF → Authelia → Dienst.
+- Die Tesseract-Oberfläche nutzt Authelia nicht (Admin-SSO steht im Backlog).
+
 ## Offene Entscheidungen
 
 | Thema | Optionen | Notiz |

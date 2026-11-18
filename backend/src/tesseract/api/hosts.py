@@ -79,6 +79,7 @@ class HostIn(BaseModel):
     ip_mode: Literal["off", "block", "allow"] = "off"
     ip_entries: list[str] = Field(default_factory=list, max_length=500)
     ip_list_ids: list[int] = Field(default_factory=list, max_length=50)
+    authelia: bool = False
     enabled: bool = True
     draft: bool = False
     comment: str = Field("", max_length=255)
@@ -165,6 +166,7 @@ class HostOut(BaseModel):
     ip_mode: str
     ip_entries: list[str]
     ip_list_ids: list[int]
+    authelia: bool
     paths: list[str]
     grants: list[GrantRef]
     granted_persons: int
@@ -233,6 +235,11 @@ def _check_ip_lists(db: Session, body: HostIn) -> None:
 
 def _check_grants(db: Session, body: HostIn) -> None:
     _check_ip_lists(db, body)
+    if body.authelia and not get_general(db)["authelia_url"]:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Erst unter Einstellungen › Integrationen die Authelia-Adresse eintragen",
+        )
     for model, ids, what in (
         (Group, body.grant_group_ids, "Gruppe"),
         (Person, body.grant_person_ids, "Person"),

@@ -18,6 +18,7 @@ export function emptyHost(nodeId = 0): HostInput {
     ip_mode: 'off',
     ip_entries: [],
     ip_list_ids: [],
+    authelia: false,
     paths: [],
     grant_group_ids: [],
     grant_person_ids: [],
@@ -44,6 +45,7 @@ export function toInput(h: Host): HostInput {
     ip_mode: h.ip_mode,
     ip_entries: [...h.ip_entries],
     ip_list_ids: [...h.ip_list_ids],
+    authelia: h.authelia,
     paths: [...h.paths],
     grant_group_ids: h.grants.filter((g) => g.kind === 'group').map((g) => g.id),
     grant_person_ids: h.grants.filter((g) => g.kind === 'person').map((g) => g.id),
@@ -69,6 +71,7 @@ export function protectionLabel(h: Host): string {
   if (h.ip_mode !== 'off') parts.push('IP');
   if (h.waf_mode === 'block') parts.push('WAF');
   if (h.waf_mode === 'detect') parts.push('WAF (Log)');
+  if (h.authelia) parts.push('Authelia');
   return parts.join(' · ') || '–';
 }
 

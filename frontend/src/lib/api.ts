@@ -102,6 +102,7 @@ export interface Host {
   ip_mode: IpMode;
   ip_entries: string[];
   ip_list_ids: number[];
+  authelia: boolean;
   paths: string[];
   grants: GrantRef[];
   granted_persons: number;
@@ -238,6 +239,8 @@ export interface GeneralSettings {
   controller_waf_mode: WafMode;
   trusted_proxies: string[];
   trusted_proxy_list_ids: number[];
+  authelia_url: string;
+  authelia_headers: string[];
   controller_domain: string;
   version: string;
 }
@@ -292,6 +295,7 @@ export const FIELD_LABELS: Record<string, string> = {
   ip_mode: 'IP-Filter',
   ip_entries: 'IPs/Netze',
   ip_lists: 'IP-Listen',
+  authelia: 'Login über Authelia',
   enabled: 'Aktiv',
   draft: 'Entwurf'
 };

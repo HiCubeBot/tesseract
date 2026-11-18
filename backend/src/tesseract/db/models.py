@@ -98,6 +98,8 @@ class Host(Base):
     # einzelne IPs/Netze (CIDR) und IDs benannter IP-Listen
     ip_entries: Mapped[list[str]] = mapped_column(JSON, default=list)
     ip_list_ids: Mapped[list[int]] = mapped_column(JSON, default=list)
+    # Login über Authelia vor dem Dienst (forward_auth)
+    authelia: Mapped[bool] = mapped_column(default=False)
     # Entwürfe werden gespeichert, aber nicht an Caddy übertragen
     draft: Mapped[bool] = mapped_column(default=False)
     enabled: Mapped[bool] = mapped_column(default=True)

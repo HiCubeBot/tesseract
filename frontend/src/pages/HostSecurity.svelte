@@ -5,12 +5,14 @@
   import SegmentedControl from '../lib/components/SegmentedControl.svelte';
   import Icon from '../lib/components/Icon.svelte';
   import ChipInput from '../lib/components/ChipInput.svelte';
+  import Toggle from '../lib/components/Toggle.svelte';
   import {
     api,
     IP_MODES,
     WAF_MODES,
     type Host,
     type HostInput,
+    type GeneralSettings,
     type HostSaved,
     type IpList,
     type IpMode,
@@ -33,10 +35,17 @@
   const ipModes: IpMode[] = ['off', 'block', 'allow'];
   let ipIndex = $state(0);
   let ipLists = $state<IpList[]>([]);
+  let autheliaUrl = $state('');
 
   async function load() {
     try {
-      [host, ipLists] = await Promise.all([api.get<Host>(`/hosts/${hostId}`), api.get<IpList[]>('/ip-lists')]);
+      let general: GeneralSettings;
+      [host, ipLists, general] = await Promise.all([
+        api.get<Host>(`/hosts/${hostId}`),
+        api.get<IpList[]>('/ip-lists'),
+        api.get<GeneralSettings>('/settings/general')
+      ]);
+      autheliaUrl = general.authelia_url;
       form = toInput(host);
       modeIndex = modes.indexOf(host.waf_mode);
       ipIndex = ipModes.indexOf(host.ip_mode);
@@ -54,7 +63,7 @@
     if (form) form.ip_mode = ipModes[ipIndex];
   });
 
-  const KEYS = ['waf_mode', 'waf_paranoia', 'waf_exclusions', 'ip_mode', 'ip_entries', 'ip_list_ids'] as const;
+  const KEYS = ['waf_mode', 'waf_paranoia', 'waf_exclusions', 'ip_mode', 'ip_entries', 'ip_list_ids', 'authelia'] as const;
   const pick = (o: Record<string, unknown>) => JSON.stringify(KEYS.map((k) => o[k]));
   const dirty = $derived(!!host && !!form && pick(form) !== pick(toInput(host)));
   const ipEmpty = $derived(!!form && form.ip_mode === 'allow' && !form.ip_entries.length && !form.ip_list_ids.length);
@@ -91,7 +100,7 @@
             note: host.access === 'mtls' ? 'mTLS' : host.paths.length ? 'einzelne Pfade' : 'aus'
           },
           { label: 'Coraza WAF', on: (form?.waf_mode ?? host.waf_mode) !== 'off', note: WAF_MODES[form?.waf_mode ?? host.waf_mode] },
-          { label: 'Authelia', on: false, note: 'folgt' },
+          { label: 'Authelia', on: form?.authelia ?? host.authelia, note: (form?.authelia ?? host.authelia) ? 'Login' : 'aus' },
           { label: 'Dienst', on: true, note: `${host.upstream_host}:${host.upstream_port}` }
         ]
       : []
@@ -209,16 +218,29 @@
       {/if}
     </section>
 
+
+    <section class="card" aria-labelledby="auth-title">
+      <h2 id="auth-title">Authelia</h2>
+      {#if autheliaUrl}
+        <Toggle
+          label="Login über Authelia"
+          description={`Vor dem Dienst erscheint das Authelia-Login (${autheliaUrl}). Nutzer, Regeln und Zwei-Faktor pflegst du in Authelia selbst.`}
+          bind:checked={form.authelia}
+        />
+        <p class="muted small">Ergänzt Zertifikat und WAF – die laufen vorher. Für die Tesseract-Oberfläche wird Authelia nicht verwendet.</p>
+      {:else}
+        <p class="muted small">
+          Noch keine Authelia-Instanz eingetragen –
+          <a href="#/settings-integrations">Einstellungen › Integrationen</a>.
+        </p>
+      {/if}
+    </section>
+
     <div class="row sticky">
       <Button label={saving ? 'Überträgt …' : 'Speichern & übertragen'} disabled={!dirty || saving || ipEmpty} onClick={save} />
       <Button variant="secondary" label="Verwerfen" disabled={!dirty || saving} onClick={load} />
       {#if dirty}<span class="muted small">Ungespeicherte Änderungen</span>{/if}
     </div>
-
-    <section class="card muted-card">
-      <h2>Authelia</h2>
-      <p class="muted small">Folgt im nächsten Schritt von Phase 3.</p>
-    </section>
   {/if}
 </AppShell>
 
@@ -328,9 +350,6 @@
   }
   .rule-input {
     max-width: 160px;
-  }
-  .muted-card {
-    opacity: 0.75;
   }
   .tiny {
     font-size: 11px;

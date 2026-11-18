@@ -59,6 +59,8 @@ class HostSpec:
     # IP-Filter: "off" | "block" | "allow", aufgelöste Netze (CIDR)
     ip_mode: str = "off"
     ip_ranges: tuple[str, ...] = ()
+    # Login über Authelia (forward_auth); greift nur mit gesetzter Authelia-Adresse
+    authelia: bool = False
 
     @property
     def needs_client_auth(self) -> bool:
@@ -86,6 +88,14 @@ class NodeSpec:
     controller_waf_mode: str = "off"
     # Vertrauenswürdige Proxys davor (z. B. Cloudflare) – nur dann zählt X-Forwarded-For
     trusted_proxies: tuple[str, ...] = ()
+    # Authelia-Instanz, z. B. "http://authelia:9091" oder "https://auth.example.org"
+    authelia_url: str = ""
+    authelia_headers: tuple[str, ...] = (
+        "Remote-User",
+        "Remote-Groups",
+        "Remote-Email",
+        "Remote-Name",
+    )
     acme_email: str = ""
     # Geräte-Zwischenzertifikat (DER, Base64) – Vertrauensanker für Client-Zertifikate
     client_ca_der_b64: str = ""
@@ -233,7 +243,57 @@ def ip_route(host: HostSpec) -> JSON | None:
     return route
 
 
-def host_handlers(host: HostSpec) -> list[JSON]:
+AUTHELIA_ENDPOINT = "/api/authz/forward-auth"
+
+
+def _upstream_from_url(url: str) -> tuple[str, bool]:
+    """'https://auth.example.org' → ('auth.example.org:443', True)."""
+    from urllib.parse import urlsplit
+
+    parts = urlsplit(url if "://" in url else f"http://{url}")
+    tls = parts.scheme == "https"
+    host = parts.hostname or ""
+    if ":" in host:
+        host = f"[{host}]"
+    port = parts.port or (443 if tls else 80)
+    return f"{host}:{port}", tls
+
+
+def authelia_handler(url: str, headers: tuple[str, ...] | list[str]) -> JSON:
+    """Entspricht Caddys `forward_auth`: Anfrage an Authelia, bei 2xx Header übernehmen,
+    sonst Authelias Antwort (Weiterleitung zum Login) an den Browser."""
+    dial, tls = _upstream_from_url(url)
+    copy_routes: list[JSON] = [{"handle": [{"handler": "vars"}]}]
+    for name in headers:
+        placeholder = "{http.reverse_proxy.header." + name + "}"
+        # Erst löschen – ein vom Client mitgeschickter Header darf nie durchkommen
+        copy_routes.append({"handle": [{"handler": "headers", "request": {"delete": [name]}}]})
+        copy_routes.append(
+            {
+                "match": [{"not": [{"vars": {placeholder: [""]}}]}],
+                "handle": [{"handler": "headers", "request": {"set": {name: [placeholder]}}}],
+            }
+        )
+    handler: JSON = {
+        "handler": "reverse_proxy",
+        "upstreams": [{"dial": dial}],
+        "rewrite": {"method": "GET", "uri": AUTHELIA_ENDPOINT},
+        "headers": {
+            "request": {
+                "set": {
+                    "X-Forwarded-Method": ["{http.request.method}"],
+                    "X-Forwarded-Uri": ["{http.request.uri}"],
+                }
+            }
+        },
+        "handle_response": [{"match": {"status_code": [2]}, "routes": copy_routes}],
+    }
+    if tls:
+        handler["transport"] = {"protocol": "http", "tls": {}}
+    return handler
+
+
+def host_handlers(host: HostSpec, authelia: JSON | None = None) -> list[JSON]:
     """Die Handler-Kette eines Hosts (ohne Host-Matcher)."""
     routes: list[JSON] = []
     ip = ip_route(host)
@@ -244,6 +304,22 @@ def host_handlers(host: HostSpec) -> list[JSON]:
         routes.append(gate)
     if host.waf_mode in ("detect", "block"):
         routes.append({"handle": [waf_handler(host)]})
+    if host.authelia and authelia is not None:
+        routes.append({"handle": [authelia]})
+    elif host.authelia:
+        # Authelia gewünscht, aber nicht eingerichtet → lieber zu als offen
+        routes.append(
+            {
+                "handle": [
+                    {
+                        "handler": "static_response",
+                        "status_code": 503,
+                        "body": "Anmeldung (Authelia) ist nicht eingerichtet",
+                    }
+                ],
+                "terminal": True,
+            }
+        )
     if not host.websockets:
         routes.append(
             {
@@ -268,11 +344,11 @@ def host_handlers(host: HostSpec) -> list[JSON]:
     return [{"handler": "subroute", "routes": routes}]
 
 
-def host_route(host: HostSpec) -> JSON:
+def host_route(host: HostSpec, authelia: JSON | None = None) -> JSON:
     return {
         "@id": f"host-{host.id}",
         "match": [{"host": [host.domain]}],
-        "handle": host_handlers(host),
+        "handle": host_handlers(host, authelia),
         "terminal": True,
     }
 
@@ -346,13 +422,16 @@ def build_config(spec: NodeSpec) -> JSON:
         http_routes.append(_redirect_route(spec.controller_domain))
         policy_hosts.append(controller_spec(spec))
 
+    authelia = (
+        authelia_handler(spec.authelia_url, spec.authelia_headers) if spec.authelia_url else None
+    )
     for host in hosts:
-        https_routes.append(host_route(host))
+        https_routes.append(host_route(host, authelia))
         # Geschützte Hosts nie unverschlüsselt ausliefern (über HTTP gibt es kein Zertifikat)
         if host.force_https or host.needs_client_auth:
             http_routes.append(_redirect_route(host.domain))
         else:
-            route = host_route(host)
+            route = host_route(host, authelia)
             route["@id"] = f"host-{host.id}-http"
             http_routes.append(route)
 

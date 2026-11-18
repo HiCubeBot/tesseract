@@ -44,6 +44,7 @@ SNAPSHOT_FIELDS = (
     "ip_mode",
     "ip_entries",
     "ip_lists",
+    "authelia",
     "enabled",
     "draft",
 )
@@ -59,6 +60,9 @@ GENERAL_DEFAULTS: dict[str, Any] = {
     # Vertrauenswürdige Proxys: einzelne Netze und IDs von IP-Listen
     "trusted_proxies": [],
     "trusted_proxy_list_ids": [],
+    # Authelia als Middleware für Hosts (kein Login für die Oberfläche)
+    "authelia_url": "",
+    "authelia_headers": ["Remote-User", "Remote-Groups", "Remote-Email", "Remote-Name"],
 }
 ADMIN_GROUP = "Admin"
 
@@ -290,6 +294,7 @@ def host_spec(
         waf_exclusions=tuple(getattr(host, "waf_exclusions", None) or ()),
         ip_mode=getattr(host, "ip_mode", "off"),
         ip_ranges=tuple(ip_ranges or ()),
+        authelia=bool(getattr(host, "authelia", False)),
     )
 
 
@@ -326,6 +331,8 @@ def node_config(db: Session, node: Node, settings: Settings) -> dict[str, Any]:
         trusted_proxies=tuple(
             resolve_ranges(db, general["trusted_proxies"], general["trusted_proxy_list_ids"])
         ),
+        authelia_url=general["authelia_url"],
+        authelia_headers=tuple(general["authelia_headers"]),
     )
     return build_config(spec)
 
