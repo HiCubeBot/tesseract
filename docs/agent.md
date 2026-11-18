@@ -19,10 +19,34 @@ Paket und Image: `agent/` (Python 3.13, nur `httpx` und `cryptography`).
 ## Node hinzufügen
 
 1. **Controller › Nodes › Node hinzufügen** – Name (z. B. `pi-eltern`) und Standort. Der
-   Controller zeigt ein **Beitritts-Token** (30 Minuten gültig, einmal verwendbar) mit
-   fertigem Befehl und Compose-Ausschnitt. Voraussetzung: die Zertifizierungsstelle ist
+   Controller zeigt ein **Beitritts-Token** (30 Minuten gültig, einmal verwendbar) und einen
+   fertigen **Installationsbefehl**. Voraussetzung: die Zertifizierungsstelle ist
    eingerichtet, denn sie signiert die Node-Zertifikate.
-2. **Auf dem Node** Caddy und Agent starten, Vorlage: [`docker/node/compose.yaml`](../docker/node/compose.yaml)
+2. **Auf dem neuen Server** (Linux mit Docker) den Befehl ausführen:
+   ```bash
+   curl -fsSL https://tesseract.beispiel.de/install/node.sh | sudo sh -s -- --token <Token>
+   ```
+   Das Skript vom Controller legt `/opt/tesseract-node` an (Compose-Datei, `.env` mit Rechten
+   600), lädt die Images, startet Caddy und Agent und zeigt den Schlüssel-Fingerabdruck an.
+
+   | Option | Wirkung |
+   |---|---|
+   | `--install-docker` | Docker über get.docker.com installieren, falls es fehlt |
+   | `--registry-token T` (`--registry-user U`) | Anmeldung an der Registry, wenn die Images nicht öffentlich sind (Token mit `read:packages`) |
+   | `--dir PFAD` | anderer Ordner statt `/opt/tesseract-node` |
+   | `--update` | vorhandene Installation auf die Version des Controllers bringen |
+   | `--uninstall --yes` | Container, Volumes und Ordner entfernen |
+
+   **Interne Controller-Domain** (z. B. `tesseract.lan`, Zertifikat aus Caddys eigener CA): Der
+   Befehl lädt das Skript dann mit `-k`, prüft aber vorher dessen **SHA-256-Prüfsumme**. Das
+   Skript bringt die CA mit (vom Controller-Caddy, `/pki/ca/local`), der Agent vertraut damit
+   nur diesem Controller.
+
+   **Ohne Internet** auf dem Node: Images vorher einspielen
+   (`docker save … | ssh node docker load`); das Skript nutzt sie, wenn die Registry nicht
+   erreichbar ist.
+
+   Von Hand geht es weiterhin mit der Vorlage [`docker/node/compose.yaml`](../docker/node/compose.yaml)
    ```bash
    cat > .env <<'EOF'
    TESSERACT_CONTROLLER=https://tesseract.beispiel.de
@@ -112,6 +136,7 @@ Beim lokalen Node prüft der Controller selbst alle 30 Sekunden die laufende Con
 
 | Methode & Pfad | Anmeldung | Zweck |
 |---|---|---|
+| `GET /install/node.sh` | – | Installationsskript (ohne Geheimnisse; Token kommt als Argument) |
 | `POST /api/agent/join` | Beitritts-Token | CSR, Rechnername, Version → `node_id`, Abhol-Geheimnis |
 | `GET /api/agent/join/{node_id}` | `X-Join-Secret` | `202` wartet · `200` Zertifikat, Kette, Agent-Token (einmalig) · `403` abgelehnt |
 | `GET /api/agent/config` | Zertifikat + Token | Soll-Config (Long-Polling, `204` ohne Änderung) |

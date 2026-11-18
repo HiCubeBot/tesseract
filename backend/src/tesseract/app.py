@@ -108,6 +108,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     from tesseract.api.metrics import public as metrics_public
 
     app.include_router(metrics_public)
+    # Installationsskript für Nodes: curl -fsSL https://<controller>/install/node.sh | sudo sh
+    from tesseract.api.install import router as install_router
+
+    app.include_router(install_router)
 
     if settings.static_dir and settings.static_dir.is_dir():
         _mount_frontend(app, settings.static_dir)

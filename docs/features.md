@@ -76,7 +76,7 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | Feature | Beschreibung | Phase |
 |---|---|---|
 | Node-Übersicht | Standort, Caddy-Version, Anzahl Hosts, letzter Kontakt, Status (online, offline, lokal geändert, Fehler), Agent-Version, Zertifikat | 4 |
-| Node hinzufügen | Beitritts-Token (30 Min., einmalig) mit Befehl und Compose-Ausschnitt → Agent starten → Schlüssel-Fingerabdruck vergleichen und im Controller bestätigen | 4 |
+| Node hinzufügen | Beitritts-Token (30 Min., einmalig) und Installationsbefehl (`curl … /install/node.sh | sudo sh`) – richtet Caddy und Agent auf dem Server ein → Schlüssel-Fingerabdruck vergleichen und im Controller bestätigen | 4 / 1.1 |
 | Agent | Erzeugt eigene Schlüssel, baut mTLS-Verbindung zum Controller auf (Long-Polling über HTTPS); kein offener Admin-Port, funktioniert hinter NAT | 4 |
 | Config-Abweichung | Erkennt lokale Änderungen (Diff pro Host) – „Mit Controller überschreiben“ oder „Änderung übernehmen“ (gilt bis zur nächsten Übertragung) | 4 |
 | Modul-Übersicht | Welche Caddy-Module (Coraza, DNS Cloudflare) je Node vorhanden sind; Hosts, die ein fehlendes Modul brauchen, werden beim Speichern abgelehnt | 4 / 1.1 |

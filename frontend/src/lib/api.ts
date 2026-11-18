@@ -336,7 +336,11 @@ export interface NodeInfo {
 export interface JoinToken {
   token: string;
   expires_at: string;
+  /** nur der Agent, per Kommandozeile */
   command: string;
+  /** ein Befehl für den neuen Server (Installationsskript vom Controller) */
+  install_command: string;
+  install_sha256: string;
 }
 
 export interface DriftChange {

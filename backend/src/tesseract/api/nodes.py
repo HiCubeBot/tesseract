@@ -47,7 +47,11 @@ class NodeOut(BaseModel):
 class JoinToken(BaseModel):
     token: str
     expires_at: datetime
+    # Agent ohne Docker-Vorlage (Kommandozeile)
     command: str
+    # Ein Befehl für den neuen Server: lädt das Installationsskript vom Controller
+    install_command: str
+    install_sha256: str
 
 
 class NodeCreated(BaseModel):
@@ -113,12 +117,17 @@ def _controller_url(request: Request, settings) -> str:
     return str(request.base_url).rstrip("/")
 
 
-def _join(request: Request, settings, token: str, node: Node) -> JoinToken:
+def _join(request: Request, db, settings, token: str, node: Node) -> JoinToken:
+    from tesseract.api.install import install_info
+
     url = _controller_url(request, settings)
+    info = install_info(request, db, token)
     return JoinToken(
         token=token,
         expires_at=node.join_expires_at,
         command=f"tesseract-agent join --controller {url} --token {token}",
+        install_command=info["command"],
+        install_sha256=info["sha256"],
     )
 
 
@@ -152,7 +161,9 @@ def create_node(
     db.add(node)
     audit.record(db, actor=actor.name, action="node_created", target=name, ip=actor.ip)
     db.commit()
-    return NodeCreated(node=_out(db, node, settings, 0), join=_join(request, settings, token, node))
+    return NodeCreated(
+        node=_out(db, node, settings, 0), join=_join(request, db, settings, token, node)
+    )
 
 
 @router.put("/{node_id}")
@@ -203,7 +214,7 @@ def new_token(
     token = node_svc.new_join_token(node)
     audit.record(db, actor=actor.name, action="node_token_created", target=node.name, ip=actor.ip)
     db.commit()
-    return _join(request, settings, token, node)
+    return _join(request, db, settings, token, node)
 
 
 @router.post("/{node_id}/approve")

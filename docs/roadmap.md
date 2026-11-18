@@ -197,6 +197,8 @@ Offen / bewusst verschoben:
 - [x] Hosts mit WAF/DNS-01 auf Nodes ohne das Caddy-Modul werden beim Speichern abgelehnt
 - [x] Aufgaben für Agents über das Long-Polling: Erreichbarkeit des Ziels vom Node aus,
   Zertifikate des Nodes für die Übersicht
+- [x] Nodes per Einzeiler installieren (`/install/node.sh`), auch mit interner Domain und ohne
+  Internet
 - [x] Behoben: lokale `.env` im Image, Caddy fragte nach dem Einrichten der CA nicht sofort
   nach Client-Zertifikaten, Zertifikatsübersicht bei Agent-Nodes
 

@@ -231,14 +231,25 @@
         <Button variant="ghost" size="sm" icon="close" label="Ausblenden" onClick={() => (join = null)} />
       </div>
       <ol>
-        <li>Caddy auf dem Server starten (Image <span class="mono">tesseract-caddy</span> oder eigener Build mit den nötigen Modulen).</li>
-        <li>Agent mit dem Token starten – er erzeugt seinen Schlüssel selbst und zeigt dessen Fingerabdruck an.</li>
+        <li>Auf dem neuen Server (Linux mit Docker) diesen Befehl ausführen. Er richtet Caddy und Agent in <span class="mono">/opt/tesseract-node</span> ein und startet beide.</li>
+        <li>Das Skript zeigt am Ende den Fingerabdruck des Agent-Schlüssels.</li>
         <li>Hier die Anfrage bestätigen, wenn der Fingerabdruck übereinstimmt. Danach holt der Agent die Config ab.</li>
       </ol>
-      <div class="code-head"><span class="eyebrow">Kommandozeile</span><Button variant="ghost" size="sm" icon="clipboard" label="Kopieren" onClick={() => copy(join!.data.command)} /></div>
-      <pre class="code">{join.data.command}</pre>
-      <div class="code-head"><span class="eyebrow">oder Docker Compose (neben Caddy)</span><Button variant="ghost" size="sm" icon="clipboard" label="Kopieren" onClick={() => copy(compose)} /></div>
-      <pre class="code">{compose}</pre>
+      <div class="code-head"><span class="eyebrow">Installieren</span><Button variant="ghost" size="sm" icon="clipboard" label="Kopieren" onClick={() => copy(join!.data.install_command)} /></div>
+      <pre class="code">{join.data.install_command}</pre>
+      <p class="muted small">
+        Ohne Docker auf dem Server: <span class="mono">--install-docker</span> anhängen. Sind die Images nicht öffentlich:
+        <span class="mono">--registry-token &lt;Token mit read:packages&gt;</span>. Skript vorher ansehen:
+        <a href={join.data.install_command.match(/https?:\/\/\S+\/install\/node\.sh/)?.[0] ?? '#'} target="_blank" rel="noopener">node.sh</a>
+        · Prüfsumme <span class="mono sha">{join.data.install_sha256}</span>
+      </p>
+      <details>
+        <summary class="small">Andere Wege: Docker Compose von Hand oder nur der Agent</summary>
+        <div class="code-head"><span class="eyebrow">Docker Compose (neben Caddy)</span><Button variant="ghost" size="sm" icon="clipboard" label="Kopieren" onClick={() => copy(compose)} /></div>
+        <pre class="code">{compose}</pre>
+        <div class="code-head"><span class="eyebrow">Agent per Kommandozeile</span><Button variant="ghost" size="sm" icon="clipboard" label="Kopieren" onClick={() => copy(join!.data.command)} /></div>
+        <pre class="code">{join.data.command}</pre>
+      </details>
       <p class="muted small">Das Token ist 30 Minuten gültig und nur einmal verwendbar. Es wird nicht wieder angezeigt.</p>
     </section>
   {/if}
@@ -358,6 +369,19 @@
 </AppShell>
 
 <style>
+  .sha {
+    font-size: 11px;
+    overflow-wrap: anywhere;
+  }
+  details summary {
+    cursor: pointer;
+    color: var(--text-muted);
+  }
+  details[open] {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
   .form-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

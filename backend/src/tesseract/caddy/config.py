@@ -38,6 +38,8 @@ CONTROLLER_PUBLIC_PATHS = (
     "/favicon.ico",
     # Prometheus: Schutz (Token, Admin-Zertifikat oder IP-Liste) prüft der Controller
     "/metrics",
+    # Installationsskript für Nodes – enthält keine Geheimnisse
+    "/install/*",
 )
 
 

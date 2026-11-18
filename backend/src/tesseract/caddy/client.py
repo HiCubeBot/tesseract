@@ -38,6 +38,17 @@ class CaddyClient:
             raise CaddyError(_error_text(r))
         return r.json()
 
+    def pki(self, ca: str = "local") -> dict[str, Any]:
+        """Infos zu Caddys eigener CA (GET /pki/ca/<id>), u. a. root_certificate."""
+        try:
+            with self._client() as c:
+                r = c.get(f"/pki/ca/{ca}")
+        except httpx.HTTPError as e:
+            raise CaddyError(f"Caddy nicht erreichbar ({self.admin_url}): {e}") from e
+        if r.status_code >= 400:
+            raise CaddyError(_error_text(r))
+        return r.json()
+
     def metrics(self) -> str:
         """Prometheus-Text der Admin-API (GET /metrics)."""
         try:

@@ -7,6 +7,10 @@ Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinwe
 ## [1.1.0] – 2026-11-18
 
 ### Neu
+- **Nodes per Einzeiler installieren**: `curl -fsSL https://<controller>/install/node.sh | sudo sh
+  -s -- --token …` richtet Caddy und Agent ein, zeigt den Fingerabdruck; `--update`,
+  `--uninstall`, `--install-docker`, `--registry-token`; bei interner Domain mit
+  Prüfsumme und mitgelieferter CA; nutzt vorab eingespielte Images, wenn die Registry fehlt
 - **https zum Ziel ohne Zertifikatsprüfung** pro Host – für selbst signierte Zertifikate
   (Proxmox, Unifi, NAS-Oberflächen)
 - **Fehlende Caddy-Module** werden beim Speichern erkannt: Ein Host mit WAF oder DNS-01 auf

@@ -59,9 +59,20 @@ Danach ist die Oberfläche unter `https://<TESSERACT_DOMAIN>` erreichbar.
 
 ## Weitere Nodes
 
-Vorlage [`docker/node/compose.yaml`](../docker/node/compose.yaml) auf den Server legen, unter
-**Nodes › Node hinzufügen** ein Token erzeugen, in die `.env` des Nodes eintragen und starten.
-Details: [agent.md](agent.md).
+Unter **Nodes › Node hinzufügen** einen Node anlegen und den angezeigten Befehl auf dem neuen
+Server ausführen – z. B.:
+
+```bash
+curl -fsSL https://tesseract.beispiel.de/install/node.sh | sudo sh -s -- --token <Token>
+```
+
+Danach den angezeigten Fingerabdruck im Controller vergleichen und bestätigen. Optionen und
+Sonderfälle (ohne Docker, private Images, interne Domain, ohne Internet): [agent.md](agent.md).
+
+**Images:** Die Nodes laden `ghcr.io/hicubebot/tesseract-caddy` und `…/tesseract-agent`. Ist das
+Repository privat, sind die Pakete es zunächst auch – entweder in GitHub unter *Packages ›
+Package settings* auf „Public“ stellen (sie enthalten keine Geheimnisse) oder beim Installieren
+`--registry-token` mitgeben.
 
 ## Wenn etwas nicht klappt
 
