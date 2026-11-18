@@ -30,6 +30,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.db = init_database(settings)
         app.state.secretbox = load_secretbox(settings)
+        from tesseract.notify import Notifier, Sender
+
+        app.state.notifier = Notifier(Sender(app.state.secretbox, app.state.notify_transport))
         tasks = []
         if settings.sync_on_start:
             tasks.append(
@@ -55,6 +58,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             tasks.append(
                 asyncio.create_task(watch_local(app.state.db, settings, app.state.caddy_transport))
             )
+            from tesseract.notify import watch as notify_watch
+
+            tasks.append(asyncio.create_task(notify_watch(app.state.db, app.state.notifier)))
         yield
         for task in tasks:
             task.cancel()
@@ -78,6 +84,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.logs = Collector(Geo(settings.geoip_db))
     # In Tests durch einen httpx.MockTransport ersetzt
     app.state.caddy_transport = None
+    # Benachrichtigungen (ntfy, Webhook) – in Tests ein MockTransport
+    app.state.notify_transport = None
     app.include_router(api_router, prefix="/api")
     # Prometheus erwartet /metrics an der Wurzel
     from tesseract.api.metrics import public as metrics_public

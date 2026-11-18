@@ -294,16 +294,39 @@ def check_local(
     update_running(db, node, config_hash(running), running)
 
 
+def track_online(db: Session, seen: dict[int, bool]) -> None:
+    """Wechsel online ↔ offline als Audit-Eintrag (Grundlage der Benachrichtigungen).
+    Der erste Blick auf einen Node legt nur den Ausgangszustand fest."""
+    now = utcnow()
+    for node in db.scalars(select(Node)):
+        if not node.joined or node.last_seen_at is None:
+            continue
+        online = state(node, now) != "offline"
+        before = seen.get(node.id)
+        seen[node.id] = online
+        if before is None or before == online:
+            continue
+        audit.record(
+            db,
+            actor="system",
+            action="node_online" if online else "node_offline",
+            target=node.name,
+            details={"since": node.last_seen_at.isoformat(timespec="seconds")},
+        )
+
+
 async def watch_local(database, settings, transport=None, interval: float = 30.0) -> None:
     """Hintergrund-Aufgabe: lokale Nodes regelmäßig prüfen (Module alle 10 Minuten)."""
     import asyncio
 
     rounds = 0
+    seen: dict[int, bool] = {}
     while True:
         try:
             with database.sessionmaker() as db:
                 for node in db.scalars(select(Node).where(Node.kind == "local")):
                     await asyncio.to_thread(check_local, db, node, transport, rounds % 20 == 0)
+                track_online(db, seen)
                 db.commit()
         except asyncio.CancelledError:
             raise

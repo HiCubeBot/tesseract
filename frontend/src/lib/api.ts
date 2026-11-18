@@ -515,7 +515,9 @@ export const ACTION_LABELS: Record<string, string> = {
   node_joined: 'Agent verbunden',
   node_drift_detected: 'Abweichung auf Node erkannt',
   node_drift_overwritten: 'Abweichung überschrieben',
-  node_drift_accepted: 'Abweichung übernommen'
+  node_drift_accepted: 'Abweichung übernommen',
+  node_offline: 'Node offline',
+  node_online: 'Node wieder online'
 };
 
 // ---------- Phase 2: CA, Personen, Geräte ----------
