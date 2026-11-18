@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from tesseract import audit, checks
 from tesseract.api.iplists import normalize_networks
-from tesseract.caddy.config import host_route
+from tesseract.caddy.config import host_route, is_public_name
 from tesseract.db.models import Group, Host, HostArea, HostVersion, IpList, Node, Person
 from tesseract.deps import DB, AppSettings, CurrentActor
 from tesseract.services import (
@@ -144,6 +144,7 @@ class HostIn(BaseModel):
     ip_list_ids: list[int] = Field(default_factory=list, max_length=50)
     authelia: bool = False
     tls_challenge: Literal["http", "dns"] = "http"
+    internal: bool = False
     areas: list[AreaIn] = Field(default_factory=list, max_length=20)
     enabled: bool = True
     draft: bool = False
@@ -229,6 +230,7 @@ class HostOut(BaseModel):
     ip_list_ids: list[int]
     authelia: bool
     tls_challenge: str
+    internal: bool
     areas: list[AreaOut]
     paths: list[str]
     grants: list[GrantRef]
@@ -332,7 +334,18 @@ def _check_ip_lists(db: Session, body: HostIn) -> None:
 
 def _check_grants(db: Session, body: HostIn) -> None:
     _check_ip_lists(db, body)
-    if body.tls_challenge == "dns" and not get_general(db)["cloudflare_token_enc"]:
+    general = get_general(db)
+    if body.internal and not (general["internal_networks"] or general["internal_list_ids"]):
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Erst unter Einstellungen › Integrationen die internen Netze festlegen",
+        )
+    if body.internal and body.tls_challenge == "http" and is_public_name(body.domain):
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Interne Hosts sind von außen nicht erreichbar – das Zertifikat braucht DNS-01",
+        )
+    if body.tls_challenge == "dns" and not general["cloudflare_token_enc"]:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
             "Für DNS-01 erst unter Einstellungen › Integrationen den Cloudflare-Token eintragen",

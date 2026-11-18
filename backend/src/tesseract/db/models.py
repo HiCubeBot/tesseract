@@ -102,6 +102,8 @@ class Host(Base):
     authelia: Mapped[bool] = mapped_column(default=False)
     # ACME-Prüfung: "http" (HTTP-01, Port 80) oder "dns" (DNS-01 über Cloudflare, auch Wildcards)
     tls_challenge: Mapped[str] = mapped_column(String(8), default="http")
+    # Nur aus internen Netzen (LAN/VPN) erreichbar – alle anderen: Verbindung abbrechen
+    internal: Mapped[bool] = mapped_column(default=False)
     # Entwürfe werden gespeichert, aber nicht an Caddy übertragen
     draft: Mapped[bool] = mapped_column(default=False)
     enabled: Mapped[bool] = mapped_column(default=True)

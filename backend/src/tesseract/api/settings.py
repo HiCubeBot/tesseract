@@ -43,6 +43,13 @@ class GeneralIn(BaseModel):
     autoban_window_minutes: int = Field(10, ge=1, le=1440)
     autoban_hours: int = Field(24, ge=1, le=24 * 365)
     autoban_exempt: list[str] = Field(default_factory=list, max_length=200)
+    internal_networks: list[str] = Field(default_factory=list, max_length=200)
+    internal_list_ids: list[int] = Field(default_factory=list, max_length=20)
+
+    @field_validator("internal_networks")
+    @classmethod
+    def _internal(cls, v: list[str]) -> list[str]:
+        return normalize_networks(v)
 
     @field_validator("autoban_exempt")
     @classmethod
@@ -118,6 +125,8 @@ class GeneralOut(BaseModel):
     autoban_window_minutes: int
     autoban_hours: int
     autoban_exempt: list[str]
+    internal_networks: list[str]
+    internal_list_ids: list[int]
     # Liest der Controller das WAF-Log? (sonst sieht die Auto-Sperre keine Treffer)
     autoban_log_ready: bool
     # nur lesbar – kommen aus der Umgebung
@@ -144,6 +153,8 @@ def get_settings_general(db: DB, _: CurrentActor, settings: AppSettings) -> Gene
         autoban_window_minutes=g["autoban_window_minutes"],
         autoban_hours=g["autoban_hours"],
         autoban_exempt=g["autoban_exempt"],
+        internal_networks=g["internal_networks"],
+        internal_list_ids=g["internal_list_ids"],
         autoban_log_ready=bool(settings.caddy_waf_log and settings.waf_log_path),
         controller_domain=settings.controller_domain,
         version=__version__,
@@ -181,7 +192,14 @@ def put_settings_general(
             status.HTTP_409_CONFLICT,
             "Authelia wird noch von Hosts genutzt – dort erst abschalten",
         )
-    for i in value.get("trusted_proxy_list_ids", []):
+    nets_after = value.get("internal_networks", before["internal_networks"])
+    lists_after = value.get("internal_list_ids", before["internal_list_ids"])
+    if not (nets_after or lists_after) and db.scalar(select(Host.id).where(Host.internal).limit(1)):
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Interne Netze werden noch von Hosts genutzt – dort erst „Nur intern“ abschalten",
+        )
+    for i in [*value.get("trusted_proxy_list_ids", []), *value.get("internal_list_ids", [])]:
         if db.get(IpList, i) is None:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"IP-Liste {i} unbekannt")
     set_general(db, value)
@@ -202,6 +220,8 @@ def put_settings_general(
         "authelia_url",
         "authelia_headers",
         "cloudflare_token_enc",
+        "internal_networks",
+        "internal_list_ids",
     )
     if any(before.get(k) != value.get(k, before.get(k)) for k in relevant):
         for node in db.scalars(select(Node)):

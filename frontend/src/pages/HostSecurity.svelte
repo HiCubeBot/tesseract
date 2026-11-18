@@ -110,6 +110,7 @@
   const steps = $derived(
     host
       ? [
+          { label: 'Intern', on: host.internal, note: host.internal ? 'nur LAN/VPN' : 'aus' },
           { label: 'IP-Filter', on: (form?.ip_mode ?? host.ip_mode) !== 'off', note: IP_MODES[form?.ip_mode ?? host.ip_mode] },
           {
             label: 'Zertifikat',

@@ -9,9 +9,18 @@
     persons: Person[];
     caConfigured: boolean;
     compact?: boolean;
+    /** interne Netze unter Einstellungen festgelegt */
+    internalAvailable?: boolean;
   }
 
-  let { value = $bindable(), groups, persons, caConfigured, compact = false }: Props = $props();
+  let {
+    value = $bindable(),
+    groups,
+    persons,
+    caConfigured,
+    compact = false,
+    internalAvailable = false
+  }: Props = $props();
   const id = $props.id();
 
   let newPath = $state('');
@@ -62,6 +71,21 @@
       {#if !compact}<span class="muted">Nur freigegebene Geräte (mTLS). Kein VPN nötig.</span>{/if}
     </label>
   </div>
+
+  <label class="internal" class:on={value.internal} class:disabled={!internalAvailable && !value.internal}>
+    <input type="checkbox" bind:checked={value.internal} disabled={!internalAvailable && !value.internal} />
+    <span class="stack">
+      <strong>Nur aus internen Netzen</strong>
+      <span class="muted small">
+        {#if internalAvailable}
+          Wie hinter einem VPN: nur aus LAN/VPN erreichbar, alle anderen sehen nichts (Verbindung wird abgebrochen).
+          Kombinierbar mit „Nur mit Zertifikat“ als zweite Hürde. Zertifikat per DNS-01 oder interner Name (.lan).
+        {:else}
+          Erst unter <a href="#/settings-integrations">Einstellungen › Integrationen</a> die internen Netze festlegen.
+        {/if}
+      </span>
+    </span>
+  </label>
 
   {#if !caConfigured}
     <Alert tone="info" title="Erst die Zertifizierungsstelle einrichten" text="Ohne CA gibt es keine Gerätezertifikate." actionLabel="CA einrichten" actionHref="#/settings-ca" />
@@ -145,6 +169,37 @@
   }
   .compact {
     gap: 12px;
+  }
+  .internal {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    background: var(--bg);
+    border: 1px solid var(--border-input);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  .internal.on {
+    border-color: var(--warn);
+    background: var(--warn-soft);
+  }
+  .internal.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  .internal input {
+    margin: 3px 0 0;
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+  }
+  .stack {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
   }
   .modes {
     display: grid;

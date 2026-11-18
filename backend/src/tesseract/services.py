@@ -48,6 +48,7 @@ SNAPSHOT_FIELDS = (
     "ip_lists",
     "authelia",
     "tls_challenge",
+    "internal",
     "areas",
     "enabled",
     "draft",
@@ -76,6 +77,9 @@ GENERAL_DEFAULTS: dict[str, Any] = {
     "autoban_hours": 24,
     # nie automatisch sperren (z. B. eigenes Netz)
     "autoban_exempt": ["127.0.0.0/8", "::1/128"],
+    # Interne Netze (LAN, VPN) für „Nur intern“: einzelne Netze und IP-Listen
+    "internal_networks": [],
+    "internal_list_ids": [],
 }
 CLOUDFLARE_CONTEXT = "cloudflare-token"
 ADMIN_GROUP = "Admin"
@@ -373,6 +377,7 @@ def host_spec(
         authelia=bool(getattr(host, "authelia", False)),
         tls_challenge=getattr(host, "tls_challenge", "http"),
         areas=tuple(areas or ()),
+        internal=bool(getattr(host, "internal", False)),
     )
 
 
@@ -455,6 +460,9 @@ def node_config(db: Session, node: Node, settings: Settings) -> dict[str, Any]:
         authelia_headers=tuple(general["authelia_headers"]),
         cloudflare_token=cloudflare_token(db, settings),
         banned=tuple(active_bans(db)),
+        internal_networks=tuple(
+            resolve_ranges(db, general["internal_networks"], general["internal_list_ids"])
+        ),
         waf_log_file=settings.caddy_waf_log,
     )
     return build_config(spec)

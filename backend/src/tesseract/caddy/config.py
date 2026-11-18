@@ -79,6 +79,8 @@ class HostSpec:
     # ACME-Prüfung: "http" (HTTP-01) oder "dns" (DNS-01 über Cloudflare)
     tls_challenge: str = "http"
     areas: tuple[AreaSpec, ...] = ()
+    # Nur aus internen Netzen – alle anderen: Verbindung ohne Antwort abbrechen
+    internal: bool = False
 
     @property
     def needs_client_auth(self) -> bool:
@@ -135,6 +137,8 @@ class NodeSpec:
     cloudflare_token: str = ""
     # Gesperrte IPs/Netze (Auto-Sperre und von Hand) – gelten für alle Hosts
     banned: tuple[str, ...] = ()
+    # Interne Netze (LAN, VPN) für Hosts mit „Nur intern“
+    internal_networks: tuple[str, ...] = ()
     # Datei, in die Caddy WAF-Treffer schreibt (Pfad im Caddy-Container); leer = aus
     waf_log_file: str = ""
     # Geräte-Zwischenzertifikat (DER, Base64) – Vertrauensanker für Client-Zertifikate
@@ -160,9 +164,31 @@ die dich eingeladen hat.</p>
 """
 
 
+# Endungen, für die es kein öffentliches Zertifikat gibt (RFC 6762/8375 und übliche Heimnetze)
+LOCAL_SUFFIXES = (
+    ".localhost",
+    ".local",
+    ".internal",
+    ".lan",
+    ".home",
+    ".home.arpa",
+    ".intern",
+    ".corp",
+    ".test",
+)
+
+
+def _is_ip(value: str) -> bool:
+    try:
+        ipaddress.ip_address(value)
+    except ValueError:
+        return False
+    return True
+
+
 def is_public_name(domain: str) -> bool:
     """Bekommt die Domain ein öffentliches Zertifikat? (nicht localhost, keine IP)"""
-    if domain == "localhost" or domain.endswith((".localhost", ".local", ".internal")):
+    if domain == "localhost" or domain.endswith(LOCAL_SUFFIXES):
         return False
     try:
         ipaddress.ip_address(domain)
@@ -415,11 +441,26 @@ def host_handlers(host: HostSpec, authelia: JSON | None = None) -> list[JSON]:
     return [{"handler": "subroute", "routes": routes}]
 
 
-def host_route(host: HostSpec, authelia: JSON | None = None) -> JSON:
+def internal_route(networks: tuple[str, ...]) -> JSON:
+    """Für alle außerhalb der internen Netze: Verbindung abbrechen, keine Antwort.
+    Geprüft wird die echte Verbindungs-IP (remote_ip), nicht X-Forwarded-For."""
+    abort: JSON = {"handle": [{"handler": "static_response", "abort": True}], "terminal": True}
+    if networks:
+        abort["match"] = [{"not": [{"remote_ip": {"ranges": list(networks)}}]}]
+    return abort
+
+
+def host_route(
+    host: HostSpec, authelia: JSON | None = None, internal: tuple[str, ...] = ()
+) -> JSON:
+    handle = host_handlers(host, authelia)
+    if host.internal:
+        # vor allem anderen – noch vor IP-Filter, Zertifikat und WAF
+        handle[0]["routes"].insert(0, internal_route(internal))
     return {
         "@id": f"host-{host.id}",
         "match": [{"host": [host.domain]}],
-        "handle": host_handlers(host, authelia),
+        "handle": handle,
         "terminal": True,
     }
 
@@ -510,6 +551,14 @@ def tls_automation(spec: NodeSpec, hosts: list[HostSpec]) -> JSON | None:
         return acme
 
     policies: list[JSON] = []
+    # Interne Namen (.lan, .home.arpa …): Zertifikat aus Caddys eigener CA
+    local = [
+        h.domain
+        for h in hosts
+        if not is_public_name(h.domain) and not _is_ip(h.domain) and h.domain != "localhost"
+    ]
+    if local:
+        policies.append({"subjects": local, "issuers": [{"module": "internal"}]})
     if dns_subjects and spec.cloudflare_token:
         policies.append({"subjects": dns_subjects, "issuers": [issuer(True)]})
     if http_subjects and spec.acme_email:
@@ -542,13 +591,23 @@ def build_config(spec: NodeSpec) -> JSON:
     authelia = (
         authelia_handler(spec.authelia_url, spec.authelia_headers) if spec.authelia_url else None
     )
+    nets = spec.internal_networks
     for host in hosts:
-        https_routes.append(host_route(host, authelia))
+        https_routes.append(host_route(host, authelia, nets))
         # Geschützte Hosts nie unverschlüsselt ausliefern (über HTTP gibt es kein Zertifikat)
-        if host.force_https or host.needs_client_auth:
-            http_routes.append(_redirect_route(host.domain))
+        if host.force_https or host.needs_client_auth or host.internal:
+            redirect = _redirect_route(host.domain)
+            if host.internal:
+                # auch die Umleitung verrät von außen nichts
+                redirect["handle"] = [
+                    {
+                        "handler": "subroute",
+                        "routes": [internal_route(nets), {"handle": redirect["handle"]}],
+                    }
+                ]
+            http_routes.append(redirect)
         else:
-            route = host_route(host, authelia)
+            route = host_route(host, authelia, nets)
             route["@id"] = f"host-{host.id}-http"
             http_routes.append(route)
 

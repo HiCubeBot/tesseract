@@ -154,6 +154,20 @@ dass sie später durch den Agent ersetzt werden kann („Node-Treiber“: lokal 
 - Von Hand sperren/entsperren: `POST /api/bans`, `DELETE /api/bans/{id}`.
 - Ab Phase 4 liefern die Agents die Treffer der anderen Nodes.
 
+## Interne Dienste (Phase 3b)
+
+- Schalter **„Nur aus internen Netzen“** pro Host (kombinierbar mit „Nur mit Zertifikat“).
+  Die internen Netze (LAN, VPN) stehen zentral unter Einstellungen › Integrationen.
+- Erste Route im Host: `not remote_ip <interne Netze>` → `static_response` mit `abort` –
+  Fremde bekommen keine Antwort, auch auf Port 80 nicht. `remote_ip` ist die echte
+  Verbindungs-IP; `X-Forwarded-For` zählt hier bewusst nicht.
+- Zertifikat: öffentliche Namen nur mit DNS-01 (der Host ist von außen nicht erreichbar);
+  interne Namen (`.lan`, `.home.arpa`, `.home`, `.internal` …) bekommen eins aus Caddys
+  eigener CA – deren Root muss dann auf den Geräten vertraut werden.
+- Netz-Voraussetzungen (Doku): Split-DNS – der interne DNS-Server zeigt auf die LAN-IP des
+  Proxys; bei NAT-Loopback über den Router kann sonst die Router-IP als Absender ankommen;
+  bei Docker-Portfreigaben prüfen, dass Caddy die echte Client-IP sieht.
+
 ## Offene Entscheidungen
 
 | Thema | Optionen | Notiz |

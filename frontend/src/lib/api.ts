@@ -104,6 +104,7 @@ export interface Host {
   ip_list_ids: number[];
   authelia: boolean;
   tls_challenge: 'http' | 'dns';
+  internal: boolean;
   areas: (AreaInput & { id: number })[];
   paths: string[];
   grants: GrantRef[];
@@ -281,6 +282,8 @@ export interface GeneralSettings {
   autoban_hours: number;
   autoban_exempt: string[];
   autoban_log_ready: boolean;
+  internal_networks: string[];
+  internal_list_ids: number[];
   controller_domain: string;
   version: string;
 }
@@ -337,6 +340,7 @@ export const FIELD_LABELS: Record<string, string> = {
   ip_lists: 'IP-Listen',
   authelia: 'Login über Authelia',
   tls_challenge: 'Zertifikats-Prüfung',
+  internal: 'Nur intern',
   areas: 'Bereiche',
   enabled: 'Aktiv',
   draft: 'Entwurf'

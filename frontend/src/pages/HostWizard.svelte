@@ -34,6 +34,7 @@
   let persons = $state<Person[]>([]);
   let caConfigured = $state(false);
   let dnsAvailable = $state(false);
+  let internalAvailable = $state(false);
 
   api.get<NodeInfo[]>('/nodes').then((n) => {
     nodes = n;
@@ -49,6 +50,7 @@
     persons = p;
     caConfigured = c.configured;
     dnsAvailable = s.cloudflare_token_set;
+    internalAvailable = s.internal_networks.length > 0 || s.internal_list_ids.length > 0;
   });
 
   const grantNames = $derived([
@@ -99,7 +101,9 @@
   const nodeName = $derived(nodes.find((n) => n.id === host.node_id)?.name ?? '–');
   const domain = $derived(host.domain.trim().toLowerCase().replace(/\.$/, ''));
   const localName = $derived(
-    domain === 'localhost' || /\.(localhost|local|internal)$/.test(domain) || /^[\d.]+$|:/.test(domain)
+    domain === 'localhost' ||
+      /\.(localhost|local|internal|lan|home|home\.arpa|intern|corp|test)$/.test(domain) ||
+      /^[\d.]+$|:/.test(domain)
   );
 
   async function goTo(n: number) {
@@ -170,7 +174,7 @@
   {:else if step === 2}
     <section class="card" aria-labelledby="access-title">
       <h2 id="access-title">Wer darf zugreifen?</h2>
-      <AccessForm bind:value={host} {groups} {persons} {caConfigured} />
+      <AccessForm bind:value={host} {groups} {persons} {caConfigured} {internalAvailable} />
     </section>
     <footer class="row">
       <Button variant="secondary" label="Zurück" onClick={() => goTo(1)} />
@@ -189,7 +193,7 @@
           <dd>{localName ? 'lokales Zertifikat von Caddy' : `Let's Encrypt · ${host.tls_challenge === 'dns' ? 'DNS-01 (Cloudflare)' : 'HTTP-01'}`}</dd>
           <dt>Zugriff</dt>
           <dd>
-            {host.access === 'mtls' ? 'Nur mit Zertifikat' : 'Öffentlich'}
+            {host.internal ? 'Nur intern · ' : ''}{host.access === 'mtls' ? 'Nur mit Zertifikat' : host.internal ? 'ohne Zertifikat' : 'Öffentlich'}
             {#if host.paths.length}
               · {host.access === 'mtls' ? 'öffentlich' : 'geschützt'}: <span class="mono">{host.paths.join(', ')}</span>
             {/if}

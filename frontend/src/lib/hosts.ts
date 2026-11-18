@@ -20,6 +20,7 @@ export function emptyHost(nodeId = 0): HostInput {
     ip_list_ids: [],
     authelia: false,
     tls_challenge: 'http',
+    internal: false,
     areas: [],
     paths: [],
     grant_group_ids: [],
@@ -49,6 +50,7 @@ export function toInput(h: Host): HostInput {
     ip_list_ids: [...h.ip_list_ids],
     authelia: h.authelia,
     tls_challenge: h.tls_challenge,
+    internal: h.internal,
     areas: h.areas.map(({ id: _id, ...a }) => structuredClone(a)),
     paths: [...h.paths],
     grant_group_ids: h.grants.filter((g) => g.kind === 'group').map((g) => g.id),
@@ -72,6 +74,7 @@ export function hostStatus(h: Host): { tone: 'ok' | 'warn' | 'neutral'; label: s
 /** Schutz-Kurzfassung für Listen, z. B. „WAF“ oder „WAF (Log)“ */
 export function protectionLabel(h: Host): string {
   const parts: string[] = [];
+  if (h.internal) parts.push('Intern');
   if (h.ip_mode !== 'off') parts.push('IP');
   if (h.waf_mode === 'block') parts.push('WAF');
   if (h.waf_mode === 'detect') parts.push('WAF (Log)');

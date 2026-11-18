@@ -64,8 +64,11 @@ def _used_by(db, lst: IpList) -> list[str]:
         for h in db.scalars(select(Host).order_by(Host.domain))
         if lst.id in (h.ip_list_ids or [])
     ]
-    if lst.id in get_general(db)["trusted_proxy_list_ids"]:
+    g = get_general(db)
+    if lst.id in g["trusted_proxy_list_ids"]:
         used.append("Vertrauenswürdige Proxys")
+    if lst.id in g["internal_list_ids"]:
+        used.append("Interne Netze")
     return used
 
 

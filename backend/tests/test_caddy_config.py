@@ -61,7 +61,10 @@ def test_controller_route_first_and_acme_policy() -> None:
         )
     )
     assert _servers(cfg)["https"]["routes"][0]["@id"] == "controller"
-    policy = cfg["apps"]["tls"]["automation"]["policies"][0]
+    policies = cfg["apps"]["tls"]["automation"]["policies"]
+    # *.localhost bekommt ein Zertifikat aus Caddys eigener CA
+    assert {"subjects": ["intern.localhost"], "issuers": [{"module": "internal"}]} in policies
+    policy = next(p for p in policies if p["issuers"][0]["module"] == "acme")
     assert policy["subjects"] == ["tesseract.example.org", "musik.example.org"]
     assert policy["issuers"][0]["email"] == "admin@example.org"
 

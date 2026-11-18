@@ -35,6 +35,7 @@
   let persons = $state<Person[]>([]);
   let caConfigured = $state(false);
   let dnsAvailable = $state(false);
+  let internalAvailable = $state(false);
   let loaded = $state(false);
   let loadError = $state('');
   let filter = $state(0);
@@ -63,6 +64,7 @@
       ]);
       caConfigured = ca.configured;
       dnsAvailable = general.cloudflare_token_set;
+      internalAvailable = general.internal_networks.length > 0 || general.internal_list_ids.length > 0;
       loadError = '';
     } catch (e) {
       loadError = e instanceof Error ? e.message : String(e);
@@ -193,7 +195,9 @@
                   <td class="mono muted small">{upstreamLabel(h)}</td>
                   <td class="muted">{h.node.name}</td>
                   <td>
-                    {#if h.access === 'mtls'}
+                    {#if h.internal}
+                      <span class="access internal"><Icon name="server" size={13} strokeWidth={2.2} />Intern{h.access === 'mtls' ? ' + mTLS' : ''}</span>
+                    {:else if h.access === 'mtls'}
                       <span class="access mtls"><Icon name="lock" size={13} strokeWidth={2.2} />mTLS</span>
                     {:else}
                       <span class="access"><Icon name="globe" size={13} strokeWidth={2.2} />Öffentlich</span>
@@ -230,7 +234,7 @@
 
         <HostForm bind:value={edit} {nodes} {dnsAvailable} compact />
         <div class="divider"></div>
-        <AccessForm bind:value={edit} {groups} {persons} {caConfigured} compact />
+        <AccessForm bind:value={edit} {groups} {persons} {caConfigured} {internalAvailable} compact />
 
         <span class="muted small">Zuletzt geändert {formatDate(selected.updated_at)}</span>
 
@@ -368,6 +372,10 @@
   }
   .divider {
     border-top: 1px solid var(--border);
+  }
+  .access.internal {
+    color: var(--warn-text);
+    background: var(--warn-soft);
   }
   .access.mtls {
     color: #c9c1ff;

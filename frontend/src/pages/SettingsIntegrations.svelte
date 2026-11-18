@@ -47,7 +47,9 @@
         autoban_hits: Number(general.autoban_hits),
         autoban_window_minutes: Number(general.autoban_window_minutes),
         autoban_hours: Number(general.autoban_hours),
-        autoban_exempt: general.autoban_exempt
+        autoban_exempt: general.autoban_exempt,
+        internal_networks: general.internal_networks,
+        internal_list_ids: general.internal_list_ids
       });
       ipLists = await api.get<IpList[]>('/ip-lists');
       toasts.show('ok', 'Gespeichert.');
@@ -157,6 +159,29 @@
         Bestehende Hosts behalten ihre Einstellung – die änderst du pro Host unter „Sicherheit“.
         Empfehlung: neue Dienste erst „nur protokollieren“, nach ein paar Tagen ohne Fehlalarme auf „Blockieren“.
       </p>
+      <div class="row"><Button type="submit" label={saving ? 'Speichert …' : 'Speichern'} disabled={saving} /></div>
+    </form>
+
+    <form class="card" onsubmit={save} aria-labelledby="internal-title">
+      <h2 id="internal-title">Interne Netze</h2>
+      <p class="muted small">
+        Netze für Hosts mit „Nur aus internen Netzen“ – typisch dein LAN und das Netz deines VPNs.
+        Geprüft wird die echte Verbindungs-IP. Für den Zugriff von innen braucht es Split-DNS:
+        dein interner DNS-Server zeigt auf die LAN-IP des Proxys.
+      </p>
+      <div class="field">
+        Netze
+        <ChipInput bind:values={general.internal_networks} label="Internes Netz hinzufügen" placeholder="192.168.178.0/24" />
+      </div>
+      {#if ipLists.length}
+        <div class="chips">
+          {#each ipLists as l (l.id)}
+            <label class="chip" class:on={general.internal_list_ids.includes(l.id)}>
+              <input type="checkbox" value={l.id} bind:group={general.internal_list_ids} />Liste „{l.name}“
+            </label>
+          {/each}
+        </div>
+      {/if}
       <div class="row"><Button type="submit" label={saving ? 'Speichert …' : 'Speichern'} disabled={saving} /></div>
     </form>
 
