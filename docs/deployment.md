@@ -19,8 +19,15 @@ docker compose logs -f
 - `caddy` – veröffentlicht 80/443 (inkl. HTTP/3), proxyt die Controller-Domain auf den Controller.
   Die Admin-API (Port 2019) ist nur im internen Netz erreichbar und wird **nicht** veröffentlicht.
 
-Die mitgelieferte `docker/caddy/Caddyfile` ist nur die Start-Konfiguration: Coraza läuft dort
-im Modus `DetectionOnly`. Ab Phase 1 schreibt der Controller die Config über die Admin-API.
+Die mitgelieferte `docker/caddy/Caddyfile` gilt nur beim allerersten Start. Danach überträgt
+der Controller die komplette Config als JSON über die Admin-API. Caddy läuft mit `--resume`
+und startet nach einem Neustart mit der zuletzt geladenen Config (gespeichert in `caddy-config`).
+
+Das Admin-Passwort steht nach dem ersten Start im Log:
+
+```bash
+docker compose logs tesseract | grep "Erster Start"
+```
 
 ### Volumes
 

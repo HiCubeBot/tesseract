@@ -1,5 +1,6 @@
 """FastAPI-Anwendung: API unter /api, optional das gebaute Frontend unter /."""
 
+import asyncio
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -12,7 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from tesseract import __version__
 from tesseract.api import api_router
 from tesseract.auth import LoginThrottle
-from tesseract.bootstrap import init_database
+from tesseract.bootstrap import init_database, sync_nodes_on_start
 from tesseract.config import Settings, get_settings
 
 
@@ -25,7 +26,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.db = init_database(settings)
+        task = None
+        if settings.sync_on_start:
+            task = asyncio.create_task(
+                sync_nodes_on_start(app.state.db, settings, app.state.caddy_transport)
+            )
         yield
+        if task:
+            task.cancel()
         app.state.db.engine.dispose()
 
     app = FastAPI(
@@ -38,6 +46,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.settings = settings
     app.state.login_throttle = LoginThrottle()
+    # In Tests durch einen httpx.MockTransport ersetzt
+    app.state.caddy_transport = None
     app.include_router(api_router, prefix="/api")
 
     if settings.static_dir and settings.static_dir.is_dir():

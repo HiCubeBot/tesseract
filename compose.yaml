@@ -7,6 +7,7 @@ services:
     restart: unless-stopped
     environment:
       TESSERACT_CADDY_ADMIN_URL: http://caddy:2019
+      TESSERACT_CONTROLLER_DOMAIN: ${TESSERACT_DOMAIN:-localhost}
       TESSERACT_LOG_LEVEL: ${TESSERACT_LOG_LEVEL:-info}
     volumes:
       - tesseract-data:/data
@@ -17,6 +18,9 @@ services:
     image: tesseract-caddy:dev
     restart: unless-stopped
     depends_on: [tesseract]
+    # --resume: nach einem Neustart die zuletzt vom Controller geladene Config verwenden
+    # (liegt in /config); nur beim allerersten Start gilt die Caddyfile.
+    command: caddy run --config /etc/caddy/Caddyfile --adapter caddyfile --resume
     environment:
       TESSERACT_DOMAIN: ${TESSERACT_DOMAIN:-localhost}
       ACME_EMAIL: ${ACME_EMAIL:-}

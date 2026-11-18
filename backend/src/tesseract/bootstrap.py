@@ -1,6 +1,7 @@
 """Start des Controllers: Datenbank, Migrationen, erster Admin, lokaler Node."""
 
 import logging
+from typing import Any
 
 from sqlalchemy import select
 
@@ -35,3 +36,30 @@ def init_database(settings: Settings) -> Database:
                 password,
             )
     return database
+
+
+async def sync_nodes_on_start(
+    database: Database, settings: Settings, transport: Any = None
+) -> None:
+    """Überträgt beim Start die Config an alle Nodes. Caddy startet evtl. später –
+    daher einige Versuche mit Pause."""
+    import asyncio
+
+    from tesseract.services import apply_node
+
+    for attempt in range(10):
+        with database.sessionmaker() as db:
+            nodes = db.scalars(select(Node)).all()
+            errors = [
+                err
+                for node in nodes
+                if (err := await asyncio.to_thread(apply_node, db, node, settings, transport))
+            ]
+            db.commit()
+        if not errors:
+            log.info("Config an alle Nodes übertragen")
+            return
+        if attempt == 9:
+            log.error("Config konnte nicht übertragen werden: %s", "; ".join(errors))
+            return
+        await asyncio.sleep(3)

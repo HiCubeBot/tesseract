@@ -38,6 +38,11 @@ backend/
     auth.py               Passwörter, Sessions, Login-Bremse
     audit.py              Audit-Einträge schreiben
     deps.py               FastAPI-Abhängigkeiten (DB-Session, angemeldeter Admin)
+    services.py           Hosts, Versionen, Einstellungen, Übertragen an Nodes
+    checks.py             Vorab-Prüfungen (Domain frei, DNS, Ziel erreichbar)
+    caddy/
+      config.py           erzeugt die komplette Caddy-JSON-Config eines Nodes
+      client.py           POST /load an die Caddy-Admin-API
     db/
       models.py           Datenmodell
       migrations/         Alembic (Migrationen laufen beim Start automatisch)
@@ -53,6 +58,36 @@ backend/
 - Nach 5 Fehlversuchen in 5 Minuten wird die IP für den Rest des Fensters gebremst (`429`).
 - Passwortwechsel (`POST /api/auth/password`) beendet alle Sessions.
 - Anmeldungen, Fehlversuche und Passwortwechsel landen im Audit-Log.
+
+## API (Phase 1)
+
+Alle Endpunkte außer `/api/health` und `/api/auth/login` brauchen eine Session.
+
+| Methode & Pfad | Zweck |
+|---|---|
+| `POST /api/auth/login` · `POST /api/auth/logout` · `GET /api/auth/me` | Anmeldung |
+| `POST /api/auth/password` | Passwort ändern (beendet alle Sessions) |
+| `GET /api/hosts` · `POST /api/hosts` | Hosts auflisten / anlegen (`draft: true` = nur speichern) |
+| `GET/PUT/DELETE /api/hosts/{id}` | Host lesen / ändern / löschen – jede Änderung wird übertragen |
+| `POST /api/hosts/check` | Vorab-Prüfungen für Domain und Ziel |
+| `POST /api/hosts/preview` | Caddy-Route, die für einen Host erzeugt würde |
+| `GET /api/hosts/{id}/versions[/{v}]` | Verlauf mit Änderungen, Caddy-Route vorher/nachher |
+| `POST /api/hosts/{id}/versions/{v}/restore` | Version wiederherstellen (= neue Version) |
+| `GET /api/nodes` · `GET /api/nodes/{id}/config` · `POST /api/nodes/{id}/apply` | Nodes, erzeugte Config, erneut übertragen |
+| `GET/PUT /api/settings/general` | Let's-Encrypt-E-Mail, öffentliche IPs des Nodes |
+| `GET /api/audit` | Audit-Log (`q`, `limit`, `before_id`) |
+
+### Speichern & übertragen
+
+1. Änderung wird mit neuer Version und Audit-Eintrag gespeichert.
+2. Der Controller erzeugt die **komplette** Config des betroffenen Nodes (`caddy/config.py`)
+   und lädt sie per `POST /load`. Caddy prüft sie und behält bei Fehlern die alte.
+3. Schlägt das fehl, bleibt die Änderung gespeichert; der Node zeigt den Fehler und
+   „nicht synchron“, bis `POST /api/nodes/{id}/apply` klappt.
+
+Beim Start überträgt der Controller die Config einmal an alle Nodes (mit Wiederholungen,
+falls Caddy später startet). Die Controller-Domain (`TESSERACT_CONTROLLER_DOMAIN`) bekommt
+immer eine eigene Route, damit sich der Controller nicht aussperrt.
 
 ## Datenbank & Migrationen
 
@@ -80,7 +115,9 @@ Alle Einstellungen kommen aus Umgebungsvariablen oder einer `.env` im Arbeitsver
 | `TESSERACT_STATIC_DIR` | – | Gebautes Frontend; leer = nur API |
 | `TESSERACT_CADDY_ADMIN_URL` | `http://caddy:2019` | Caddy-Admin-API des lokalen Nodes |
 | `TESSERACT_CADDY_ADMIN_LISTEN` | `0.0.0.0:2019` | Admin-Adresse, die in die erzeugte Caddy-Config geschrieben wird |
+| `TESSERACT_CONTROLLER_DOMAIN` | – | Domain der Tesseract-Oberfläche (Compose: `TESSERACT_DOMAIN`) |
 | `TESSERACT_CONTROLLER_UPSTREAM` | `tesseract:8000` | Wie Caddy den Controller erreicht |
+| `TESSERACT_SYNC_ON_START` | `true` | Beim Start die Config an alle Nodes übertragen |
 | `TESSERACT_COOKIE_SECURE` | `true` | Session-Cookie nur über HTTPS |
 | `TESSERACT_SESSION_HOURS` | `12` | Session-Dauer ohne „angemeldet bleiben“ |
 | `TESSERACT_SESSION_REMEMBER_DAYS` | `30` | Session-Dauer mit „angemeldet bleiben“ |

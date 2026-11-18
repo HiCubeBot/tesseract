@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     # Adresse, auf der Caddys Admin-API nach dem Laden der Config lauschen soll.
     # Muss zur caddy_admin_url passen, sonst sperrt sich der Controller aus.
     caddy_admin_listen: str = "0.0.0.0:2019"
+    # Domain der Tesseract-Oberfläche; Caddy bekommt dafür immer eine eigene Route
+    controller_domain: str = ""
     # Wie Caddy den Controller selbst erreicht (Route für die Controller-Domain)
     controller_upstream: str = "tesseract:8000"
 
@@ -34,6 +36,9 @@ class Settings(BaseSettings):
     cookie_secure: bool = True
     session_hours: int = 12
     session_remember_days: int = 30
+
+    # Beim Start die Config an alle Nodes übertragen
+    sync_on_start: bool = True
 
     log_level: str = "info"
 

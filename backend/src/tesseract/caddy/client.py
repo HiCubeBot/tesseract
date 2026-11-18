@@ -1,0 +1,46 @@
+"""Überträgt Configs an die Admin-API von Caddy."""
+
+from typing import Any
+
+import httpx
+
+
+class CaddyError(Exception):
+    pass
+
+
+class CaddyClient:
+    def __init__(self, admin_url: str, *, transport: httpx.BaseTransport | None = None) -> None:
+        self.admin_url = admin_url.rstrip("/")
+        self._transport = transport
+
+    def _client(self) -> httpx.Client:
+        # Caddy prüft bei der Admin-API den Origin; ohne Header ist das unkritisch.
+        return httpx.Client(base_url=self.admin_url, timeout=15.0, transport=self._transport)
+
+    def load(self, config: dict[str, Any]) -> None:
+        """Ersetzt die laufende Config (POST /load). Caddy rollt bei Fehlern selbst zurück."""
+        try:
+            with self._client() as c:
+                r = c.post("/load", json=config)
+        except httpx.HTTPError as e:
+            raise CaddyError(f"Caddy nicht erreichbar ({self.admin_url}): {e}") from e
+        if r.status_code >= 400:
+            raise CaddyError(_error_text(r))
+
+    def current_config(self) -> dict[str, Any] | None:
+        try:
+            with self._client() as c:
+                r = c.get("/config/")
+        except httpx.HTTPError as e:
+            raise CaddyError(f"Caddy nicht erreichbar ({self.admin_url}): {e}") from e
+        if r.status_code >= 400:
+            raise CaddyError(_error_text(r))
+        return r.json()
+
+
+def _error_text(r: httpx.Response) -> str:
+    try:
+        return f"Caddy {r.status_code}: {r.json().get('error', r.text)}"
+    except ValueError:
+        return f"Caddy {r.status_code}: {r.text[:500]}"

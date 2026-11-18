@@ -1,5 +1,6 @@
-# Start-Konfiguration. Ab Phase 1 schreibt der Controller die Config
-# über die Admin-API (JSON); diese Datei dient nur dem ersten Start.
+# Start-Konfiguration für den allerersten Start. Danach überträgt der Controller
+# die komplette Config als JSON über die Admin-API, und Caddy startet mit --resume
+# immer mit dem zuletzt geladenen Stand.
 {
 	# Admin-API nur im internen Docker-Netz erreichbar – NICHT nach außen veröffentlichen.
 	admin 0.0.0.0:2019
