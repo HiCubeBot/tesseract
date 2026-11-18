@@ -83,14 +83,15 @@
     <section class="card" aria-labelledby="geo-title">
       <h2 id="geo-title">Herkunft abgelehnter Anfragen</h2>
       {#if data.geoip}
-        {#if data.countries.length}
-          <div class="geo">
-            <WorldMap items={data.countries} label="Weltkarte: abgelehnte Anfragen nach Herkunftsland" />
-            <BarList color="#9085E9" items={data.countries.slice(0, 8).map((c) => ({ label: countryName(c.country), value: c.count }))} />
-          </div>
-        {:else}
-          <p class="muted small">Keine abgelehnten Anfragen mit bekanntem Land im Zeitraum (private und lokale Adressen haben kein Land).</p>
-        {/if}
+        <!-- Karte immer zeigen, sobald GeoIP da ist – auch leer, damit klar ist, dass alles bereit ist -->
+        <div class="geo">
+          <WorldMap items={data.countries} label="Weltkarte: abgelehnte Anfragen nach Herkunftsland" />
+          <BarList
+            color="#9085E9"
+            items={data.countries.slice(0, 8).map((c) => ({ label: countryName(c.country), value: c.count }))}
+            empty="Noch keine abgelehnten Anfragen mit bekanntem Land im Zeitraum. Private und lokale Adressen (z. B. 127.0.0.1, 192.168.…) haben kein Land."
+          />
+        </div>
       {:else}
         <p class="muted small">
           Für die Karte eine lokale GeoIP-Datenbank (.mmdb) hinterlegen: <span class="mono">TESSERACT_GEOIP_DB</span> –
