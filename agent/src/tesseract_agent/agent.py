@@ -124,6 +124,51 @@ def caddy_version(binary: str) -> str | None:
     return first or None
 
 
+# ---------- Aufgaben vom Controller (ab 1.1) ----------
+
+
+def task_tcp(params: dict[str, Any]) -> dict[str, Any]:
+    """Ist das Ziel eines Hosts vom Node aus erreichbar?"""
+    host, port = str(params["host"]), int(params["port"])
+    start = time.perf_counter()
+    try:
+        with socket.create_connection((host, port), timeout=float(params.get("timeout", 3))):
+            pass
+    except OSError as e:
+        return {"ok": False, "error": e.strerror or str(e) or type(e).__name__}
+    return {"ok": True, "ms": round((time.perf_counter() - start) * 1000)}
+
+
+def tls_address(settings: Settings) -> tuple[str, int]:
+    if settings.caddy_tls_address:
+        host, _, port = settings.caddy_tls_address.rpartition(":")
+        return host.strip("[]") or settings.caddy_tls_address, int(port) if port.isdigit() else 443
+    from urllib.parse import urlsplit
+
+    return urlsplit(settings.caddy_admin_url).hostname or "127.0.0.1", 443
+
+
+def task_certs(params: dict[str, Any], address: tuple[str, int]) -> dict[str, Any]:
+    """Welches Zertifikat liefert der eigene Caddy für jeden Namen aus? (DER, Base64)"""
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    out: dict[str, Any] = {}
+    for name in [str(n) for n in params.get("names", [])][:500]:
+        try:
+            with (
+                socket.create_connection(address, timeout=4) as raw,
+                ctx.wrap_socket(raw, server_hostname=name) as s,
+            ):
+                der = s.getpeercert(binary_form=True)
+            out[name] = (
+                {"der": base64.b64encode(der).decode()} if der else {"error": "kein Zertifikat"}
+            )
+        except (OSError, ssl.SSLError) as e:
+            out[name] = {"error": str(e) or type(e).__name__}
+    return {"certs": out}
+
+
 # ---------- Logs ----------
 
 
@@ -337,7 +382,7 @@ class Agent:
         """Einmal abfragen; lädt neue Config in Caddy. True, wenn geladen wurde."""
         # Hat Caddy eine Config abgelehnt, erst bei der nächsten Änderung wieder versuchen
         known = self.rejected_hash or self.state.loaded_hash
-        params = {"known": known, "force": self.state.force, "wait": wait}
+        params = {"known": known, "force": self.state.force, "wait": wait, "tasks": 1}
         with self._http(with_cert=True, timeout=wait + 15) as c:
             r = c.get("/api/agent/config", params=params)
         if r.status_code == 204:
@@ -345,6 +390,14 @@ class Agent:
         if r.status_code != 200:
             raise AgentError(f"Config abholen fehlgeschlagen ({r.status_code}): {_detail(r)}")
         data = r.json()
+        if data.get("tasks"):
+            for task in data["tasks"]:
+                threading.Thread(target=self.run_task, args=(task,), daemon=True).start()
+        # Nur Aufgaben, Config unverändert
+        if data.get("config") is None or (
+            data["hash"] == self.state.loaded_hash and data["force"] == self.state.force
+        ):
+            return False
         try:
             self.caddy.load(data["config"])
         except AgentError as e:
@@ -392,6 +445,23 @@ class Agent:
         except httpx.HTTPError as e:
             report["load_error"] = self.load_error or f"Caddy nicht erreichbar: {e}"
         return report
+
+    def run_task(self, task: dict[str, Any]) -> None:
+        kind, params = task.get("kind"), task.get("params") or {}
+        try:
+            if kind == "tcp":
+                result = task_tcp(params)
+            elif kind == "certs":
+                result = task_certs(params, tls_address(self.settings))
+            else:
+                result = {"ok": False, "error": f"unbekannte Aufgabe {kind}"}
+        except Exception as e:  # noqa: BLE001 – Ergebnis statt Absturz
+            result = {"ok": False, "error": str(e)}
+        try:
+            with self._http(with_cert=True) as c:
+                c.post(f"/api/agent/tasks/{task['id']}", json={"result": result})
+        except httpx.HTTPError as e:
+            log.warning("Ergebnis der Aufgabe %s nicht gesendet: %s", kind, e)
 
     def cert_days_left(self) -> float | None:
         try:

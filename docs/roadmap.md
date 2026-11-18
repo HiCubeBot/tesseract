@@ -48,7 +48,7 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 Offen / bewusst verschoben:
 - Coraza-WAF in der erzeugten Config (auch für die Controller-Domain) → Phase 3
 - Erreichbarkeit des Ziels wird vom Controller aus geprüft, nicht vom Node → Phase 4 (Agent)
-- Upstream-HTTPS mit selbstsigniertem Zertifikat (`insecure_skip_verify`) fehlt noch
+- Upstream-HTTPS mit selbstsigniertem Zertifikat (`insecure_skip_verify`) → in 1.1 erledigt
 
 **Fertig, wenn:** Ein öffentlicher Host mit gültigem Let's-Encrypt-Zertifikat lässt sich komplett
 über das UI anlegen, ändern und auf eine alte Version zurücksetzen.
@@ -134,12 +134,12 @@ Zertifikatsübersicht zeigt es mit Laufzeit und allen Hosts, die es nutzen.
 Offen / bewusst verschoben:
 - Caddy-Version wird nur angezeigt, wenn der Agent das `caddy`-Programm aufrufen kann – im
   Docker-Betrieb (Agent im eigenen Container) „–“. Caddys Admin-API liefert keine Version.
-- Fehlt einem Node ein Modul, warnt die Nodes-Seite; Hosts mit WAF/DNS-01 werden aber noch
-  nicht gesperrt (Caddy lehnt die Config dann ab und der Node zeigt den Fehler)
+- Fehlt einem Node ein Modul, wird ein Host mit WAF/DNS-01 dort beim Speichern abgelehnt →
+  in 1.1 erledigt
 - „Änderung übernehmen“ übernimmt die Abweichung nicht in die Hosts des Controllers, sie
   gilt nur bis zur nächsten Übertragung
-- Erreichbarkeit des Ziels wird weiter vom Controller aus geprüft, nicht vom Node → Backlog
-- Zertifikatsübersicht liest nur den lokalen Caddy → Backlog
+- Erreichbarkeit des Ziels vom Node aus (Agent ≥ 1.1) → in 1.1 erledigt
+- Zertifikatsübersicht für alle Nodes (Agent ≥ 1.1) → in 1.1 erledigt
 - Zugriffs-Logs der Nodes (nicht nur WAF-Treffer) puffern und sammeln → in Phase 5 erledigt
 - Node-Zertifikat verlängern (gilt 2 Jahre) → in Phase 6 erledigt
 
@@ -166,7 +166,6 @@ Offen / bewusst verschoben:
   vorhanden
 - Logs liegen in SQLite (Standard 14 Tage); für sehr viel Verkehr wäre ein eigener Speicher
   (DuckDB, Loki) besser → Backlog
-- Zertifikatsübersicht weiterhin nur für den lokalen Caddy → Backlog
 - Ablauf-Erinnerungen für Zertifikate und Geräte als Benachrichtigung → in Phase 6 erledigt
 
 **Fertig, wenn:** Ein blockierter Angriff erscheint live in den Logs, in der Statistik und als
@@ -191,6 +190,15 @@ Offen / bewusst verschoben:
 - Gäste verlängern ihr Gerät selbst über einen Link (heute verlängert der Admin) → Backlog
 - Import einer bestehenden CA, Wechsel des Root-Zertifikats → Backlog
 - Passkey für die Admin-Anmeldung → Backlog
+
+## Version 1.1 – Lücken geschlossen
+
+- [x] https zum Ziel ohne Zertifikatsprüfung (selbst signierte Ziele)
+- [x] Hosts mit WAF/DNS-01 auf Nodes ohne das Caddy-Modul werden beim Speichern abgelehnt
+- [x] Aufgaben für Agents über das Long-Polling: Erreichbarkeit des Ziels vom Node aus,
+  Zertifikate des Nodes für die Übersicht
+- [x] Behoben: lokale `.env` im Image, Caddy fragte nach dem Einrichten der CA nicht sofort
+  nach Client-Zertifikaten, Zertifikatsübersicht bei Agent-Nodes
 
 ## Backlog (niedrige Priorität)
 

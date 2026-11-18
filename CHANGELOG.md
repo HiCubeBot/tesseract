@@ -4,6 +4,31 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.1.0] – 2026-11-18
+
+### Neu
+- **https zum Ziel ohne Zertifikatsprüfung** pro Host – für selbst signierte Zertifikate
+  (Proxmox, Unifi, NAS-Oberflächen)
+- **Fehlende Caddy-Module** werden beim Speichern erkannt: Ein Host mit WAF oder DNS-01 auf
+  einem Node ohne das Modul wird mit verständlicher Meldung abgelehnt, statt dass Caddy später
+  die ganze Config verwirft
+- **Erreichbarkeit des Ziels vom Node aus**: Bei Agent-Nodes prüft der Agent selbst
+  (Agent ≥ 1.1), nicht mehr der Controller
+- **Zertifikatsübersicht für alle Nodes**: Agents lesen die Zertifikate ihres Caddy aus
+- Aufgaben für Agents über das bestehende Long-Polling (keine eingehende Verbindung nötig)
+
+### Behoben
+- Lokal gebaute Images enthielten eine vorhandene `backend/.env` (Entwicklungswerte, z. B.
+  ohne Hintergrundaufgaben). Die über GitHub veröffentlichten Images waren nicht betroffen.
+  Wer selbst baut: `docker compose up -d --build`
+- Nach dem Einrichten der CA fragte Caddy erst nach der nächsten Änderung nach
+  Client-Zertifikaten – Agents und Admin-Geräte wurden bis dahin nicht erkannt
+- Die Zertifikatsübersicht fragte bei Agent-Nodes den Controller-Rechner statt des Nodes ab
+
+### Upgrade
+- Controller und Agents aktualisieren; ältere Agents funktionieren weiter, nur die Prüfung vom
+  Node und die Zertifikate des Nodes brauchen Agent 1.1.
+
 ## [1.0.0] – 2026-11-18
 
 Erste stabile Version (Phase 0–6 der [Roadmap](docs/roadmap.md)).

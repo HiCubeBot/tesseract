@@ -1,7 +1,9 @@
 """Zertifikatsübersicht (wie bei NPM): welche Zertifikate Caddy ausliefert."""
 
 import asyncio
+import base64
 import time
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal
 
@@ -11,7 +13,7 @@ from sqlalchemy import select
 
 from tesseract import pki
 from tesseract.caddy.config import covering_wildcard
-from tesseract.certs import explain, issuer_label, probe_all, status, tls_address
+from tesseract.certs import Probe, explain, issuer_label, parse, probe_all, status, tls_address
 from tesseract.db.models import CustomCert, Host, Node
 from tesseract.deps import DB, AppSettings, CurrentActor
 from tesseract.services import get_general
@@ -63,8 +65,21 @@ def _source(issuer: str, domains: list[str], db_hosts: dict[str, Host], wild: li
     return "unbekannt"
 
 
-def _collect(db, settings) -> Overview:
-    from tesseract.db.models import utcnow
+@dataclass
+class _Plan:
+    node_id: int
+    node: str
+    kind: str
+    address: tuple[str, int]
+    names: list[str]
+    tasks: bool
+    state: str
+
+
+def _plan(db, settings) -> tuple[dict[str, Host], list[str], dict[str, str], list[_Plan]]:
+    """Welche Namen bei welchem Node abgefragt werden."""
+    from tesseract import nodes as node_svc
+    from tesseract.agent_tasks import supports_tasks
 
     general = get_general(db)
     wild = list(general["wildcard_certs"])
@@ -72,21 +87,71 @@ def _collect(db, settings) -> Overview:
         h.domain: h for h in db.scalars(select(Host).where(Host.enabled, Host.draft.is_(False)))
     }
     own = {c.fingerprint: c.name for c in db.scalars(select(CustomCert))}
-    certificates: dict[str, CertificateOut] = {}
-    errors: list[ProbeError] = []
+    plans = []
     for node in db.scalars(select(Node).order_by(Node.name)):
+        if not node.joined:
+            continue
         names = [d for d, h in hosts.items() if h.node_id == node.id]
-        if settings.controller_domain and node.name == "local":
+        if settings.controller_domain and not node.is_agent:
             names.insert(0, settings.controller_domain)
-        # Wildcards ohne eigenen Host: mit einem Beispielnamen abfragen
+        # Wildcards ohne eigenen Host: mit einem Beispielnamen abfragen (Wildcards holt jeder Node)
         for w in wild:
             if not any(covering_wildcard(n, [w]) for n in names):
                 names.append(w.replace("*.", "tesseract-probe.", 1))
-        address = tls_address(node.admin_url, settings.caddy_tls_address)
-        for p in probe_all(*address, names):
+        plans.append(
+            _Plan(
+                node.id,
+                node.name,
+                node.kind,
+                tls_address(node.admin_url, settings.caddy_tls_address),
+                names,
+                supports_tasks(node),
+                node_svc.state(node),
+            )
+        )
+    return hosts, wild, own, plans
+
+
+async def _probe_node(request: Request, plan: _Plan) -> tuple[list[Probe], str | None]:
+    """Lokaler Node: direkt per TLS. Agent-Node: der Agent fragt seinen Caddy (ab 1.1)."""
+    if not plan.names:
+        return [], None
+    if plan.kind != "agent":
+        return await asyncio.to_thread(probe_all, *plan.address, plan.names), None
+    if plan.state == "offline":
+        return [], "Node ist offline"
+    if not plan.tasks:
+        return [], "Agent älter als 1.1 – für die Übersicht den Agent aktualisieren"
+    r = await request.app.state.agent_tasks.run(
+        plan.node_id, "certs", {"names": plan.names}, timeout=20
+    )
+    if r is None:
+        return [], "Node hat nicht geantwortet"
+    probes = []
+    for name in plan.names:
+        item = (r.get("certs") or {}).get(name) or {"error": "keine Antwort"}
+        if item.get("der"):
+            try:
+                probes.append(Probe(name, cert=parse(base64.b64decode(item["der"]))))
+                continue
+            except ValueError:
+                item = {"error": "ungültiges Zertifikat"}
+        probes.append(Probe(name, error=str(item.get("error"))))
+    return probes, None
+
+
+def _build(hosts, wild, own, results: list[tuple[_Plan, list[Probe], str | None]]) -> Overview:
+    from tesseract.db.models import utcnow
+
+    certificates: dict[str, CertificateOut] = {}
+    errors: list[ProbeError] = []
+    for plan, probes, problem in results:
+        if problem:
+            errors.append(ProbeError(name="(alle Namen)", node=plan.node, error=problem))
+        for p in probes:
             if p.cert is None:
                 errors.append(
-                    ProbeError(name=p.name, node=node.name, error=explain(p.error or "?"))
+                    ProbeError(name=p.name, node=plan.node, error=explain(p.error or "?"))
                 )
                 continue
             c = p.cert
@@ -105,9 +170,11 @@ def _collect(db, settings) -> Overview:
                     status=status(c),  # type: ignore[arg-type]
                     source="unbekannt",
                     hosts=[],
-                    node=node.name,
+                    node=plan.node,
                 )
                 certificates[c.fingerprint] = entry
+            elif plan.node not in entry.node.split(", "):
+                entry.node += f", {plan.node}"
             if host_name and host_name not in entry.hosts:
                 entry.hosts.append(host_name)
     for entry in certificates.values():
@@ -127,6 +194,10 @@ async def overview(
     cache = getattr(request.app.state, "cert_cache", None)
     if cache and not refresh and time.monotonic() - cache[0] < CACHE_SECONDS:
         return cache[1]
-    result = await asyncio.to_thread(_collect, db, settings)
+    hosts, wild, own, plans = await asyncio.to_thread(_plan, db, settings)
+    probed = await asyncio.gather(*(_probe_node(request, p) for p in plans))
+    result = _build(
+        hosts, wild, own, [(p, probes, err) for p, (probes, err) in zip(plans, probed, strict=True)]
+    )
     request.app.state.cert_cache = (time.monotonic(), result)
     return result

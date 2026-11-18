@@ -26,6 +26,8 @@ class Settings:
     controller_ca: Path | None = None
     # Optional: Caddy-Programm, um die Version auszulesen (z. B. bei nativer Installation)
     caddy_bin: str = ""
+    # HTTPS-Port des Caddy für die Zertifikatsübersicht; leer = Host der Admin-URL, Port 443
+    caddy_tls_address: str = ""
 
     @classmethod
     def from_env(cls, env: dict[str, str] | None = None) -> "Settings":
@@ -44,6 +46,7 @@ class Settings:
             waf_log=Path(p) if (p := get("WAF_LOG")) else None,
             controller_ca=Path(p) if (p := get("CONTROLLER_CA")) else None,
             caddy_bin=get("CADDY_BIN"),
+            caddy_tls_address=get("CADDY_TLS_ADDRESS"),
         )
 
     # Dateien im Datenverzeichnis

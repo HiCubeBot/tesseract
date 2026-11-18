@@ -61,6 +61,7 @@ und erneut beitreten. Mit der Bestätigung verliert das alte Zertifikat seine G�
 | **Abweichung** | Weicht die laufende Config von der geladenen ab (jemand hat Caddy direkt geändert), schickt der Agent sie mit (Base64-JSON). Der Controller zeigt die Unterschiede pro Host. |
 | **Logs** | Neue Zeilen aus Caddys Zugriffs- und WAF-Log landen zuerst in einem Puffer auf der Platte (`/data/waf-buffer.jsonl`, höchstens 200 000 Zeilen, die ältesten fallen zuerst weg) und werden über `POST /api/agent/logs` nachgeliefert. Sie erscheinen in Logs und Statistik; WAF-Treffer zählen für die Auto-Sperre wie die des lokalen Caddy. |
 | **Metriken** | Wenn der Controller es in der Antwort auf den Status verlangt, schickt der Agent die `caddy_*`-Metriken seines Caddy mit. |
+| **Aufgaben** (ab 1.1) | Mit dem Long-Polling (`tasks=1`) holt der Agent auch Aufgaben ab: Erreichbarkeit eines Ziels vom Node aus (TCP) und die Zertifikate, die sein Caddy für bestimmte Namen ausliefert. Ergebnisse gehen an `POST /api/agent/tasks/{id}`. Hinweis: Der Agent läuft im eigenen Container – `127.0.0.1` meint dort den Agent, nicht Caddy. |
 | **Module** | Über Caddys `/adapt` (nichts wird geladen): `http.handlers.waf` (Coraza) und `dns.providers.cloudflare`. Fehlt ein Modul, warnt die Nodes-Seite. |
 
 Ist der Controller nicht erreichbar, läuft Caddy mit dem zuletzt geladenen Stand weiter
@@ -103,6 +104,7 @@ Beim lokalen Node prüft der Controller selbst alle 30 Sekunden die laufende Con
 | `TESSERACT_AGENT_ACCESS_LOG` | – | Zugriffs-Log von Caddy (gemeinsames Volume) |
 | `TESSERACT_AGENT_WAF_LOG` | – | WAF-Log von Caddy (gemeinsames Volume) |
 | `TESSERACT_AGENT_CONTROLLER_CA` | – | CA-Datei, wenn das Zertifikat des Controllers nicht öffentlich vertraut ist (z. B. Caddys lokale CA bei `tesseract.lan`) |
+| `TESSERACT_AGENT_CADDY_TLS_ADDRESS` | Host der Admin-URL, Port 443 | HTTPS-Port des Caddy für die Zertifikatsübersicht |
 | `TESSERACT_AGENT_CADDY_BIN` | `caddy` | Caddy-Programm für die Versionsanzeige. Im Docker-Betrieb meist nicht vorhanden, dann zeigt der Controller „–“ |
 | `TESSERACT_AGENT_LOG_LEVEL` | `info` | Log-Level |
 
@@ -114,6 +116,8 @@ Beim lokalen Node prüft der Controller selbst alle 30 Sekunden die laufende Con
 | `GET /api/agent/join/{node_id}` | `X-Join-Secret` | `202` wartet · `200` Zertifikat, Kette, Agent-Token (einmalig) · `403` abgelehnt |
 | `GET /api/agent/config` | Zertifikat + Token | Soll-Config (Long-Polling, `204` ohne Änderung) |
 | `POST /api/agent/status` | Zertifikat + Token | Status, laufende Config bei Abweichung |
+| `POST /api/agent/tasks/{id}` | Zertifikat + Token | Ergebnis einer Aufgabe (ab 1.1) |
+| `POST /api/agent/renew` | Zertifikat + Token | Node-Zertifikat erneuern (ab 1.0) |
 | `POST /api/agent/logs` | Zertifikat + Token | gepufferte Zugriffs- und WAF-Log-Zeilen |
 | `POST /api/agent/waf` | Zertifikat + Token | nur WAF-Zeilen (Agent 0.1) |
 

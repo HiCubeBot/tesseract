@@ -351,3 +351,88 @@ def test_agent_renews_certificate(auth_client: TestClient) -> None:
     agent.headers[FINGERPRINT_HEADER] = pki.fingerprint(cert)
     assert agent.get("/api/agent/config").status_code == 200
     assert old_fp != agent.headers[FINGERPRINT_HEADER]
+
+
+def _serve_tasks(agent: Agent, answer, rounds: int = 20) -> list[dict]:
+    """Holt Aufgaben wie ein Agent ab und beantwortet sie mit answer(task)."""
+    seen = []
+    body = agent.get("/api/agent/config").json()
+    for _ in range(rounds):
+        r = agent.get(
+            "/api/agent/config",
+            params={"known": body["hash"], "force": body["force"], "wait": 1, "tasks": 1},
+        )
+        if r.status_code == 200 and r.json().get("tasks"):
+            assert r.json()["config"] is None  # Config unverändert → nicht mitschicken
+            for t in r.json()["tasks"]:
+                seen.append(t)
+                agent.post(f"/api/agent/tasks/{t['id']}", {"result": answer(t)})
+            return seen
+    return seen
+
+
+def test_upstream_check_from_node(auth_client: TestClient) -> None:
+    import threading
+
+    agent, created = _joined(auth_client)
+    node_id = created["node"]["id"]
+    body = {
+        "domain": "home.example.org",
+        "node_id": node_id,
+        "upstream_host": "192.168.178.5",
+        "upstream_port": 8123,
+    }
+    # Agent 1.0: keine Aufgaben → Hinweis, Prüfung vom Controller
+    agent.post("/api/agent/status", {"agent_version": "1.0.0"})
+    r = auth_client.post("/api/hosts/check", json=body).json()
+    up = next(c for c in r if c["key"] == "upstream")
+    assert up["status"] == "info" and "älter als 1.1" in up["detail"]
+
+    agent.post("/api/agent/status", {"agent_version": "1.1.0"})
+    out: dict = {}
+    t = threading.Thread(
+        target=lambda: out.update(r=auth_client.post("/api/hosts/check", json=body).json())
+    )
+    t.start()
+    seen = _serve_tasks(agent, lambda task: {"ok": True, "ms": 3})
+    t.join(timeout=15)
+    assert seen and seen[0]["kind"] == "tcp" and seen[0]["params"]["host"] == "192.168.178.5"
+    up = next(c for c in out["r"] if c["key"] == "upstream")
+    assert up["status"] == "ok" and "pi-eltern" in up["detail"]
+
+
+def test_certificates_from_agent_node(auth_client: TestClient) -> None:
+    import threading
+
+    from tests.test_certificates import _cert
+
+    agent, created = _joined(auth_client)
+    agent.post("/api/agent/status", {"agent_version": "1.1.0"})
+    host = {
+        "domain": "home.example.org",
+        "node_id": created["node"]["id"],
+        "upstream_scheme": "http",
+        "upstream_host": "10.0.0.1",
+        "upstream_port": 80,
+    }
+    assert auth_client.post("/api/hosts", json=host).status_code == 201
+    pem, _ = _cert(["home.example.org"], "R11", 60)
+    der = x509.load_pem_x509_certificate(pem).public_bytes(serialization.Encoding.DER)
+    out: dict = {}
+    t = threading.Thread(
+        target=lambda: out.update(
+            r=auth_client.get("/api/certificates", params={"refresh": True}).json()
+        )
+    )
+    t.start()
+    seen = _serve_tasks(
+        agent,
+        lambda task: {
+            "certs": {n: {"der": base64.b64encode(der).decode()} for n in task["params"]["names"]}
+        },
+    )
+    t.join(timeout=30)
+    assert seen[0]["kind"] == "certs" and seen[0]["params"]["names"] == ["home.example.org"]
+    certs = out["r"]["certificates"]
+    mine = [c for c in certs if "home.example.org" in c["hosts"]]
+    assert mine and mine[0]["node"] == "pi-eltern"

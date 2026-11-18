@@ -276,3 +276,51 @@ def test_cert_renewal_before_expiry(env):
     assert settings.cert_file.read_text() == ctrl.new_cert
     assert settings.key_file.read_bytes() != old_key
     assert settings.chain_file.read_text() == "CHAIN2"
+
+
+def test_tasks_tcp(env):
+    import socket
+    import threading
+
+    from tesseract_agent.agent import task_tcp
+
+    srv = socket.socket()
+    srv.bind(("127.0.0.1", 0))
+    srv.listen()
+    port = srv.getsockname()[1]
+    threading.Thread(target=lambda: srv.accept(), daemon=True).start()
+    assert task_tcp({"host": "127.0.0.1", "port": port})["ok"] is True
+    srv.close()
+    bad = task_tcp({"host": "127.0.0.1", "port": port, "timeout": 1})
+    assert bad["ok"] is False and bad["error"]
+
+
+def test_tasks_from_poll_do_not_reload_config(env):
+    ctrl, caddy, _, _ = env
+    agent = joined(env)
+    agent.poll_config(wait=0)
+    loads = caddy.loads
+    results = []
+    agent.run_task = lambda task: results.append(task)
+    orig = ctrl.handler
+
+    def with_task(request):
+        if request.url.path == "/api/agent/config":
+            assert request.url.params["tasks"] == "1"
+            return httpx.Response(
+                200,
+                json={
+                    "hash": agent.state.loaded_hash,
+                    "force": agent.state.force,
+                    "config": None,
+                    "tasks": [{"id": "t1", "kind": "tcp", "params": {}}],
+                },
+            )
+        return orig(request)
+
+    agent._controller_transport = httpx.MockTransport(with_task)
+    assert agent.poll_config(wait=0) is False
+    import time
+
+    time.sleep(0.2)
+    assert caddy.loads == loads and results == [{"id": "t1", "kind": "tcp", "params": {}}]

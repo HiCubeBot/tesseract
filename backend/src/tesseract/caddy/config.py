@@ -65,6 +65,7 @@ class HostSpec:
     upstream_scheme: str
     upstream_host: str
     upstream_port: int
+    upstream_insecure: bool = False
     websockets: bool = True
     force_https: bool = True
     compression: bool = False
@@ -230,7 +231,8 @@ def _proxy(host: HostSpec) -> JSON:
         "upstreams": [{"dial": upstream_dial(host.upstream_host, host.upstream_port)}],
     }
     if host.upstream_scheme == "https":
-        handler["transport"] = {"protocol": "http", "tls": {}}
+        tls: JSON = {"insecure_skip_verify": True} if host.upstream_insecure else {}
+        handler["transport"] = {"protocol": "http", "tls": tls}
     if host.pass_fingerprint:
         # "set" überschreibt einen vom Client mitgeschickten Header
         handler["headers"] = {"request": {"set": {FINGERPRINT_HEADER: [FINGERPRINT]}}}

@@ -145,6 +145,13 @@
     </label>
   </div>
 
+  {#if value.upstream_scheme === 'https'}
+    <label class="check insecure">
+      <input type="checkbox" bind:checked={value.upstream_insecure} />
+      <span>Zertifikat des Ziels nicht prüfen <span class="muted">– für selbst signierte Zertifikate (z. B. Proxmox, Unifi, NAS). Die Verbindung bleibt verschlüsselt, aber ohne Schutz gegen Abhören im Netz zwischen Node und Ziel.</span></span>
+    </label>
+  {/if}
+
   <div class="options">
     <label class="check"><input type="checkbox" bind:checked={value.websockets} />WebSockets erlauben</label>
     <label class="check"><input type="checkbox" bind:checked={value.force_https} />HTTP → HTTPS umleiten</label>

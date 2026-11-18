@@ -141,10 +141,13 @@ async def get_config(
     known: str = "",
     force: int = 0,
     wait: Annotated[float, Query(ge=0, le=MAX_WAIT)] = 0,
+    tasks: bool = False,
 ) -> Response:
     """Soll-Config. Kennt der Agent sie schon, wartet die Anfrage bis zu `wait` Sekunden auf
-    eine Änderung und endet sonst mit 204 (Long-Polling – funktioniert hinter jedem NAT)."""
+    eine Änderung und endet sonst mit 204 (Long-Polling – funktioniert hinter jedem NAT).
+    Agents ab 1.1 (`tasks=1`) bekommen dabei auch Aufgaben – dann ggf. ohne Config."""
     node_id = node.id
+    broker = request.app.state.agent_tasks
     loop = asyncio.get_running_loop()
     deadline = loop.time() + wait
     first = True
@@ -163,6 +166,16 @@ async def get_config(
             if config is None:
                 digest, config = await asyncio.to_thread(_desired, db, node, settings)
             body = {"hash": digest, "force": node.force_seq, "config": config}
+            if tasks:
+                body["tasks"] = broker.take(node_id)
+            return Response(json.dumps(body), media_type="application/json")
+        if tasks and broker.has(node_id):
+            body = {
+                "hash": digest,
+                "force": node.force_seq,
+                "config": None,
+                "tasks": broker.take(node_id),
+            }
             return Response(json.dumps(body), media_type="application/json")
         if loop.time() >= deadline or await request.is_disconnected():
             return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -201,6 +214,19 @@ def post_status(body: StatusIn, request: Request, node: AgentNode, db: DB) -> di
     if want and body.caddy_metrics:
         request.app.state.logs.metrics.set_caddy(node.name, body.caddy_metrics)
     return {"ok": True, "heartbeat": node_svc.HEARTBEAT_SECONDS, "caddy_metrics": want}
+
+
+class TaskResult(BaseModel):
+    result: dict[str, Any]
+
+
+@router.post("/tasks/{task_id}")
+async def task_result(
+    task_id: str, body: TaskResult, request: Request, node: AgentNode
+) -> dict[str, Any]:
+    """Ergebnis einer Aufgabe (siehe tesseract.agent_tasks). Unbekannte oder zu spät
+    gelieferte Ergebnisse werden ignoriert."""
+    return {"ok": request.app.state.agent_tasks.resolve(task_id, body.result)}
 
 
 class RenewIn(BaseModel):

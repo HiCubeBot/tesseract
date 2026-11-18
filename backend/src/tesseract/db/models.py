@@ -143,6 +143,8 @@ class Host(Base):
     upstream_scheme: Mapped[str] = mapped_column(String(5), default="http")
     upstream_host: Mapped[str] = mapped_column(String(253))
     upstream_port: Mapped[int]
+    # https zum Ziel ohne Prüfung des Zertifikats (selbst signiert, z. B. Proxmox, Unifi)
+    upstream_insecure: Mapped[bool] = mapped_column(default=False)
     websockets: Mapped[bool] = mapped_column(default=True)
     force_https: Mapped[bool] = mapped_column(default=True)
     compression: Mapped[bool] = mapped_column(default=False)

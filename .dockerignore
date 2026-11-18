@@ -5,6 +5,10 @@
 **/__pycache__
 **/.pytest_cache
 **/.ruff_cache
-.env
+# Lokale Einstellungen und Daten nie ins Image (Entwickler-.env, SQLite, Sicherungen, GeoIP)
+**/.env
+**/data
+**/*.tsbak
+geoip
 docs
 *.log

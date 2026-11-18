@@ -9,9 +9,9 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 |---|---|---|
 | Host-Liste | Suche nach Domain/Ziel, Filter nach Zugriffsart (Alle / Öffentlich / mTLS) und Node | 1 |
 | Host-Assistent | 3 Schritte: Domain & Ziel → Zugriff → Prüfen & übertragen | 1 |
-| Ziel | Schema (http/https), Ziel-IP/Host und Port, Auswahl des Nodes | 1 / 4 |
+| Ziel | Schema (http/https), Ziel-IP/Host und Port, Auswahl des Nodes; bei https optional ohne Prüfung des Zertifikats (selbst signiert) | 1 / 4 / 1.1 |
 | Optionen | HTTP→HTTPS-Umleitung, WebSockets, Kompression (gzip/zstd) | 1 |
-| Automatische Vorab-Prüfungen | DNS zeigt auf Node, Ziel erreichbar, Domain frei | 1 |
+| Automatische Vorab-Prüfungen | DNS zeigt auf Node, Ziel erreichbar (bei Agent-Nodes vom Node aus geprüft), Domain frei | 1 / 1.1 |
 | TLS über Let's Encrypt | HTTP-01; DNS-01 (z. B. Cloudflare) für Wildcards/Hosts ohne Port 80 | 1 / 3 |
 | Geteilte Wildcard-Zertifikate | Wildcard-Zertifikat (z. B. `*.home.beispiel.de`) einmal per DNS-01 holen und für alle passenden Hosts verwenden, die trotzdem eigene Einstellungen haben. Verrät einzelne Hostnamen nicht über die öffentlichen Certificate-Transparency-Logs | 3b |
 | Zertifikatsübersicht | Alle Zertifikate an einer Stelle (wie bei NPM): Name(n), Aussteller (Let's Encrypt, ZeroSSL, lokal, eigenes), gültig von/bis, Prüfart (HTTP-01/DNS-01), welche Hosts es nutzen, Status (gültig, läuft bald ab, Fehler beim Erneuern), Node; „Bald ablaufende Zertifikate“ in der Übersicht | 3b |
@@ -79,7 +79,7 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | Node hinzufügen | Beitritts-Token (30 Min., einmalig) mit Befehl und Compose-Ausschnitt → Agent starten → Schlüssel-Fingerabdruck vergleichen und im Controller bestätigen | 4 |
 | Agent | Erzeugt eigene Schlüssel, baut mTLS-Verbindung zum Controller auf (Long-Polling über HTTPS); kein offener Admin-Port, funktioniert hinter NAT | 4 |
 | Config-Abweichung | Erkennt lokale Änderungen (Diff pro Host) – „Mit Controller überschreiben“ oder „Änderung übernehmen“ (gilt bis zur nächsten Übertragung) | 4 |
-| Modul-Übersicht | Welche Caddy-Module (Coraza, DNS Cloudflare) je Node vorhanden sind, Warnung bei fehlenden; Sperren der betroffenen Features folgt | 4 |
+| Modul-Übersicht | Welche Caddy-Module (Coraza, DNS Cloudflare) je Node vorhanden sind; Hosts, die ein fehlendes Modul brauchen, werden beim Speichern abgelehnt | 4 / 1.1 |
 | Offline-Pufferung | Ohne Controller läuft Caddy mit dem letzten Stand weiter; Zugriffs- und WAF-Logs puffert der Agent und liefert sie nach | 4 / 5 |
 
 ## 7. Statistik & Logs

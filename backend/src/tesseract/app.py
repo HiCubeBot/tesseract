@@ -95,6 +95,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # Sicherungen: S3-Ziel in Tests als MockTransport; Sperre fürs Wiederherstellen
     app.state.backup_transport = None
     app.state.restore_lock = asyncio.Lock()
+    # Aufgaben für Agents (Erreichbarkeit vom Node, Zertifikate des Nodes)
+    from tesseract.agent_tasks import TaskBroker
+
+    app.state.agent_tasks = TaskBroker()
     app.include_router(api_router, prefix="/api")
     # Sicherheits-Header und Rate-Limits für öffentliche Endpunkte (Phase 6)
     from tesseract.security import SecurityMiddleware

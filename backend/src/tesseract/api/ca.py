@@ -133,12 +133,23 @@ def ca_status(db: DB, _: CurrentActor) -> CAStatus:
 
 
 @router.post("/setup")
-def setup(body: SetupIn, db: DB, box: Box, actor: CurrentActor) -> SetupOut:
+def setup(
+    body: SetupIn,
+    request: Request,
+    db: DB,
+    box: Box,
+    actor: CurrentActor,
+    settings: AppSettings,
+) -> SetupOut:
     try:
         result = setup_ca(db, box, body.passphrase)
     except CAError as e:
         raise HTTPException(status.HTTP_409_CONFLICT, str(e)) from e
     audit.record(db, actor=actor.name, action="ca_created", target="Tesseract Root CA", ip=actor.ip)
+    db.commit()
+    # Caddy muss ab jetzt nach Client-Zertifikaten fragen (Admin-Geräte, Agents) – sonst erst
+    # nach der nächsten Änderung
+    apply_all(db, settings, request.app.state.caddy_transport)
     db.commit()
     return SetupOut(root_cert_pem=result.root_cert_pem, root_key_pem=result.root_key_pem)
 

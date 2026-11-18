@@ -93,6 +93,8 @@ export interface Host {
   upstream_scheme: 'http' | 'https';
   upstream_host: string;
   upstream_port: number;
+  /** https zum Ziel ohne Zertifikatsprüfung */
+  upstream_insecure: boolean;
   websockets: boolean;
   force_https: boolean;
   compression: boolean;
@@ -429,6 +431,7 @@ export const FIELD_LABELS: Record<string, string> = {
   upstream_scheme: 'Protokoll',
   upstream_host: 'Ziel-Adresse',
   upstream_port: 'Port',
+  upstream_insecure: 'Zertifikat des Ziels nicht prüfen',
   websockets: 'WebSockets',
   force_https: 'HTTP → HTTPS',
   compression: 'Kompression',

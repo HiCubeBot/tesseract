@@ -145,3 +145,38 @@ def test_settings_partial_update(auth_client: TestClient) -> None:
     assert g["acme_email"] == "x@example.org"
     assert g["waf_default_mode"] == "block"
     assert g["authelia_url"] == "http://authelia:9091"
+
+
+def test_upstream_https_insecure(auth_client: TestClient, caddy: FakeCaddy) -> None:
+    import json
+
+    saved = _create(
+        auth_client, upstream_scheme="https", upstream_port=8006, upstream_insecure=True
+    )
+    assert saved["host"]["upstream_insecure"] is True
+    raw = json.dumps(caddy.last)
+    assert '"tls": {"insecure_skip_verify": true}' in raw
+    versions = auth_client.get(f"/api/hosts/{saved['host']['id']}/versions").json()
+    assert versions[0]["snapshot"]["upstream_insecure"] is True
+
+
+def test_missing_modules_refused(auth_client: TestClient) -> None:
+    with auth_client.app.state.db.sessionmaker() as db:
+        from tesseract.db.models import Node
+
+        db.get(Node, 1).modules = ["dns.providers.cloudflare"]
+        db.commit()
+    r = auth_client.post("/api/hosts", json={**HOST, "waf_mode": "block"})
+    assert r.status_code == 409 and "Coraza" in r.json()["detail"]
+    # ohne WAF geht es; als Entwurf auch mit WAF
+    assert auth_client.post("/api/hosts", json={**HOST, "waf_mode": "off"}).status_code == 201
+    draft = {**HOST, "domain": "entwurf.example.org", "waf_mode": "block", "draft": True}
+    assert auth_client.post("/api/hosts", json=draft).status_code == 201
+    # Ändern auf WAF wird ebenfalls abgelehnt, der alte Stand bleibt
+    host = next(h for h in auth_client.get("/api/hosts").json() if not h["draft"])
+    r = auth_client.put(f"/api/hosts/{host['id']}", json={**HOST, "waf_mode": "detect"})
+    assert r.status_code == 409
+    assert auth_client.get(f"/api/hosts/{host['id']}").json()["waf_mode"] == "off"
+    # Wildcard braucht DNS-01 – das Modul ist da
+    wild = {**HOST, "domain": "*.example.org", "tls_challenge": "dns", "waf_mode": "off"}
+    assert auth_client.post("/api/hosts", json=wild).status_code in (201, 409)

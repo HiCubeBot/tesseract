@@ -1,3 +1,4 @@
+import asyncio
 import ipaddress
 import re
 from datetime import datetime
@@ -135,6 +136,8 @@ class HostIn(BaseModel):
     upstream_scheme: Literal["http", "https"] = "http"
     upstream_host: str
     upstream_port: int = Field(ge=1, le=65535)
+    # nur bei https: Zertifikat des Ziels nicht prüfen
+    upstream_insecure: bool = False
     websockets: bool = True
     force_https: bool = True
     compression: bool = False
@@ -227,6 +230,7 @@ class HostOut(BaseModel):
     upstream_scheme: str
     upstream_host: str
     upstream_port: int
+    upstream_insecure: bool
     websockets: bool
     force_https: bool
     compression: bool
@@ -429,6 +433,30 @@ def _get_node(db: Session, node_id: int) -> Node:
     return node
 
 
+WAF_MODULE = "http.handlers.waf"
+DNS_MODULE = "dns.providers.cloudflare"
+
+
+def _check_modules(node: Node, host: Host) -> None:
+    """Fehlt dem Node ein Modul, würde Caddy die ganze Config ablehnen – dann lieber gleich
+    hier mit verständlicher Meldung. Nur, wenn die Module des Nodes schon bekannt sind."""
+    if node.modules is None or host.draft or not host.enabled:
+        return
+    missing = []
+    waf = host.waf_mode != "off" or any(a.waf_mode not in (None, "off") for a in host.areas)
+    if waf and WAF_MODULE not in node.modules:
+        missing.append("Coraza WAF (WAF für diesen Host ausschalten)")
+    dns = host.tls_challenge == "dns" or host.domain.startswith("*.")
+    if dns and DNS_MODULE not in node.modules:
+        missing.append("DNS Cloudflare (Prüfung auf HTTP-01 stellen)")
+    if missing:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            f"Dem Caddy auf Node „{node.name}“ fehlt: {'; '.join(missing)}. "
+            "Abhilfe: Image tesseract-caddy auf dem Node verwenden.",
+        )
+
+
 def _ensure_free(db: Session, domain: str, exclude_id: int | None, controller_domain: str) -> None:
     c = checks.check_domain_free(db, domain, exclude_id, controller_domain)
     if c.status == "bad":
@@ -452,8 +480,53 @@ def list_hosts(db: DB, _: CurrentActor) -> list[HostOut]:
     return [_out(db, h) for h in db.scalars(select(Host).order_by(Host.domain))]
 
 
+async def _upstream_check(request: Request, db: Session, node_id: int | None, host: str, port: int):
+    """Erreichbarkeit des Ziels – vom Node aus, wenn es ein Agent-Node ist (ab Agent 1.1)."""
+    from tesseract import nodes as node_svc
+    from tesseract.agent_tasks import supports_tasks
+
+    node = db.get(Node, node_id) if node_id else None
+    if node is None or not node.is_agent:
+        return await asyncio.to_thread(checks.check_upstream, host, port)
+    title = "Ziel erreichbar"
+    if not supports_tasks(node) or node_svc.state(node) in ("offline", "pending"):
+        why = "offline" if node_svc.state(node) == "offline" else "Agent älter als 1.1"
+        c = await asyncio.to_thread(checks.check_upstream, host, port)
+        return checks.Check(
+            "upstream", title, "info", f"Nicht vom Node „{node.name}“ prüfbar ({why}) – {c.detail}"
+        )
+    if host in ("localhost", "::1") or host.startswith("127."):
+        return checks.Check(
+            "upstream",
+            title,
+            "info",
+            f"{host} meint den Rechner von Caddy – vom Agent aus nicht sinnvoll prüfbar "
+            "(eigener Container). Gilt Caddy im Host-Netz, ist das so in Ordnung.",
+        )
+    r = await request.app.state.agent_tasks.run(
+        node.id, "tcp", {"host": host, "port": port, "timeout": 3}, timeout=8
+    )
+    if r is None:
+        return checks.Check("upstream", title, "warn", f"Node „{node.name}“ hat nicht geantwortet")
+    if r.get("ok"):
+        return checks.Check(
+            "upstream",
+            title,
+            "ok",
+            f"{host}:{port} antwortet dem Node „{node.name}“ · {r.get('ms', '?')} ms",
+        )
+    return checks.Check(
+        "upstream",
+        title,
+        "warn",
+        f"{host}:{port} vom Node „{node.name}“ aus nicht erreichbar ({r.get('error', '?')})",
+    )
+
+
 @router.post("/check")
-def run_checks(body: CheckIn, db: DB, _: CurrentActor, settings: AppSettings) -> list[dict]:
+async def run_checks(
+    body: CheckIn, request: Request, db: DB, _: CurrentActor, settings: AppSettings
+) -> list[dict]:
     try:
         domain = normalize_domain(body.domain, allow_wildcard=True)
     except ValueError as e:
@@ -466,7 +539,9 @@ def run_checks(body: CheckIn, db: DB, _: CurrentActor, settings: AppSettings) ->
     if body.upstream_host and body.upstream_port:
         try:
             upstream = normalize_upstream_host(body.upstream_host)
-            result.append(checks.check_upstream(upstream, body.upstream_port))
+            result.append(
+                await _upstream_check(request, db, body.node_id, upstream, body.upstream_port)
+            )
         except ValueError as e:
             result.append(checks.Check("upstream", "Ziel erreichbar", "bad", str(e)))
     result.append(checks.check_port80_hint(domain))
@@ -488,6 +563,7 @@ def create_host(
     _ensure_free(db, body.domain, None, settings.controller_domain)
     host = Host(version=1)
     _assign(host, body, get_general(db))
+    _check_modules(_get_node(db, body.node_id), host)
     db.add(host)
     add_version(db, host, actor=actor.name, comment=body.comment or "Angelegt")
     audit.record(
@@ -529,6 +605,11 @@ def update_host(
     before = snapshot(host)
     old_node = host.node_id
     _assign(host, body)
+    try:
+        _check_modules(_get_node(db, body.node_id), host)
+    except HTTPException:
+        db.rollback()
+        raise
     db.flush()
     db.refresh(host, ["node", "paths", "grants", "areas"])
     changes = diff(before, snapshot(host))

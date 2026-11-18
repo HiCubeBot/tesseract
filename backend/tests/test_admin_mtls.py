@@ -109,3 +109,14 @@ def test_revoked_admin_device_loses_access(auth_client: TestClient) -> None:
     dev = next(d for d in auth_client.get("/api/devices", headers=headers).json())
     auth_client.post(f"/api/devices/{dev['id']}/revoke", json={}, headers=headers)
     assert auth_client.get("/api/hosts", headers=headers).status_code == 403
+
+
+def test_ca_setup_applies_client_auth(auth_client: TestClient, caddy: FakeCaddy) -> None:
+    loads = len(caddy.loaded)
+    assert (
+        auth_client.post("/api/ca/setup", json={"passphrase": "root-passphrase-123"}).status_code
+        == 200
+    )
+    assert len(caddy.loaded) > loads
+    policies = caddy.last["apps"]["http"]["servers"]["https"]["tls_connection_policies"]
+    assert any(p.get("client_authentication") for p in policies)

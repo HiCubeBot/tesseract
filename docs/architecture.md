@@ -255,6 +255,15 @@ der sich ausgehend beim Controller meldet und die Config abholt – siehe
 - **Benachrichtigungen:** Quelle ist das Audit-Log (Cursor in den Einstellungen). Wechsel
   online/offline der Nodes werden dafür als `node_offline`/`node_online` protokolliert.
 
+## Aufgaben für Agents (1.1)
+
+- Der Controller stellt Aufgaben in eine Warteschlange im Speicher (`TaskBroker`); der Agent
+  nimmt sie beim nächsten Durchlauf seines Long-Pollings mit (spätestens nach 1 s) und meldet
+  das Ergebnis. Keine eingehende Verbindung zum Node, Zeitlimit pro Aufgabe.
+- Nur für Agents ab 1.1 (gemeldete Version); ältere bekommen keine Aufgaben, die Prüfung läuft
+  dann wie früher vom Controller mit Hinweis.
+- Aufgaben: `tcp` (Ziel erreichbar?), `certs` (ausgelieferte Zertifikate per TLS mit SNI).
+
 ## Offene Entscheidungen
 
 | Thema | Optionen | Notiz |
