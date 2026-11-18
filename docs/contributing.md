@@ -20,8 +20,8 @@ gh pr merge --squash --delete-branch
 
 ## Commits
 
-- Commit-E-Mail für dieses Projekt: **`git@criehe.de`** (ist lokal im Repo gesetzt,
-  `git config user.email`).
+- Persönliche Regeln (z. B. eigene Commit-E-Mail) gehören in eine lokale `LOCAL-RULES.md`
+  im Projektordner. Sie steht in `.gitignore` und wird nicht eingecheckt.
 - Vor einem PR müssen laufen:
   - `cd backend && uv run pytest && uv run ruff check . && uv run ruff format --check .`
   - `cd frontend && npm run check && npm run build`

@@ -11,4 +11,4 @@ und in dieser Übersicht verlinken.
 | [backend.md](backend.md) | FastAPI-Controller: Aufbau, uv, Konfiguration, Tests |
 | [frontend.md](frontend.md) | Svelte-UI: Aufbau, Komponenten, Screens, Routen |
 | [deployment.md](deployment.md) | Docker-Images, Compose-Stack, Umgebungsvariablen |
-| [contributing.md](contributing.md) | Git-Workflow: Feature-Branches, Pull Requests, Commit-E-Mail |
+| [contributing.md](contributing.md) | Git-Workflow: Feature-Branches, Pull Requests, lokale Regeln |

@@ -14,3 +14,4 @@ backend/data
 # Allgemein
 .env
 *.log
+LOCAL-RULES.md

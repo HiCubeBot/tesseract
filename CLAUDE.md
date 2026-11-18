@@ -2,6 +2,8 @@
 
 Caddy-Verwaltung (NPM-Alternative) mit mTLS statt VPN und Coraza WAF. Sprache in Code-Kommentaren, UI und Doku: Deutsch.
 
+Gibt es eine `LOCAL-RULES.md` im Projektordner, gelten deren Regeln immer zusätzlich (persönliche Regeln, nicht eingecheckt).
+
 ## Struktur
 - `frontend/` Svelte 5 + Vite (TypeScript) · `backend/` Python 3.13, FastAPI, uv · `docs/` **alle** Dokumentation
 - Phasen und Features: `docs/roadmap.md`, `docs/features.md` – bei neuen Features aktualisieren
