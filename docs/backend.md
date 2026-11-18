@@ -39,6 +39,9 @@ backend/
     audit.py              Audit-Einträge schreiben
     deps.py               FastAPI-Abhängigkeiten (DB-Session, angemeldeter Admin)
     services.py           Hosts, Versionen, Einstellungen, Übertragen an Nodes
+    pki.py                Root, Zwischenzertifikat, Client-Zertifikate, PKCS#12
+    identity.py           CA einrichten, Geräte ausstellen und sperren
+    secretbox.py          Verschlüsselung von Geheimnissen (AES-GCM) mit dem Hauptschlüssel
     checks.py             Vorab-Prüfungen (Domain frei, DNS, Ziel erreichbar)
     caddy/
       config.py           erzeugt die komplette Caddy-JSON-Config eines Nodes
@@ -89,6 +92,28 @@ Beim Start überträgt der Controller die Config einmal an alle Nodes (mit Wiede
 falls Caddy später startet). Die Controller-Domain (`TESSERACT_CONTROLLER_DOMAIN`) bekommt
 immer eine eigene Route, damit sich der Controller nicht aussperrt.
 
+## Zertifizierungsstelle (Phase 2)
+
+- `POST /api/ca/setup` erzeugt Root-CA (ECDSA P-384, 10 Jahre) und Geräte-Zwischenzertifikat
+  (3 Jahre). Die Antwort enthält den **mit der Passphrase verschlüsselten Root-Schlüssel** – der
+  Controller speichert ihn nicht.
+- Der Schlüssel des Zwischenzertifikats liegt mit AES-GCM verschlüsselt in der DB. Der
+  Hauptschlüssel kommt aus `TESSERACT_SECRET_KEY` oder wird als `secret.key` im
+  Datenverzeichnis angelegt. **Ohne ihn ist die CA nach einem Restore unbrauchbar** – getrennt
+  von der Datenbank sichern.
+- Geräte bekommen ECDSA-P-256-Zertifikate (EKU clientAuth). Der Schlüssel wird beim Ausstellen
+  erzeugt, als `.p12` (3DES/SHA1 für maximale Kompatibilität) mit Einmal-Passwort ausgeliefert
+  und nicht gespeichert.
+- Der Fingerabdruck (SHA-256 über DER, hex) entspricht Caddys `{http.request.tls.client.fingerprint}`.
+
+| Methode & Pfad | Zweck |
+|---|---|
+| `GET /api/ca` · `POST /api/ca/setup` · `GET /api/ca/root.pem` | Status, Einrichten, Root-Zertifikat |
+| `GET/POST /api/groups` · `PUT/DELETE /api/groups/{id}` | Gruppen (Gruppe `Admin` ist eingebaut) |
+| `GET/POST /api/persons` · `GET/PUT/DELETE /api/persons/{id}` | Personen mit Gruppen und Geräten |
+| `POST /api/persons/{id}/devices` | Zertifikat direkt ausstellen (liefert `.p12` einmalig) |
+| `GET /api/devices` · `POST /api/devices/{id}/revoke` · `GET /api/devices/revoked.csv` | Geräte, sperren, Export |
+
 ## Datenbank & Migrationen
 
 Schema ändern:
@@ -118,6 +143,7 @@ Alle Einstellungen kommen aus Umgebungsvariablen oder einer `.env` im Arbeitsver
 | `TESSERACT_CONTROLLER_DOMAIN` | – | Domain der Tesseract-Oberfläche (Compose: `TESSERACT_DOMAIN`) |
 | `TESSERACT_CONTROLLER_UPSTREAM` | `tesseract:8000` | Wie Caddy den Controller erreicht |
 | `TESSERACT_SYNC_ON_START` | `true` | Beim Start die Config an alle Nodes übertragen |
+| `TESSERACT_SECRET_KEY` | – | Hauptschlüssel (Base64, 32 Byte); leer = `secret.key` im Datenverzeichnis |
 | `TESSERACT_COOKIE_SECURE` | `true` | Session-Cookie nur über HTTPS |
 | `TESSERACT_SESSION_HOURS` | `12` | Session-Dauer ohne „angemeldet bleiben“ |
 | `TESSERACT_SESSION_REMEMBER_DAYS` | `30` | Session-Dauer mit „angemeldet bleiben“ |

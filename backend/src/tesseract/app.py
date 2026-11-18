@@ -15,6 +15,7 @@ from tesseract.api import api_router
 from tesseract.auth import LoginThrottle
 from tesseract.bootstrap import init_database, sync_nodes_on_start
 from tesseract.config import Settings, get_settings
+from tesseract.secretbox import load_secretbox
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -26,6 +27,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.db = init_database(settings)
+        app.state.secretbox = load_secretbox(settings)
         task = None
         if settings.sync_on_start:
             task = asyncio.create_task(

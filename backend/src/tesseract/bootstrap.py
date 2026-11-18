@@ -8,11 +8,12 @@ from sqlalchemy import select
 from tesseract.auth import ensure_admin
 from tesseract.config import Settings
 from tesseract.db import Database, make_engine, run_migrations
-from tesseract.db.models import Node
+from tesseract.db.models import Group, Node
 
 log = logging.getLogger("tesseract")
 
 LOCAL_NODE = "local"
+ADMIN_GROUP = "Admin"
 
 
 def init_database(settings: Settings) -> Database:
@@ -27,6 +28,17 @@ def init_database(settings: Settings) -> Database:
             db.add(Node(name=LOCAL_NODE, location="lokal", admin_url=settings.caddy_admin_url))
         elif node.admin_url != settings.caddy_admin_url:
             node.admin_url = settings.caddy_admin_url
+        db.commit()
+
+        # Eingebaute Gruppe für Admin-Geräte (Phase 2: Zugang zur Oberfläche per Zertifikat)
+        if db.scalar(select(Group).where(Group.name == ADMIN_GROUP)) is None:
+            db.add(
+                Group(
+                    name=ADMIN_GROUP,
+                    description="Geräte, die die Tesseract-Oberfläche öffnen dürfen",
+                    builtin=True,
+                )
+            )
         db.commit()
 
         password = ensure_admin(db)

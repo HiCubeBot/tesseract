@@ -133,3 +133,100 @@ class AuditEntry(Base):
     target: Mapped[str] = mapped_column(String(255), default="")
     details: Mapped[dict[str, Any]] = mapped_column(default=dict)
     ip: Mapped[str | None] = mapped_column(String(64))
+
+
+# ---------- Phase 2: PKI und Identitäten ----------
+
+
+class Authority(Base):
+    """Root- und Zwischenzertifikat. Der Root-Schlüssel wird nie gespeichert."""
+
+    __tablename__ = "authorities"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    kind: Mapped[str] = mapped_column(String(16))  # "root" | "intermediate"
+    cert_pem: Mapped[str]
+    # verschlüsselt mit dem Hauptschlüssel (secretbox); None beim Root
+    key_enc: Mapped[str | None]
+    fingerprint: Mapped[str] = mapped_column(String(64), unique=True)
+    not_before: Mapped[datetime]
+    not_after: Mapped[datetime]
+    active: Mapped[bool] = mapped_column(default=True)
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+
+
+class PersonGroup(Base):
+    __tablename__ = "person_groups"
+
+    person_id: Mapped[int] = mapped_column(
+        ForeignKey("persons.id", ondelete="CASCADE"), primary_key=True
+    )
+    group_id: Mapped[int] = mapped_column(
+        ForeignKey("groups.id", ondelete="CASCADE"), primary_key=True
+    )
+
+
+class Group(Base):
+    __tablename__ = "groups"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(64), unique=True)
+    description: Mapped[str] = mapped_column(String(255), default="")
+    # eingebaute Gruppen (z. B. "Admin") lassen sich nicht löschen
+    builtin: Mapped[bool] = mapped_column(default=False)
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+
+    persons: Mapped[list["Person"]] = relationship(
+        secondary="person_groups", back_populates="groups", order_by="Person.name"
+    )
+
+
+class Person(Base):
+    """Rechte gehören zur Person; jedes ihrer Geräte hat ein eigenes Zertifikat."""
+
+    __tablename__ = "persons"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(64), unique=True)
+    note: Mapped[str] = mapped_column(String(255), default="")
+    max_devices: Mapped[int] = mapped_column(default=3)
+    disabled: Mapped[bool] = mapped_column(default=False)
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+
+    groups: Mapped[list[Group]] = relationship(
+        secondary="person_groups", back_populates="persons", order_by="Group.name"
+    )
+    devices: Mapped[list["Device"]] = relationship(
+        back_populates="person", cascade="all, delete-orphan", order_by="Device.created_at"
+    )
+
+
+class Device(Base):
+    """Ein Gerät = ein Client-Zertifikat. Der private Schlüssel wird nie gespeichert."""
+
+    __tablename__ = "devices"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    person_id: Mapped[int] = mapped_column(ForeignKey("persons.id", ondelete="CASCADE"))
+    name: Mapped[str] = mapped_column(String(64))
+    platform: Mapped[str] = mapped_column(String(32), default="")
+    serial: Mapped[str] = mapped_column(String(64))
+    fingerprint: Mapped[str] = mapped_column(String(64), unique=True)
+    cert_pem: Mapped[str]
+    not_before: Mapped[datetime]
+    not_after: Mapped[datetime]
+    unlimited: Mapped[bool] = mapped_column(default=False)
+    revoked_at: Mapped[datetime | None]
+    revoke_reason: Mapped[str] = mapped_column(String(255), default="")
+    last_seen_at: Mapped[datetime | None]
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+
+    person: Mapped[Person] = relationship(back_populates="devices")
+
+    @property
+    def status(self) -> str:
+        if self.revoked_at is not None:
+            return "revoked"
+        if self.not_after <= utcnow():
+            return "expired"
+        return "active"

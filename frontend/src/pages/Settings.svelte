@@ -3,6 +3,7 @@
   import PageHeader from '../lib/components/PageHeader.svelte';
   import Button from '../lib/components/Button.svelte';
   import Alert from '../lib/components/Alert.svelte';
+  import SettingsTabs from '../lib/components/SettingsTabs.svelte';
   import { api, type GeneralSettings } from '../lib/api';
   import { session } from '../lib/session.svelte';
   import { toasts } from '../lib/toast.svelte';
@@ -68,14 +69,7 @@
 <AppShell active="settings">
   <PageHeader title="Einstellungen" subtitle="Gilt für den Controller und als Standard für alle Nodes." />
 
-  <nav class="tabs" aria-label="Bereiche">
-    <a href="#/settings" aria-current="page">Allgemein</a>
-    <a href="#/design/settings-integrations">Integrationen</a>
-    <a href="#/design/settings-ca">Zertifizierungsstelle</a>
-    <a href="#/design/settings-notify">Benachrichtigungen</a>
-    <a href="#/design/settings-metrics">Metriken</a>
-    <a href="#/design/settings-backup">Backup</a>
-  </nav>
+  <SettingsTabs current="#/settings" />
 
   {#if error}<Alert tone="bad" title="Fehler" text={error} />{/if}
 
@@ -132,24 +126,6 @@
 </AppShell>
 
 <style>
-  .tabs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    border-bottom: 1px solid var(--border);
-  }
-  .tabs a {
-    padding: 10px 14px;
-    color: var(--text-muted);
-    text-decoration: none;
-    font-weight: 500;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -1px;
-  }
-  .tabs a[aria-current='page'] {
-    color: var(--text);
-    border-bottom-color: var(--accent);
-  }
   .grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));

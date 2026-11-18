@@ -11,6 +11,7 @@ from tesseract.auth import SESSION_COOKIE, session_for_token
 from tesseract.config import Settings
 from tesseract.db import Database
 from tesseract.db.models import Admin
+from tesseract.secretbox import SecretBox
 
 
 def get_db(request: Request) -> Iterator[Session]:
@@ -22,7 +23,12 @@ def get_app_settings(request: Request) -> Settings:
     return request.app.state.settings
 
 
+def get_secretbox(request: Request) -> SecretBox:
+    return request.app.state.secretbox
+
+
 DB = Annotated[Session, Depends(get_db)]
+Box = Annotated[SecretBox, Depends(get_secretbox)]
 AppSettings = Annotated[Settings, Depends(get_app_settings)]
 
 

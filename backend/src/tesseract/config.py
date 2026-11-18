@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     session_hours: int = 12
     session_remember_days: int = 30
 
+    # Hauptschlüssel (Base64, 32 Byte) für verschlüsselte Geheimnisse; leer = data_dir/secret.key
+    secret_key: str = ""
+
     # Beim Start die Config an alle Nodes übertragen
     sync_on_start: bool = True
 

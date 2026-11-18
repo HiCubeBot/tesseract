@@ -38,6 +38,9 @@ import HostWizardPage from "./pages/HostWizard.svelte";
 import HostHistoryPage from "./pages/HostHistory.svelte";
 import SettingsPage from "./pages/Settings.svelte";
 import AuditPage from "./pages/Audit.svelte";
+import UsersPage from "./pages/Users.svelte";
+import DevicesPage from "./pages/Devices.svelte";
+import SettingsCAPage from "./pages/SettingsCA.svelte";
 
 export interface Page {
   /** Muster ohne "#/", Parameter mit ":" – z. B. "hosts/:id/history" */
@@ -58,6 +61,10 @@ export const pages: Page[] = [
   { pattern: "hosts/:id/history", title: "Host · Verlauf", component: HostHistoryPage },
   { pattern: "settings", title: "Einstellungen", component: SettingsPage },
   { pattern: "audit", title: "Audit-Log", component: AuditPage },
+  { pattern: "users", title: "Nutzer", component: UsersPage },
+  { pattern: "users/:id", title: "Nutzer", component: UsersPage },
+  { pattern: "devices", title: "Geräte", component: DevicesPage },
+  { pattern: "settings-ca", title: "Einstellungen · Zertifizierungsstelle", component: SettingsCAPage },
 ];
 
 export function matchPage(path: string): { page: Page; params: Record<string, string> } | null {

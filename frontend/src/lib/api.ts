@@ -213,5 +213,120 @@ export const ACTION_LABELS: Record<string, string> = {
   host_restored: 'Host zurückgesetzt',
   config_applied: 'Config übertragen',
   config_apply_failed: 'Übertragen fehlgeschlagen',
-  settings_changed: 'Einstellungen geändert'
+  settings_changed: 'Einstellungen geändert',
+  ca_created: 'Zertifizierungsstelle eingerichtet',
+  group_created: 'Gruppe angelegt',
+  group_updated: 'Gruppe geändert',
+  group_deleted: 'Gruppe gelöscht',
+  person_created: 'Person angelegt',
+  person_updated: 'Person geändert',
+  person_deleted: 'Person gelöscht',
+  device_issued: 'Gerätezertifikat ausgestellt',
+  device_revoked: 'Gerät gesperrt'
 };
+
+// ---------- Phase 2: CA, Personen, Geräte ----------
+
+export interface AuthorityInfo {
+  kind: 'root' | 'intermediate';
+  subject: string;
+  fingerprint: string;
+  not_before: string;
+  not_after: string;
+  key_on_controller: boolean;
+}
+
+export interface CAStatus {
+  configured: boolean;
+  root: AuthorityInfo | null;
+  intermediate: AuthorityInfo | null;
+  devices_total: number;
+  devices_active: number;
+  devices_revoked: number;
+  devices_beyond_intermediate: number;
+}
+
+export interface Group {
+  id: number;
+  name: string;
+  description: string;
+  builtin: boolean;
+  members: number;
+}
+
+export interface Device {
+  id: number;
+  person_id: number;
+  person_name: string;
+  name: string;
+  platform: string;
+  serial: string;
+  fingerprint: string;
+  not_before: string;
+  not_after: string;
+  unlimited: boolean;
+  status: 'active' | 'expired' | 'revoked';
+  revoked_at: string | null;
+  revoke_reason: string;
+  last_seen_at: string | null;
+  created_at: string;
+}
+
+export interface Person {
+  id: number;
+  name: string;
+  note: string;
+  max_devices: number;
+  disabled: boolean;
+  created_at: string;
+  groups: { id: number; name: string }[];
+  devices: Device[];
+  active_devices: number;
+}
+
+export interface IssuedDevice {
+  device: Device;
+  filename: string;
+  password: string;
+  p12_base64: string;
+}
+
+export const PLATFORMS: Record<string, string> = {
+  ios: 'iPhone / iPad',
+  android: 'Android',
+  macos: 'Mac',
+  windows: 'Windows',
+  linux: 'Linux',
+  other: 'Sonstiges'
+};
+
+export const DEVICE_STATUS: Record<Device['status'], { label: string; tone: 'ok' | 'warn' | 'bad' }> = {
+  active: { label: 'aktiv', tone: 'ok' },
+  expired: { label: 'abgelaufen', tone: 'warn' },
+  revoked: { label: 'gesperrt', tone: 'bad' }
+};
+
+const dayFmt = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+export const formatDay = (iso: string | null) => (iso ? dayFmt.format(new Date(iso)) : '–');
+
+/** Läuft in weniger als 30 Tagen ab? */
+export const expiresSoon = (d: Device) =>
+  d.status === 'active' && new Date(d.not_after).getTime() - Date.now() < 30 * 86400_000;
+
+export function downloadFile(filename: string, data: BlobPart, type: string) {
+  const url = URL.createObjectURL(new Blob([data], { type }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export function base64ToBytes(b64: string): Uint8Array<ArrayBuffer> {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}

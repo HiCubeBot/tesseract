@@ -135,3 +135,15 @@ def apply_node(
 
 def node_in_sync(db: Session, node: Node, settings: Settings) -> bool:
     return node.applied_hash == config_hash(node_config(db, node, settings))
+
+
+def apply_all(
+    db: Session, settings: Settings, transport: httpx.BaseTransport | None = None
+) -> list[str]:
+    """Überträgt an alle Nodes (z. B. nach Sperren eines Geräts). Gibt Fehler zurück."""
+    errors = []
+    for node in db.scalars(select(Node)):
+        err = apply_node(db, node, settings, transport)
+        if err:
+            errors.append(f"{node.name}: {err}")
+    return errors
