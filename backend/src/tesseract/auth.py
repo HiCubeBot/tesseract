@@ -87,8 +87,32 @@ def set_password(db: Session, admin: Admin, password: str) -> None:
     end_all_sessions(db, admin.id)
 
 
-def ensure_admin(db: Session, username: str = "admin") -> str | None:
-    """Legt beim ersten Start einen Admin mit Zufallspasswort an und gibt es zurück."""
+def ensure_admin(db: Session, username: str = "admin", password: str = "") -> str | None:
+    """Erster Start: legt den Admin an. Ohne vorgegebenes Passwort mit einem Zufallspasswort,
+    das zurückgegeben wird (fürs Log). Mit vorgegebenem Passwort (TESSERACT_ADMIN_PASSWORD)
+    wird es bei jedem Start durchgesetzt – auch für einen bestehenden Admin."""
+    if password:
+        if len(password) < MIN_PASSWORD_LENGTH:
+            raise ValueError(
+                f"TESSERACT_ADMIN_PASSWORD ist zu kurz (mindestens {MIN_PASSWORD_LENGTH} Zeichen)"
+            )
+        admin = db.scalar(select(Admin).where(Admin.username == username))
+        if admin is None:
+            db.add(Admin(username=username, password_hash=hash_password(password)))
+            db.commit()
+        elif not verify_password(admin.password_hash, password):
+            set_password(db, admin, password)  # beendet alle Sessions
+            from tesseract import audit
+
+            audit.record(
+                db,
+                actor="system",
+                action="password_reset",
+                target=username,
+                details={"source": "TESSERACT_ADMIN_PASSWORD"},
+            )
+            db.commit()
+        return None
     if db.scalar(select(Admin.id).limit(1)) is not None:
         return None
     password = generate_password()

@@ -34,6 +34,8 @@ class LoginRequest(BaseModel):
 
 class Me(BaseModel):
     username: str
+    # Passwort kommt aus TESSERACT_ADMIN_PASSWORD und lässt sich hier nicht ändern
+    password_from_env: bool = False
 
 
 class DeviceInfo(BaseModel):
@@ -110,12 +112,25 @@ def device(request: Request, db: DB) -> DeviceInfo:
 
 
 @router.get("/me")
-def me(actor: CurrentActor) -> Me:
-    return Me(username=actor.name)
+def me(actor: CurrentActor, settings: AppSettings) -> Me:
+    managed = bool(settings.resolved_admin_password) and actor.name == settings.admin_username
+    return Me(username=actor.name, password_from_env=managed)
 
 
 @router.post("/password", status_code=status.HTTP_204_NO_CONTENT)
-def change_password(body: PasswordChange, actor: CurrentActor, db: DB, response: Response) -> None:
+def change_password(
+    body: PasswordChange,
+    actor: CurrentActor,
+    db: DB,
+    response: Response,
+    settings: AppSettings,
+) -> None:
+    if settings.resolved_admin_password and actor.name == settings.admin_username:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Das Passwort ist über TESSERACT_ADMIN_PASSWORD festgelegt – "
+            "dort ändern und neu starten",
+        )
     admin = db.merge(actor.admin)
     if not verify_password(admin.password_hash, body.current_password):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Aktuelles Passwort ist falsch")

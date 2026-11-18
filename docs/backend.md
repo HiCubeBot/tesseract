@@ -12,7 +12,9 @@ uv run tesseract          # Controller auf :8000
 ```
 
 Beim **ersten Start** legt der Controller den Admin `admin` mit einem Zufallspasswort an und
-schreibt es **einmalig ins Log**. Passwort vergessen? Nur lokal auf dem Controller:
+schreibt es **einmalig ins Log** – außer `TESSERACT_ADMIN_PASSWORD` ist gesetzt: Dann gilt dieses
+Passwort bei jedem Start (auch für einen bestehenden Admin, Sessions werden beendet), und die
+Oberfläche bietet keinen Passwortwechsel an. Passwort vergessen? Nur lokal auf dem Controller:
 
 ```bash
 uv run tesseract admin reset                               # Entwicklung
@@ -220,6 +222,13 @@ Alle Einstellungen kommen aus Umgebungsvariablen oder einer `.env` im Arbeitsver
 | `TESSERACT_ACCESS_LOG_PATH` | – | Pfad, unter dem der Controller dieselbe Datei liest |
 | `TESSERACT_GEOIP_DB` | – | Optionale GeoIP-Datenbank (`.mmdb`, z. B. GeoLite2-Country, DB-IP Lite) |
 | `TESSERACT_BACKGROUND_TASKS` | `true` | Hintergrundaufgaben (Auto-Sperre, Logs, Prüfung lokaler Nodes, Benachrichtigungen) |
+| `TESSERACT_ADMIN_USERNAME` | `admin` | Name des Admins |
+| `TESSERACT_ADMIN_PASSWORD` | – | Admin-Passwort (mind. 12 Zeichen), gilt bei jedem Start; leer = Zufallspasswort im Log |
+| `TESSERACT_ADMIN_PASSWORD_FILE` | – | Passwort aus einer Datei (Docker-Secret), hat Vorrang |
+| `TESSERACT_ACME_EMAIL` | – | Let's-Encrypt-E-Mail festlegen (überschreibt die Oberfläche beim Start) |
+| `TESSERACT_LOGS_DAYS` | – | Aufbewahrung der Logs festlegen |
+| `TESSERACT_INTERNAL_NETWORKS` | – | Interne Netze, kommagetrennt, festlegen |
+| `TESSERACT_TRUSTED_PROXIES` | – | Vertrauenswürdige Proxys, kommagetrennt, festlegen |
 | `TESSERACT_COOKIE_SECURE` | `true` | Session-Cookie nur über HTTPS |
 | `TESSERACT_SESSION_HOURS` | `12` | Session-Dauer ohne „angemeldet bleiben“ |
 | `TESSERACT_SESSION_REMEMBER_DAYS` | `30` | Session-Dauer mit „angemeldet bleiben“ |

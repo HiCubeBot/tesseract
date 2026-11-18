@@ -35,6 +35,21 @@ class Settings(BaseSettings):
     # Wie Caddy den Controller selbst erreicht (Route für die Controller-Domain)
     controller_upstream: str = "tesseract:8000"
 
+    # Admin-Zugang aus der Umgebung. Ist ein Passwort gesetzt, gilt es bei jedem Start
+    # (in der Oberfläche lässt es sich dann nicht ändern). Leer = Zufallspasswort beim ersten
+    # Start, steht einmalig im Log. *_FILE liest es aus einer Datei (Docker-Secrets).
+    admin_username: str = "admin"
+    admin_password: str = ""
+    admin_password_file: Path | None = None
+
+    # Startwerte für Einstellungen der Oberfläche. Gesetzt = gilt bei jedem Start
+    # (überschreibt, was in der Oberfläche eingestellt wurde).
+    acme_email: str | None = None
+    logs_days: int | None = None
+    # Netze, kommagetrennt (z. B. "192.168.178.0/24,10.8.0.0/24")
+    internal_networks: str | None = None
+    trusted_proxies: str | None = None
+
     # Session-Cookie nur über HTTPS senden (für lokale Entwicklung abschalten)
     cookie_secure: bool = True
     session_hours: int = 12
@@ -60,6 +75,25 @@ class Settings(BaseSettings):
     background_tasks: bool = True
 
     log_level: str = "info"
+
+    @property
+    def resolved_admin_password(self) -> str:
+        if self.admin_password_file:
+            return self.admin_password_file.read_text(encoding="utf-8").strip()
+        return self.admin_password
+
+    def env_overrides(self) -> dict:
+        """Einstellungen der Oberfläche, die aus der Umgebung festgelegt sind."""
+        out: dict = {}
+        if self.acme_email is not None:
+            out["acme_email"] = self.acme_email.strip()
+        if self.logs_days is not None:
+            out["logs_days"] = max(1, min(365, self.logs_days))
+        for key in ("internal_networks", "trusted_proxies"):
+            raw = getattr(self, key)
+            if raw is not None:
+                out[key] = [x.strip() for x in raw.replace(";", ",").split(",") if x.strip()]
+        return out
 
     @property
     def resolved_database_url(self) -> str:

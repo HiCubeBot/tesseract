@@ -24,7 +24,8 @@ Die mitgelieferte `docker/caddy/Caddyfile` gilt nur beim allerersten Start. Dana
 der Controller die komplette Config als JSON über die Admin-API. Caddy läuft mit `--resume`
 und startet nach einem Neustart mit der zuletzt geladenen Config (gespeichert in `caddy-config`).
 
-Das Admin-Passwort steht nach dem ersten Start im Log:
+Das Admin-Passwort kommt aus `TESSERACT_ADMIN_PASSWORD` in der `.env`. Ist es leer, steht nach
+dem ersten Start ein Zufallspasswort im Log:
 
 ```bash
 docker compose logs tesseract | grep "Erster Start"
@@ -32,7 +33,8 @@ docker compose logs tesseract | grep "Erster Start"
 
 ### Erste Schritte nach dem Start
 
-1. Mit dem Passwort aus dem Log anmelden und es unter Einstellungen ändern.
+1. Anmelden – mit `TESSERACT_ADMIN_PASSWORD` aus der `.env` oder, wenn keins gesetzt ist, mit dem
+   Zufallspasswort aus dem Log (dann unter Einstellungen ändern).
 2. **Einstellungen › Zertifizierungsstelle** einrichten und den Root-Schlüssel offline sichern.
 3. Unter **Nutzer** eine Person für dich in der Gruppe `Admin` anlegen und dein Gerät
    „direkt ausstellen“, die `.p12` installieren.
@@ -63,13 +65,20 @@ nicht auf dem Server; den hast du beim Einrichten heruntergeladen.
 
 ### Umgebungsvariablen (`.env`)
 
+Vorlage mit allen Einstellungen: [`.env.example`](../.env.example) → `cp .env.example .env`.
+Der Controller bekommt alle `TESSERACT_*`-Variablen aus der `.env` (`env_file` in
+`compose.yaml`); was unter `environment:` steht, gehört zum Stack und hat Vorrang.
+
 | Variable | Bedeutung |
 |---|---|
 | `TESSERACT_DOMAIN` | Domain des Controller-UIs (Standard `localhost`) |
-| (Let's-Encrypt-E-Mail) | wird im UI unter Einstellungen gesetzt |
 | `TESSERACT_LOG_LEVEL` | Log-Level des Controllers |
+| `TESSERACT_ADMIN_USERNAME` · `TESSERACT_ADMIN_PASSWORD` (oder `…_FILE`) | Admin-Zugang. Mit Passwort gilt es bei jedem Start und ist in der Oberfläche gesperrt |
+| `TESSERACT_ACME_EMAIL` · `TESSERACT_LOGS_DAYS` · `TESSERACT_INTERNAL_NETWORKS` · `TESSERACT_TRUSTED_PROXIES` | Einstellungen der Oberfläche festlegen – werden bei jedem Start gesetzt, die Oberfläche weist darauf hin |
+| `TESSERACT_SECRET_KEY` | Hauptschlüssel (sonst `secret.key` im Datenvolume) |
+| `TESSERACT_SESSION_HOURS` · `TESSERACT_SESSION_REMEMBER_DAYS` · `TESSERACT_GEOIP_DB` | siehe [backend.md](backend.md#konfiguration) |
 
-Weitere Controller-Variablen: siehe [backend.md](backend.md#konfiguration).
+Alle weiteren Controller-Variablen: [backend.md](backend.md#konfiguration).
 
 ## Weitere Nodes (Phase 4)
 

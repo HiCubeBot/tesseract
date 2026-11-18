@@ -10,6 +10,8 @@
   import { toasts } from '../lib/toast.svelte';
 
   let general = $state<GeneralSettings | null>(null);
+  let pwFromEnv = $state(false);
+  api.get<{ password_from_env?: boolean }>('/auth/me').then((m) => (pwFromEnv = !!m.password_from_env));
   let email = $state('');
   let ips = $state('');
   let saving = $state(false);
@@ -102,6 +104,13 @@
   <PageHeader title="Einstellungen" subtitle="Gilt für den Controller und als Standard für alle Nodes." />
 
   <SettingsTabs current="#/settings" />
+  {#if general?.env_managed.length}
+    <Alert
+      tone="info"
+      title="Teilweise über die .env festgelegt"
+      text={`${general.env_managed.join(', ')} – kommt aus der Umgebung und wird bei jedem Start gesetzt. Änderungen hier gelten nur bis zum nächsten Neustart.`}
+    />
+  {/if}
 
   {#if error}<Alert tone="bad" title="Fehler" text={error} />{/if}
 
@@ -160,6 +169,15 @@
       {/if}
     </section>
 
+    {#if pwFromEnv}
+    <section class="card" aria-labelledby="pw-title">
+      <h2 id="pw-title">Passwort</h2>
+      <p class="muted small">
+        Das Passwort ist in der Umgebung festgelegt (<span class="mono">TESSERACT_ADMIN_PASSWORD</span> in der
+        <span class="mono">.env</span>). Zum Ändern dort anpassen und den Controller neu starten.
+      </p>
+    </section>
+    {:else}
     <form class="card" onsubmit={changePassword} aria-labelledby="pw-title">
       <h2 id="pw-title">Passwort ändern</h2>
       <input type="text" autocomplete="username" value={session.user?.username ?? ''} hidden readonly />
@@ -179,6 +197,7 @@
       <p class="muted small">Danach werden alle Sitzungen beendet – auch diese.</p>
       <div class="row"><Button type="submit" label={pwSaving ? 'Ändert …' : 'Passwort ändern'} disabled={pwSaving} /></div>
     </form>
+    {/if}
   </div>
 </AppShell>
 

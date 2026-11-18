@@ -62,6 +62,8 @@ export const api = {
 
 export interface Me {
   username: string;
+  /** Passwort kommt aus TESSERACT_ADMIN_PASSWORD (.env) */
+  password_from_env?: boolean;
 }
 
 export interface DeviceInfo {
@@ -377,6 +379,8 @@ export interface GeneralSettings {
   internal_list_ids: number[];
   wildcard_certs: string[];
   controller_domain: string;
+  /** über die Umgebung (.env) festgelegt – wird beim Start überschrieben */
+  env_managed: string[];
   version: string;
 }
 

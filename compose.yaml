@@ -5,6 +5,11 @@ services:
     build: .
     image: tesseract:dev
     restart: unless-stopped
+    # Alle TESSERACT_*-Einstellungen aus der .env (Vorlage: .env.example).
+    # Die Werte unter environment: gehören zum Stack und haben Vorrang.
+    env_file:
+      - path: .env
+        required: false
     environment:
       TESSERACT_CADDY_ADMIN_URL: http://caddy:2019
       TESSERACT_CONTROLLER_DOMAIN: ${TESSERACT_DOMAIN:-localhost}

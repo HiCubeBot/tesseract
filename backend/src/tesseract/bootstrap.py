@@ -41,15 +41,25 @@ def init_database(settings: Settings) -> Database:
             )
         db.commit()
 
-        password = ensure_admin(db)
+        password = ensure_admin(db, settings.admin_username, settings.resolved_admin_password)
         db.commit()
+        # Einstellungen, die in der Umgebung festgelegt sind (z. B. .env)
+        overrides = settings.env_overrides()
+        if overrides:
+            from tesseract.services import set_general
+
+            set_general(db, overrides)
+            db.commit()
+            log.info("Einstellungen aus der Umgebung: %s", ", ".join(sorted(overrides)))
         # Audit-Log: offene Einträge (z. B. aus älteren Versionen) versiegeln
         from tesseract.audit import seal
 
         seal(db)
         if password:
             log.warning(
-                "Erster Start: Admin 'admin' angelegt. Passwort: %s – bitte nach dem Login ändern.",
+                "Erster Start: Admin '%s' angelegt. Passwort: %s – bitte nach dem Login ändern "
+                "oder TESSERACT_ADMIN_PASSWORD setzen.",
+                settings.admin_username,
                 password,
             )
     return database

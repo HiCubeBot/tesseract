@@ -109,6 +109,13 @@
 <AppShell active="settings">
   <PageHeader title="Einstellungen" subtitle="Externe Dienste und Caddy-Module, die Hosts nutzen können." />
   <SettingsTabs current="#/settings-integrations" />
+  {#if general?.env_managed.length}
+    <Alert
+      tone="info"
+      title="Teilweise über die .env festgelegt"
+      text={`${general.env_managed.join(', ')} – kommt aus der Umgebung und wird bei jedem Start gesetzt. Änderungen hier gelten nur bis zum nächsten Neustart.`}
+    />
+  {/if}
 
   {#if error}<Alert tone="bad" title="Fehler" text={error} />{/if}
 

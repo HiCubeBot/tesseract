@@ -38,12 +38,13 @@ tesseract/
 ### Mit Docker Compose
 
 ```bash
-cp .env.example .env    # Domain und E-Mail eintragen
+cp .env.example .env    # Domain, Admin-Passwort u. a. eintragen
 docker compose up -d --build
 ```
 
 Danach ist das UI unter `https://<TESSERACT_DOMAIN>` erreichbar (lokal: `https://localhost`),
-die API-Doku unter `/api/docs`. Das Admin-Passwort steht beim ersten Start im Log:
+die API-Doku unter `/api/docs`. Anmelden mit `TESSERACT_ADMIN_PASSWORD` aus der `.env` – ist es
+leer, steht beim ersten Start ein Zufallspasswort im Log:
 
 ```bash
 docker compose logs tesseract | grep "Erster Start"

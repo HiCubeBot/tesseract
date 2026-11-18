@@ -148,6 +148,8 @@ class GeneralOut(BaseModel):
     autoban_log_ready: bool
     # nur lesbar – kommen aus der Umgebung
     controller_domain: str
+    # Felder, die über die Umgebung (.env) festgelegt sind und beim Start überschrieben werden
+    env_managed: list[str]
     version: str
 
 
@@ -175,6 +177,7 @@ def get_settings_general(db: DB, _: CurrentActor, settings: AppSettings) -> Gene
         wildcard_certs=g["wildcard_certs"],
         autoban_log_ready=bool(settings.caddy_waf_log and settings.waf_log_path),
         controller_domain=settings.controller_domain,
+        env_managed=sorted(settings.env_overrides()),
         version=__version__,
     )
 
