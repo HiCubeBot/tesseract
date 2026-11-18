@@ -144,3 +144,6 @@ Gewünscht, aber ohne festen Platz in einer Phase. Wird erst nach v1.0 oder bei 
 - **LDAP-Sync für Personen** – Personen und Gruppen aus LDAP übernehmen und regelmäßig abgleichen.
   Freigaben können dann an LDAP-Gruppen hängen; Geräte und Zertifikate verwaltet weiter Tesseract.
   Wer in LDAP deaktiviert wird, wird in Tesseract samt Geräten gesperrt.
+- **Docker-Labels** – Hosts automatisch aus Container-Labels anlegen (Domain, Ziel-Port,
+  Zugriff …), ähnlich wie bei anderen Reverse Proxys. Erst nach v1.0.
+  Issue: [HiCubeBot/tesseract#14](https://github.com/HiCubeBot/tesseract/issues/14)

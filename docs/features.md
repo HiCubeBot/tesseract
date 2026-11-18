@@ -16,6 +16,7 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | Entwurf / Export | Host als Entwurf speichern, Konfiguration als JSON ansehen | 1 |
 | Versionierung | Jede gespeicherte Änderung wird eine Version; Diff „vorher/nachher“ inkl. Caddy-Config-Ausschnitt | 1 |
 | Zurücksetzen | Alte Version wiederherstellen = neue Version, die übertragen wird | 1 |
+| Docker-Labels *(niedrige Priorität)* | Hosts automatisch aus Labels von Docker-Containern anlegen (z. B. Domain, Port, Zugriff). Erst nach v1.0 – [HiCubeBot/tesseract#14](https://github.com/HiCubeBot/tesseract/issues/14) | Backlog |
 
 ## 2. Zugriff per mTLS (VPN-Alternative)
 
