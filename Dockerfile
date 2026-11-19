@@ -24,6 +24,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 # ---------- 3. Laufzeit ----------
 FROM python:3.13-slim-bookworm
+# git + ssh für den Git-Spiegel der Configs
+RUN apt-get update     && apt-get install -y --no-install-recommends git openssh-client     && rm -rf /var/lib/apt/lists/*
 RUN groupadd --system tesseract && useradd --system --gid tesseract --home /app tesseract
 WORKDIR /app
 COPY --from=backend --chown=tesseract:tesseract /app /app

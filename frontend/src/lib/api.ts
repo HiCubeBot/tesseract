@@ -531,6 +531,7 @@ export const ACTION_LABELS: Record<string, string> = {
   node_online: 'Node wieder online',
   backup_created: 'Sicherung erstellt',
   backup_failed: 'Sicherung fehlgeschlagen',
+  git_mirrored: 'Git-Spiegel aktualisiert',
   backup_tested: 'Sicherung getestet',
   backup_downloaded: 'Sicherung heruntergeladen',
   backup_restored: 'Sicherung wiederhergestellt',

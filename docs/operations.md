@@ -49,6 +49,27 @@ danach wieder (ihre Zertifikate stecken in der Sicherung) und bekommen die Confi
 
 Wer `TESSERACT_SECRET_KEY` nutzt, muss auf dem neuen Server denselben Wert setzen.
 
+### Git-Spiegel
+
+Zusätzlich zu den Sicherungen kann der Controller die Config lesbar in ein Git-Repository
+schreiben (**Backup › Ziele › Git-Spiegel**). Etwa 30 Sekunden nach jeder Änderung entsteht
+ein Commit; die Nachricht nennt die Einträge aus dem Audit-Log (wer hat was geändert).
+
+| Datei | Inhalt |
+|---|---|
+| `hosts/<domain>.json` | Einstellungen pro Host wie im Verlauf |
+| `nodes/<name>.caddy.json` | Caddy-Config pro Node, Schlüssel geschwärzt, ohne IP-Sperren |
+| `ip-lists.json`, `settings.json` | IP-Listen und Einstellungen ohne Geheimnisse |
+
+Anmeldung per **Token** über HTTPS (GitHub, Gitea, GitLab: Token mit Schreibrecht auf das
+Repository) oder per **SSH-Deploy-Key** (privater Schlüssel, z. B. `ssh-keygen -t ed25519`;
+den öffentlichen Schlüssel beim Repository mit Schreibrecht eintragen). Beim ersten Kontakt
+merkt sich der Controller den Host-Schlüssel des Servers (`/data/git-mirror-known_hosts`).
+
+Der Spiegel ersetzt die Sicherungen nicht: Personen, Geräte und Schlüssel fehlen. Er ist
+für Nachvollziehbarkeit gedacht und für den Notfall, eine Caddy-Config von Hand zu laden.
+Das Repository sollte trotzdem privat sein – es zeigt Hostnamen, interne Ziele und Netze.
+
 ## Zertifizierungsstelle
 
 | Was | Wann | Wie |

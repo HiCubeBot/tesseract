@@ -67,6 +67,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             from tesseract.reminders import watch as reminders_watch
 
             tasks.append(asyncio.create_task(reminders_watch(app.state.db)))
+            from tesseract.gitmirror import watch as git_watch
+
+            tasks.append(asyncio.create_task(git_watch(app)))
             from tesseract.loki import watch as loki_watch
 
             tasks.append(asyncio.create_task(loki_watch(app)))

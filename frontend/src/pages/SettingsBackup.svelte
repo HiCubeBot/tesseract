@@ -32,6 +32,16 @@
     last: Result | null;
     last_test: Result | null;
     next: string | null;
+    git: {
+      enabled: boolean;
+      url: string;
+      branch: string;
+      auth: 'none' | 'token' | 'ssh';
+      username: string;
+      token_set: boolean;
+      ssh_key_set: boolean;
+      last: { at: string; ok: boolean; commit: string | null; changed: boolean; error: string | null } | null;
+    };
   }
 
   interface Item {
@@ -53,6 +63,9 @@
   let phrase = $state('');
   let phrase2 = $state('');
   let s3Secret = $state('');
+  let gitToken = $state('');
+  let gitKey = $state('');
+  let mirroring = $state(false);
   let confirm = $state<Item | null>(null);
   let upload = $state<{ file: File | null; phrase: string }>({ file: null, phrase: '' });
   let confirmUpload = $state(false);
@@ -84,15 +97,39 @@
         include_logs: cfg.include_logs,
         local: cfg.local.enabled,
         s3: { ...cfg.s3, secret_key: s3Secret || null },
+        git: {
+          enabled: cfg.git.enabled,
+          url: cfg.git.url,
+          branch: cfg.git.branch,
+          auth: cfg.git.auth,
+          username: cfg.git.username,
+          token: gitToken || null,
+          ssh_key: gitKey || null
+        },
         ...(phrase ? { passphrase: phrase } : {})
       });
-      phrase = phrase2 = s3Secret = '';
+      phrase = phrase2 = s3Secret = gitToken = gitKey = '';
       toasts.show('ok', 'Gespeichert.');
       items = await api.get<Item[]>('/backups');
     } catch (e) {
       toasts.show('bad', e instanceof Error ? e.message : String(e), 10000);
     } finally {
       saving = false;
+    }
+  }
+
+  async function mirrorNow() {
+    if (!cfg) return;
+    mirroring = true;
+    try {
+      const r = await api.post<NonNullable<BackupConfig['git']['last']>>('/backups/git/sync');
+      cfg.git.last = r;
+      if (r.ok) toasts.show('ok', r.changed ? `Gespiegelt (Commit ${r.commit}).` : 'Keine Änderung – Spiegel ist aktuell.');
+      else toasts.show('bad', `Git-Spiegel: ${r.error}`, 10000);
+    } catch (e) {
+      toasts.show('bad', e instanceof Error ? e.message : String(e), 10000);
+    } finally {
+      mirroring = false;
     }
   }
 
@@ -273,6 +310,45 @@
             </div>
           {/if}
         </div>
+        <div class="target">
+          <Toggle
+            label="Git-Spiegel"
+            description="Hosts, Caddy-Configs und Einstellungen lesbar in einem Git-Repository – jede Änderung ein Commit, ohne Schlüssel und Personen"
+            bind:checked={cfg.git.enabled}
+          />
+          {#if cfg.git.enabled}
+            <div class="grid">
+              <label class="field col wide"><span class="label">Repository</span><input class="input mono" bind:value={cfg.git.url} placeholder="https://git.beispiel.de/homelab/tesseract-config.git" /></label>
+              <label class="field col"><span class="label">Branch</span><input class="input mono" bind:value={cfg.git.branch} /></label>
+              <label class="field col"><span class="label">Anmeldung</span>
+                <select class="input" bind:value={cfg.git.auth}>
+                  <option value="token">Token (HTTPS)</option>
+                  <option value="ssh">SSH-Schlüssel (Deploy-Key)</option>
+                  <option value="none">keine</option>
+                </select>
+              </label>
+              {#if cfg.git.auth === 'token'}
+                <label class="field col"><span class="label">Benutzer (optional)</span><input class="input mono" bind:value={cfg.git.username} autocomplete="off" placeholder="git" /></label>
+                <label class="field col"><span class="label">Token{cfg.git.token_set ? ' · gesetzt' : ''}</span><input class="input mono" type="password" bind:value={gitToken} placeholder={cfg.git.token_set ? 'unverändert lassen' : 'mit Schreibrecht'} autocomplete="off" /></label>
+              {:else if cfg.git.auth === 'ssh'}
+                <label class="field col wide"><span class="label">Privater Schlüssel{cfg.git.ssh_key_set ? ' · gesetzt' : ''}</span>
+                  <textarea class="input mono key" bind:value={gitKey} placeholder={cfg.git.ssh_key_set ? 'unverändert lassen' : '-----BEGIN OPENSSH PRIVATE KEY-----'} autocomplete="off" spellcheck="false"></textarea>
+                </label>
+              {/if}
+            </div>
+            <div class="row">
+              <Button variant="secondary" size="sm" icon="refresh" label={mirroring ? 'Spiegelt …' : 'Jetzt spiegeln'} onClick={mirrorNow} disabled={mirroring || !cfg.git.url} />
+              <span class="muted small" class:bad={cfg.git.last && !cfg.git.last.ok}>
+                {#if cfg.git.last}
+                  {cfg.git.last.ok ? `zuletzt ${formatAgo(cfg.git.last.at)}${cfg.git.last.commit ? ` · Commit ${cfg.git.last.commit}` : ''}` : `Fehler: ${cfg.git.last.error}`}
+                {:else}
+                  noch nicht gespiegelt – erst speichern
+                {/if}
+              </span>
+            </div>
+            <p class="muted small">Spiegelt automatisch etwa 30 Sekunden nach jeder Änderung. Änderungen im Repository werden überschrieben, fremde Dateien bleiben.</p>
+          {/if}
+        </div>
       </section>
     </div>
 
@@ -390,6 +466,13 @@
     border-radius: var(--radius);
     background: var(--bg);
     border: 1px solid var(--border);
+  }
+  .wide {
+    grid-column: 1 / -1;
+  }
+  .key {
+    min-height: 90px;
+    font-size: 12px;
   }
   .num {
     text-align: right;

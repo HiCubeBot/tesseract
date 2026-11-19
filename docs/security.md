@@ -45,6 +45,7 @@ Stand des Sicherheits-Reviews zu Version 1.0 (Phase 6). Ergänzt das
 | Admin-Passwort | DB | Argon2id |
 | Session-, Einladungs-, Agent-, Metrik-Token | DB | nur SHA-256 |
 | Sicherungen | Ziel (lokal, S3) | AES-256-GCM, Schlüssel per scrypt aus der Passphrase, Kopf authentifiziert |
+| Git-Spiegel | Git-Repository | **unverschlüsselt**, aber ohne Geheimnisse und Personen; Token/SSH-Schlüssel verschlüsselt in der DB, an `git` nur über Umgebung bzw. kurzlebige Datei (0600) |
 | Schlüssel der Geräte | nur beim Gerät | einmal als `.p12` ausgeliefert, nie gespeichert |
 
 ## Vertrauen in Caddy (bewusst)

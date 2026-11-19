@@ -112,6 +112,7 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | Integrationen | Authelia-Instanz für die Host-Middleware (URL, weitergereichte Header), IP-Listen, vertrauenswürdige Proxys (X-Forwarded-For), Coraza-Standards, Caddy-Module pro Node | 3 |
 | Benachrichtigungen | E-Mail, Webhook, ntfy; Ereignis × Kanal × Stufe; Bündeln (max. 1× / 15 Min.), Ruhezeit nachts | 5 |
 | Metriken | Prometheus-Endpunkt für Controller und alle Nodes, Schutz per Bearer-Token / mTLS / IP-Liste, `prometheus.yml`-Snippet, Grafana-Dashboard (JSON) | 5 |
+| Git-Spiegel | Hosts, Caddy-Config pro Node, IP-Listen und Einstellungen lesbar in einem Git-Repository (HTTPS-Token oder SSH-Deploy-Key); jede Änderung ein Commit mit den Einträgen aus dem Audit-Log als Nachricht. Ohne Schlüssel, Tokens, Personen und IP-Sperren | 1.2 |
 | Backup | Zeitplan (stündlich/täglich/wöchentlich), Ziele lokal und S3-kompatibel, verschlüsselt mit Passphrase (AES-256-GCM, scrypt); Root-Schlüssel nie enthalten; Wiederherstellungstest; Wiederherstellen aus Ziel oder Datei, auch per Kommandozeile | 6 |
 
 ## 10. Admin-Zugang

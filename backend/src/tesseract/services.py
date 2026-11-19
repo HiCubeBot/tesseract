@@ -480,7 +480,7 @@ def cloudflare_token(db: Session, settings: Settings) -> str:
     return load_secretbox(settings).decrypt(enc, CLOUDFLARE_CONTEXT).decode()
 
 
-def node_config(db: Session, node: Node, settings: Settings) -> dict[str, Any]:
+def node_config(db: Session, node: Node, settings: Settings, bans: bool = True) -> dict[str, Any]:
     hosts = db.scalars(
         select(Host).where(Host.node_id == node.id, Host.enabled, Host.draft.is_(False))
     ).all()
@@ -511,7 +511,7 @@ def node_config(db: Session, node: Node, settings: Settings) -> dict[str, Any]:
         authelia_url=general["authelia_url"],
         authelia_headers=tuple(general["authelia_headers"]),
         cloudflare_token=cloudflare_token(db, settings),
-        banned=tuple(active_bans(db)),
+        banned=tuple(active_bans(db)) if bans else (),
         internal_networks=tuple(
             resolve_ranges(db, general["internal_networks"], general["internal_list_ids"])
         ),

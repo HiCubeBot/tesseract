@@ -29,6 +29,17 @@ class S3In(BaseModel):
     secret_key: str | None = Field(None, max_length=255)
 
 
+class GitIn(BaseModel):
+    enabled: bool = False
+    url: str = Field("", max_length=500)
+    branch: str = Field("main", min_length=1, max_length=100, pattern=r"^[A-Za-z0-9._/-]+$")
+    auth: Literal["none", "token", "ssh"] = "token"
+    username: str = Field("", max_length=100)
+    # None = unverändert, "" = löschen
+    token: str | None = Field(None, max_length=500)
+    ssh_key: str | None = Field(None, max_length=10000)
+
+
 class ConfigIn(BaseModel):
     schedule: Literal["off", "hourly", "daily", "weekly"] | None = None
     hour: int | None = Field(None, ge=0, le=23)
@@ -39,9 +50,26 @@ class ConfigIn(BaseModel):
     passphrase: str | None = Field(None, max_length=500)
     local: bool | None = None
     s3: S3In | None = None
+    git: GitIn | None = None
 
 
-def _out(cfg: dict[str, Any], settings) -> dict[str, Any]:
+def _git_out(db) -> dict[str, Any]:
+    from tesseract import gitmirror as gm
+
+    g = gm.get_config(db)
+    return {
+        "enabled": g["enabled"],
+        "url": g["url"],
+        "branch": g["branch"],
+        "auth": g["auth"],
+        "username": g["username"],
+        "token_set": bool(g["token_enc"]),
+        "ssh_key_set": bool(g["ssh_key_enc"]),
+        "last": g["last"],
+    }
+
+
+def _out(cfg: dict[str, Any], settings, db=None) -> dict[str, Any]:
     s3 = {k: v for k, v in cfg["s3"].items() if k != "secret_key_enc"}
     s3["secret_key_set"] = bool(cfg["s3"].get("secret_key_enc"))
     nxt = b.next_run(cfg, datetime.now(UTC))
@@ -58,12 +86,13 @@ def _out(cfg: dict[str, Any], settings) -> dict[str, Any]:
         "last": cfg.get("last"),
         "last_test": cfg.get("last_test"),
         "next": nxt.isoformat() if nxt and cfg["passphrase_enc"] else None,
+        "git": _git_out(db) if db is not None else None,
     }
 
 
 @router.get("/config")
 def get_config(db: DB, _: CurrentActor, settings: AppSettings) -> dict[str, Any]:
-    return _out(b.get_config(db), settings)
+    return _out(b.get_config(db), settings, db)
 
 
 @router.put("/config")
@@ -74,7 +103,7 @@ def put_config(
     value: dict[str, Any] = {
         k: v
         for k, v in body.model_dump(
-            exclude_unset=True, exclude={"passphrase", "local", "s3"}
+            exclude_unset=True, exclude={"passphrase", "local", "s3", "git"}
         ).items()
         if v is not None
     }
@@ -102,11 +131,14 @@ def put_config(
             else (box.encrypt(s3.secret_key.encode(), b.S3_CONTEXT) if s3.secret_key else "")
         )
         value["s3"] = {**s3.model_dump(exclude={"secret_key"}), "secret_key_enc": enc}
+    git_changed: list[str] = []
+    if body.git is not None:
+        git_changed = _put_git(db, box, body.git)
     # Zeitplan neu gesetzt → ab jetzt zählen (nicht sofort nachholen)
     if value.get("schedule") and value["schedule"] != cfg["schedule"]:
         value["since"] = datetime.now(UTC).isoformat()
     cfg = b.set_config(db, value)
-    changed = sorted(k for k in value if k != "since")
+    changed = sorted(k for k in value if k != "since") + git_changed
     audit.record(
         db,
         actor=actor.name,
@@ -116,7 +148,44 @@ def put_config(
         ip=actor.ip,
     )
     db.commit()
-    return _out(cfg, settings)
+    return _out(cfg, settings, db)
+
+
+def _put_git(db, box, git: GitIn) -> list[str]:
+    from tesseract import gitmirror as gm
+
+    old = gm.get_config(db)
+    value: dict[str, Any] = git.model_dump(exclude={"token", "ssh_key"})
+    if git.enabled or git.url:
+        try:
+            value["url"] = gm.validate_url(git.url)
+        except gm.MirrorError as e:
+            raise HTTPException(422, str(e)) from e
+    if git.token is not None:
+        value["token_enc"] = box.encrypt(git.token.encode(), gm.TOKEN_CONTEXT) if git.token else ""
+    if git.ssh_key is not None:
+        key = git.ssh_key.strip()
+        if key and "PRIVATE KEY" not in key:
+            raise HTTPException(
+                422, "SSH-Schlüssel: privater Schlüssel im OpenSSH- oder PEM-Format"
+            )
+        value["ssh_key_enc"] = box.encrypt(key.encode(), gm.SSH_CONTEXT) if key else ""
+    # neue Adresse/Branch → beim nächsten Lauf neu spiegeln
+    if value["url"] != old["url"] or value["branch"] != old["branch"]:
+        value["digest"] = None
+    changed = [f"git.{k.replace('_enc', '')}" for k, v in value.items() if old.get(k) != v]
+    gm.set_config(db, value)
+    return [c for c in changed if c != "git.digest"]
+
+
+@router.post("/git/sync")
+async def git_sync(db: DB, box: Box, actor: CurrentActor, settings: AppSettings) -> dict[str, Any]:
+    """Jetzt spiegeln (auch ohne Änderung – prüft Zugang und Push)."""
+    from tesseract import gitmirror as gm
+
+    if not gm.get_config(db)["url"]:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Keine Adresse für den Git-Spiegel")
+    return await asyncio.to_thread(gm.sync, db, settings, box, actor.name)
 
 
 @router.post("")

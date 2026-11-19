@@ -23,7 +23,7 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 ## Version 1.2 – aus dem Backlog
 
 - [x] Loki als zusätzlicher Log-Speicher, optional im Compose-Stack (Profil `loki`)
-- [ ] Git-Spiegel der Configs als Backup-Ziel
+- [x] Git-Spiegel der Configs als Backup-Ziel
 - [ ] Gäste verlängern ihr Gerät selbst über einen Link (abschaltbar)
 
 ## Offen / bekannte Grenzen
@@ -70,7 +70,6 @@ Gewünscht, aber ohne festen Platz in einer Phase. Wird bei Bedarf eingeplant.
   Issue: [HiCubeBot/tesseract#14](https://github.com/HiCubeBot/tesseract/issues/14)
 - **Log-Ansicht und Statistik direkt aus Loki** – Loki ist als zusätzlicher Speicher angebunden
   (1.2); Suche und Statistik in der Oberfläche nutzen weiter SQLite.
-- **Git-Spiegel der Configs** als zusätzliches Backup-Ziel.
 
 ---
 

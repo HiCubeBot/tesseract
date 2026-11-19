@@ -10,6 +10,9 @@ Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinwe
 - **Loki als zusätzlicher Log-Speicher**: Zugriffs- und WAF-Logs aller Nodes gehen auch an
   Loki (Einstellungen › Metriken, Verbindungstest, Puffer bei Ausfall). Loki optional im
   Compose-Stack: `docker compose --profile loki up -d`, `TESSERACT_LOKI_URL=http://loki:3100`
+- **Git-Spiegel der Configs** (Einstellungen › Backup): Hosts, Caddy-Configs, IP-Listen und
+  Einstellungen lesbar in einem Git-Repository, jede Änderung ein Commit. Anmeldung per Token
+  oder SSH-Deploy-Key; ohne Geheimnisse und Personen. Das Image enthält dafür `git` und `ssh`
 
 ## [1.1.0] – 2026-11-18
 
