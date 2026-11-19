@@ -4,6 +4,12 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.3.1] – 2026-11-19
+
+### Neu
+- **Dauerhafte IP-Sperre:** Gesperrte IPs lassen sich jetzt auch „für immer“ sperren (bis zum
+  Entsperren von Hand); zusätzlich 90 Tage und 1 Jahr als Dauer. Datenbank-Migration 0018
+
 ## [1.3.0] – 2026-11-19
 
 ### Neu

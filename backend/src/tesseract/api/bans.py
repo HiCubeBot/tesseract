@@ -17,7 +17,8 @@ router = APIRouter(prefix="/bans", tags=["bans"])
 
 class BanIn(BaseModel):
     ip: str
-    hours: int = Field(24, ge=1, le=24 * 365)
+    # Stunden bis zum Ablauf; None = dauerhaft (bis zum Entsperren von Hand)
+    hours: int | None = Field(24, ge=1, le=24 * 365 * 10)
     reason: str = Field("", max_length=255)
 
     @field_validator("ip")
@@ -33,7 +34,7 @@ class BanOut(BaseModel):
     id: int
     ip: str
     created_at: datetime
-    expires_at: datetime
+    expires_at: datetime | None
     reason: str
     hits: int
     host: str
@@ -44,7 +45,7 @@ class BanOut(BaseModel):
 
 
 def _out(b: Ban) -> BanOut:
-    active = b.lifted_at is None and b.expires_at > utcnow()
+    active = b.lifted_at is None and (b.expires_at is None or b.expires_at > utcnow())
     fields = {k: getattr(b, k) for k in BanOut.model_fields if k != "active"}
     return BanOut(**fields, active=active)
 
@@ -64,7 +65,7 @@ def ban(
         raise HTTPException(status.HTTP_409_CONFLICT, "Diese IP ist bereits gesperrt")
     b = Ban(
         ip=body.ip,
-        expires_at=utcnow() + timedelta(hours=body.hours),
+        expires_at=None if body.hours is None else utcnow() + timedelta(hours=body.hours),
         reason=body.reason or "von Hand gesperrt",
         created_by=actor.name,
     )
@@ -74,7 +75,7 @@ def ban(
         actor=actor.name,
         action="ip_banned",
         target=body.ip,
-        details={"hours": body.hours, "reason": b.reason},
+        details={"hours": body.hours or "dauerhaft", "reason": b.reason},
         ip=actor.ip,
     )
     db.commit()

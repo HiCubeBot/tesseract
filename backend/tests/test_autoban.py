@@ -96,3 +96,25 @@ def test_manual_ban(auth_client: TestClient, caddy: FakeCaddy) -> None:
     assert not any(r.get("@id") == "banned" for r in routes)
     actions = [e["action"] for e in auth_client.get("/api/audit").json()]
     assert actions[:2] == ["ip_unbanned", "ip_banned"]
+
+
+def test_permanent_ban(auth_client: TestClient, caddy: FakeCaddy) -> None:
+    r = auth_client.post("/api/bans", json={"ip": "192.0.2.66", "hours": None, "reason": "Scanner"})
+    assert r.status_code == 201
+    ban = r.json()
+    assert ban["expires_at"] is None and ban["active"]
+    routes = caddy.last["apps"]["http"]["servers"]["https"]["routes"]
+    assert any(r.get("@id") == "banned" for r in routes)
+
+    # läuft nie ab
+    db = auth_client.app.state.db.sessionmaker()
+    assert expire_bans(db) == []
+    db.close()
+    assert [b["ip"] for b in auth_client.get("/api/bans").json()] == ["192.0.2.66/32"]
+    assert auth_client.post("/api/bans", json={"ip": "192.0.2.66"}).status_code == 409
+    audit = auth_client.get("/api/audit").json()[0]
+    assert audit["action"] == "ip_banned" and audit["details"]["hours"] == "dauerhaft"
+
+    # bleibt von Hand aufhebbar
+    assert auth_client.delete(f"/api/bans/{ban['id']}").json()["active"] is False
+    assert auth_client.get("/api/bans").json() == []

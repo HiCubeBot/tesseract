@@ -69,6 +69,7 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | Host-Bereiche | Pfade mit abweichenden Regeln (z. B. `/api/*`, `/.well-known/*`): Zugriff mit eigenen Freigaben, WAF, IP-Filter, Authelia – baut auf „Zugriff pro Pfad“ (2.) auf | 3 |
 | IP-Filter | Modus Sperren / Nur erlauben; IP, CIDR oder benannte IP-Liste | 3 |
 | Auto-Sperre | z. B. IP für 24 h sperren nach 20 WAF-Treffern in 10 Min. | 3 |
+| IP von Hand sperren | IP oder Netz für 1 Stunde bis 1 Jahr oder dauerhaft sperren (bis zum Entsperren); gilt auf allen Nodes | 3 / 1.3.1 |
 | Authelia als Host-Middleware | Optional pro Host: Caddy fragt vor dem Dienst per `forward_auth` eine bestehende Authelia-Instanz. Nutzer, Regeln und Zwei-Faktor pflegt man in Authelia selbst; Tesseract richtet nur die Weiterleitung ein. Schützt nur Hosts, nicht die Tesseract-Oberfläche (siehe Admin-SSO unter 10.) | 3 |
 | Visualisierung „Weg einer Anfrage“ | Zeigt die Reihenfolge IP-Filter → mTLS → WAF → Auth → Dienst | 3 |
 

@@ -130,7 +130,9 @@ def describe(e: AuditEntry) -> str:
             if d.get("hits")
             else d.get("reason", "von Hand")
         )
-        return f"{e.target} gesperrt ({why}), {d.get('hours', '?')} Std."
+        hours = d.get("hours", "?")
+        dauer = "dauerhaft" if hours == "dauerhaft" else f"{hours} Std."
+        return f"{e.target} gesperrt ({why}), {dauer}"
     if a == "node_offline":
         return f"{e.target}: kein Kontakt seit {d.get('since', '?')}"
     if a == "node_online":

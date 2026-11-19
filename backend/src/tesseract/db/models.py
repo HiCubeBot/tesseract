@@ -493,7 +493,7 @@ class Ban(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     ip: Mapped[str] = mapped_column(String(64), index=True)
     created_at: Mapped[datetime] = mapped_column(default=utcnow)
-    expires_at: Mapped[datetime]
+    expires_at: Mapped[datetime | None]  # leer = dauerhaft
     reason: Mapped[str] = mapped_column(String(255), default="")
     hits: Mapped[int] = mapped_column(default=0)
     host: Mapped[str] = mapped_column(String(253), default="")

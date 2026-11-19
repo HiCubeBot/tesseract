@@ -12,6 +12,7 @@
 
   let bans = $state<Ban[]>([]);
   let ip = $state('');
+  // 0 = dauerhaft (bis zum Entsperren von Hand)
   let hours = $state(24);
   let reason = $state('');
   let busy = $state(false);
@@ -39,7 +40,7 @@
     e.preventDefault();
     busy = true;
     try {
-      await api.post('/bans', { ip, hours: Number(hours), reason });
+      await api.post('/bans', { ip, hours: Number(hours) || null, reason });
       toasts.show('ok', `${ip} gesperrt.`);
       ip = '';
       reason = '';
@@ -65,7 +66,7 @@
             <span class="mono strong">{b.ip}</span>
             <span class="muted small">
               {b.reason}{b.host ? ` · ${b.host}` : ''} · {b.created_by === 'system' ? 'automatisch' : b.created_by}
-              {formatAgo(b.created_at)} · bis {formatDate(b.expires_at)}
+              {formatAgo(b.created_at)} · {b.expires_at ? `bis ${formatDate(b.expires_at)}` : 'dauerhaft'}
             </span>
           </span>
           <span class="spacer"></span>
@@ -85,6 +86,9 @@
         <option value={24}>24 Stunden</option>
         <option value={168}>7 Tage</option>
         <option value={720}>30 Tage</option>
+        <option value={2160}>90 Tage</option>
+        <option value={8760}>1 Jahr</option>
+        <option value={0}>Für immer</option>
       </select>
       <input class="input grow" placeholder="Grund (optional)" maxlength="255" bind:value={reason} aria-label="Grund" />
       <Button type="submit" variant="secondary" label={busy ? 'Sperrt …' : 'Sperren'} disabled={busy} />

@@ -179,7 +179,7 @@ export interface Ban {
   id: number;
   ip: string;
   created_at: string;
-  expires_at: string;
+  expires_at: string | null; // null = dauerhaft
   reason: string;
   hits: number;
   host: string;

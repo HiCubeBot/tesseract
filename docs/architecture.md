@@ -153,7 +153,8 @@ der sich ausgehend beim Controller meldet und die Config abholt – siehe
   Ausnahmen (Standard: localhost). Sperren laufen automatisch ab.
 - Gesperrte IPs stehen als eine `client_ip`-Route **nach** der Controller-Route und vor allen
   Hosts – so sperrt sich der Admin nicht von der Oberfläche aus.
-- Von Hand sperren/entsperren: `POST /api/bans`, `DELETE /api/bans/{id}`.
+- Von Hand sperren/entsperren: `POST /api/bans`, `DELETE /api/bans/{id}`. `hours: null` sperrt dauerhaft
+  (`expires_at` leer) – solche Sperren laufen nie ab, nur Entsperren hebt sie auf.
 - Die Agents liefern die Treffer der anderen Nodes (`POST /api/agent/waf`, gepuffert).
 
 ## Interne Dienste (Phase 3b)

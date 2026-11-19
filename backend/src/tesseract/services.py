@@ -3,7 +3,7 @@
 from typing import Any
 
 import httpx
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from tesseract.caddy.client import CaddyClient, CaddyError
@@ -448,7 +448,9 @@ def client_ca_der_b64(db: Session) -> tuple[str, ...]:
 def active_bans(db: Session) -> list[str]:
     now = utcnow()
     ips = db.scalars(
-        select(Ban.ip).where(Ban.lifted_at.is_(None), Ban.expires_at > now).order_by(Ban.ip)
+        select(Ban.ip)
+        .where(Ban.lifted_at.is_(None), or_(Ban.expires_at.is_(None), Ban.expires_at > now))
+        .order_by(Ban.ip)
     )
     return list(dict.fromkeys(ips))
 
