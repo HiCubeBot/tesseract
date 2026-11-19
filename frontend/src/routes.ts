@@ -53,6 +53,8 @@ import StatsUsagePage from "./pages/StatsUsage.svelte";
 import SettingsMetricsPage from "./pages/SettingsMetrics.svelte";
 import SettingsNotifyPage from "./pages/SettingsNotify.svelte";
 import SettingsBackupPage from "./pages/SettingsBackup.svelte";
+import SettingsAuthPage from "./pages/SettingsAuth.svelte";
+import SettingsLdapPage from "./pages/SettingsLdap.svelte";
 
 export interface Page {
   /** Muster ohne "#/", Parameter mit ":" – z. B. "hosts/:id/history" */
@@ -78,6 +80,8 @@ export const pages: Page[] = [
   { pattern: "settings-metrics", title: "Einstellungen · Metriken", component: SettingsMetricsPage },
   { pattern: "settings-notify", title: "Einstellungen · Benachrichtigungen", component: SettingsNotifyPage },
   { pattern: "settings-backup", title: "Einstellungen · Backup", component: SettingsBackupPage },
+  { pattern: "settings-auth", title: "Einstellungen · Anmeldung", component: SettingsAuthPage },
+  { pattern: "settings-ldap", title: "Einstellungen · LDAP", component: SettingsLdapPage },
   { pattern: "hosts/:id", title: "Proxy-Hosts", component: HostsPage },
   { pattern: "hosts/:id/history", title: "Host · Verlauf", component: HostHistoryPage },
   { pattern: "hosts/:id/security", title: "Host · Sicherheit", component: HostSecurityPage },

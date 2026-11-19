@@ -61,7 +61,8 @@ fälschen – deshalb bleibt Port 8000 im internen Docker-Netz (so in `compose.y
 - Server-seitige Anfragen an vom Admin eingetragene Adressen (Erreichbarkeit des Ziels,
   Authelia-Test, Webhook, S3, ntfy) sind gewollt und nur für angemeldete Admins möglich.
 - Abgelehnte TLS-Handshakes (strenges mTLS) erscheinen nicht in den Logs.
-- Nur ein Admin-Konto; Passkey und Admin-SSO stehen im Backlog.
+- Admin-Anmeldung per Passwort, Passkey oder SSO (OIDC) – siehe [anmeldung.md](anmeldung.md).
+  Passwort-Anmeldung lässt sich abschalten.
 
 ## Sicherheitslücken melden
 

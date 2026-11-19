@@ -283,6 +283,7 @@
                     {p.groups.map((g) => g.name).join(', ') || 'keine Gruppe'} · {p.active_devices} von {p.max_devices} Geräten
                   </span>
                 </span>
+                {#if p.ldap}<StatusPill tone="neutral" label="LDAP" dot={false} />{/if}
                 {#if p.disabled}<StatusPill tone="bad" label="gesperrt" />{/if}
                 {#if pendingFor(p.id)}<StatusPill tone="warn" label="Gerät wartet" />{/if}
               </a>
@@ -297,7 +298,7 @@
           {#each groups as g (g.id)}
             <li>
               <span class="name">{g.name}</span>
-              <span class="muted small">{g.members} Personen{g.builtin ? ' · eingebaut' : ''}</span>
+              <span class="muted small">{g.members} Personen{g.builtin ? ' · eingebaut' : ''}{g.ldap ? ' · aus LDAP' : ''}</span>
               <span class="spacer"></span>
               {#if !g.builtin}
                 <button type="button" class="icon-btn" aria-label={`Gruppe ${g.name} löschen`} onclick={() => deleteGroup(g)}>
@@ -322,6 +323,12 @@
         </div>
 
         <form class="form" onsubmit={savePerson}>
+          {#if selected?.ldap && !creating}
+            <p class="muted small ldap-note">
+              Aus LDAP{selected.email ? ` · ${selected.email}` : ''}: Name, Sperre und LDAP-Gruppen kommen vom Abgleich und werden dort überschrieben.
+              Geräte und Freigaben verwaltest du hier.
+            </p>
+          {/if}
           <label class="field">
             Name
             <input class="input" required maxlength="64" bind:value={form.name} />

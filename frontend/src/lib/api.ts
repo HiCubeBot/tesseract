@@ -64,6 +64,8 @@ export interface Me {
   username: string;
   /** Passwort kommt aus TESSERACT_ADMIN_PASSWORD (.env) */
   password_from_env?: boolean;
+  /** "local" oder "oidc" (SSO, ohne Passwort) */
+  source?: 'local' | 'oidc';
 }
 
 export interface DeviceInfo {
@@ -544,7 +546,11 @@ export const ACTION_LABELS: Record<string, string> = {
   device_expiring: 'Gerätezertifikat läuft bald ab',
   ca_expiring: 'Zwischenzertifikat läuft bald ab',
   node_cert_expiring: 'Node-Zertifikat läuft bald ab',
-  custom_cert_expiring: 'Eigenes Zertifikat läuft bald ab'
+  custom_cert_expiring: 'Eigenes Zertifikat läuft bald ab',
+  passkey_added: 'Passkey hinzugefügt',
+  passkey_removed: 'Passkey entfernt',
+  ldap_synced: 'Abgleich mit LDAP',
+  ldap_sync_failed: 'Abgleich mit LDAP fehlgeschlagen'
 };
 
 // ---------- Phase 2: CA, Personen, Geräte ----------
@@ -576,6 +582,8 @@ export interface Group {
   description: string;
   builtin: boolean;
   members: number;
+  /** aus LDAP übernommen – Mitglieder pflegt der Abgleich */
+  ldap: boolean;
 }
 
 export interface Device {
@@ -606,6 +614,9 @@ export interface Person {
   groups: { id: number; name: string }[];
   devices: Device[];
   active_devices: number;
+  email: string | null;
+  /** aus LDAP übernommen */
+  ldap: boolean;
 }
 
 export interface IssuedDevice {

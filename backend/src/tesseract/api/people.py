@@ -54,6 +54,8 @@ class GroupOut(BaseModel):
     description: str
     builtin: bool
     members: int
+    # aus LDAP übernommen – Mitglieder pflegt der Abgleich
+    ldap: bool = False
 
 
 class PersonIn(BaseModel):
@@ -102,6 +104,9 @@ class PersonOut(BaseModel):
     groups: list[GroupRef]
     devices: list[DeviceOut]
     active_devices: int
+    email: str | None = None
+    # aus LDAP übernommen – Name, E-Mail, LDAP-Gruppen und Sperre kommen von dort
+    ldap: bool = False
 
 
 class IssueIn(BaseModel):
@@ -161,6 +166,8 @@ def person_out(db: Session, p: Person) -> PersonOut:
         groups=[GroupRef(id=g.id, name=g.name) for g in p.groups],
         devices=[device_out(d) for d in p.devices],
         active_devices=active_device_count(db, p.id),
+        email=p.email,
+        ldap=p.ldap_dn is not None,
     )
 
 
@@ -203,6 +210,7 @@ def list_groups(db: DB, _: CurrentActor) -> list[GroupOut]:
             description=g.description,
             builtin=g.builtin,
             members=len(g.persons),
+            ldap=g.ldap_dn is not None,
         )
         for g in db.scalars(select(Group).order_by(Group.builtin.desc(), Group.name))
     ]

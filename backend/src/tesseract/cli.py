@@ -3,6 +3,7 @@
 tesseract                    Controller starten (wie `tesseract serve`)
 tesseract admin reset        neues Zufallspasswort setzen, alle Sessions beenden
 tesseract admin mtls off     Oberfläche wieder ohne Admin-Zertifikat erreichbar machen
+tesseract admin password-login on   Passwort-Anmeldung wieder erlauben (SSO ausgefallen)
 tesseract db upgrade         Migrationen ausführen
 tesseract backup create      Sicherung anlegen (Passphrase aus den Einstellungen oder
                              TESSERACT_BACKUP_PASSPHRASE)
@@ -50,6 +51,21 @@ def admin_reset(username: str) -> None:
         audit.record(db, actor="system", action="password_reset", target=username)
         db.commit()
     print(f"Neues Passwort für '{username}': {password}")
+
+
+def admin_password_login_on() -> None:
+    """Notausgang: Passwort-Anmeldung wieder erlauben (z. B. SSO-Anbieter ausgefallen)."""
+    from tesseract import sso
+    from tesseract.bootstrap import init_database
+
+    database = init_database(get_settings())
+    with database.sessionmaker() as db:
+        sso.set_config(db, {"password_login": True})
+        audit.record(
+            db, actor="system", action="settings_changed", target="Passwort-Anmeldung (CLI)"
+        )
+        db.commit()
+    print("Anmeldung mit Passwort ist wieder erlaubt. Bei Bedarf: tesseract admin reset")
 
 
 def admin_mtls_off() -> None:
@@ -144,6 +160,8 @@ def run(argv: list[str] | None = None) -> None:
     reset.add_argument("--username", default="admin")
     mtls = admin_sub.add_parser("mtls", help="Admin-Zertifikat für die Oberfläche")
     mtls.add_argument("state", choices=["off"])
+    pwl = admin_sub.add_parser("password-login", help="Passwort-Anmeldung wieder erlauben")
+    pwl.add_argument("state", choices=["on"])
 
     db = sub.add_parser("db", help="Datenbank")
     db_sub = db.add_subparsers(dest="db_cmd", required=True)
@@ -157,7 +175,9 @@ def run(argv: list[str] | None = None) -> None:
     restore.add_argument("file")
 
     args = parser.parse_args(argv)
-    if args.cmd == "admin" and args.admin_cmd == "mtls":
+    if args.cmd == "admin" and args.admin_cmd == "password-login":
+        admin_password_login_on()
+    elif args.cmd == "admin" and args.admin_cmd == "mtls":
         admin_mtls_off()
     elif args.cmd == "admin":
         admin_reset(args.username)

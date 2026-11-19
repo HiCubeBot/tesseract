@@ -7,6 +7,8 @@
 
   const tabs = [
     { href: '#/settings', label: 'Allgemein' },
+    { href: '#/settings-auth', label: 'Anmeldung' },
+    { href: '#/settings-ldap', label: 'LDAP' },
     { href: '#/settings-ca', label: 'Zertifizierungsstelle' },
     { href: '#/settings-integrations', label: 'Integrationen' },
     { href: '#/settings-notify', label: 'Benachrichtigungen' },

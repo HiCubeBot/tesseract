@@ -19,7 +19,11 @@ def test_admin_password_from_env(settings: Settings, tmp_path) -> None:
     with _client(settings) as c:
         r = c.post("/api/auth/login", json={"username": "chef", "password": PW})
         assert r.status_code == 200
-        assert c.get("/api/auth/me").json() == {"username": "chef", "password_from_env": True}
+        assert c.get("/api/auth/me").json() == {
+            "username": "chef",
+            "password_from_env": True,
+            "source": "local",
+        }
         r = c.post(
             "/api/auth/password",
             json={"current_password": PW, "new_password": "anderes-passwort-99"},

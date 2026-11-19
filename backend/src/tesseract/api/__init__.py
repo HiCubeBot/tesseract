@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 from tesseract.api import (
     access,
+    admin_auth,
     agent,
     audit,
     auth,
@@ -16,6 +17,7 @@ from tesseract.api import (
     hosts,
     invites,
     iplists,
+    ldap,
     logs,
     metrics,
     nodes,
@@ -29,6 +31,9 @@ from tesseract.api import (
 api_router = APIRouter()
 api_router.include_router(health.router)
 api_router.include_router(auth.router)
+api_router.include_router(admin_auth.router)
+api_router.include_router(admin_auth.settings_router)
+api_router.include_router(ldap.router)
 api_router.include_router(audit.router)
 api_router.include_router(hosts.router)
 api_router.include_router(nodes.router)

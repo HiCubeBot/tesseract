@@ -120,6 +120,7 @@ sum by (host) (count_over_time({job="tesseract"} | json | status >= 500 [5m]))
 ```bash
 docker compose exec tesseract tesseract admin reset      # neues Zufallspasswort
 docker compose exec tesseract tesseract admin mtls off   # Oberfläche ohne Admin-Zertifikat
+docker compose exec tesseract tesseract admin password-login on   # Passwort wieder erlauben (SSO weg)
 ```
 
 Mit `TESSERACT_ADMIN_PASSWORD` in der `.env` gilt beim nächsten Start wieder dieses Passwort.

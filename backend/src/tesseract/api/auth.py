@@ -36,6 +36,8 @@ class Me(BaseModel):
     username: str
     # Passwort kommt aus TESSERACT_ADMIN_PASSWORD und lässt sich hier nicht ändern
     password_from_env: bool = False
+    # "local" oder "oidc" (dann gibt es kein Passwort)
+    source: str = "local"
 
 
 class DeviceInfo(BaseModel):
@@ -50,11 +52,74 @@ class PasswordChange(BaseModel):
     new_password: str = Field(min_length=MIN_PASSWORD_LENGTH, max_length=256)
 
 
+def start_session(
+    request: Request,
+    response: Response,
+    db,
+    settings,
+    admin,
+    remember: bool,
+    method: str,
+) -> Me:
+    """Session anlegen, Cookie setzen, protokollieren – für Passwort, Passkey und SSO."""
+    lifetime = (
+        timedelta(days=settings.session_remember_days)
+        if remember
+        else timedelta(hours=settings.session_hours)
+    )
+    ip = client_ip(request)
+    token, _ = create_session(
+        db, admin, lifetime=lifetime, ip=ip, user_agent=request.headers.get("user-agent")
+    )
+    audit.record(db, actor=admin.username, action="login", details={"method": method}, ip=ip)
+    db.commit()
+    response.set_cookie(
+        SESSION_COOKIE,
+        token,
+        max_age=int(lifetime.total_seconds()) if remember else None,
+        httponly=True,
+        secure=settings.cookie_secure,
+        samesite="strict",
+        path="/",
+    )
+    return Me(username=admin.username, source=admin.source)
+
+
+class Methods(BaseModel):
+    password: bool
+    passkey: bool
+    sso: str | None
+
+
+@router.get("/methods")
+def methods(db: DB) -> Methods:
+    """Welche Anmeldewege die Login-Seite anbietet (öffentlich)."""
+    from sqlalchemy import func, select
+
+    from tesseract import sso
+    from tesseract.db.models import AdminPasskey
+
+    cfg = sso.get_config(db)
+    has_passkeys = bool(db.scalar(select(func.count()).select_from(AdminPasskey)))
+    return Methods(
+        password=cfg["password_login"],
+        passkey=has_passkeys,
+        sso=cfg["oidc"]["label"] if cfg["oidc"]["enabled"] else None,
+    )
+
+
 @router.post("/login")
 def login(
     body: LoginRequest, request: Request, response: Response, db: DB, settings: AppSettings
 ) -> Me:
     require_admin_device(request, db)
+    from tesseract import sso
+
+    if not sso.get_config(db)["password_login"]:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "Anmeldung mit Passwort ist abgeschaltet – Passkey oder SSO verwenden",
+        )
     throttle = request.app.state.login_throttle
     ip = client_ip(request) or "?"
     if throttle.blocked(ip):
@@ -68,27 +133,10 @@ def login(
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Benutzername oder Passwort falsch")
 
     throttle.reset(ip)
-    lifetime = (
-        timedelta(days=settings.session_remember_days)
-        if body.remember
-        else timedelta(hours=settings.session_hours)
-    )
-    token, _ = create_session(
-        db, admin, lifetime=lifetime, ip=ip, user_agent=request.headers.get("user-agent")
-    )
-    audit.record(db, actor=admin.username, action="login", ip=ip)
-    db.commit()
+    from tesseract.db.models import utcnow
 
-    response.set_cookie(
-        SESSION_COOKIE,
-        token,
-        max_age=int(lifetime.total_seconds()) if body.remember else None,
-        httponly=True,
-        secure=settings.cookie_secure,
-        samesite="strict",
-        path="/",
-    )
-    return Me(username=admin.username)
+    admin.last_login_at = utcnow()
+    return start_session(request, response, db, settings, admin, body.remember, "password")
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
@@ -114,7 +162,7 @@ def device(request: Request, db: DB) -> DeviceInfo:
 @router.get("/me")
 def me(actor: CurrentActor, settings: AppSettings) -> Me:
     managed = bool(settings.resolved_admin_password) and actor.name == settings.admin_username
-    return Me(username=actor.name, password_from_env=managed)
+    return Me(username=actor.name, password_from_env=managed, source=actor.admin.source)
 
 
 @router.post("/password", status_code=status.HTTP_204_NO_CONTENT)
@@ -132,6 +180,10 @@ def change_password(
             "dort ändern und neu starten",
         )
     admin = db.merge(actor.admin)
+    if admin.source != "local":
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "Dieses Konto meldet sich über SSO an und hat kein Passwort"
+        )
     if not verify_password(admin.password_hash, body.current_password):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Aktuelles Passwort ist falsch")
     set_password(db, admin, body.new_password)  # beendet alle Sessions

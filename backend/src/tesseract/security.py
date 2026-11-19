@@ -35,6 +35,8 @@ HEADERS = [
 # (Präfix, nur POST?, Anfragen pro Minute)
 LIMITS: list[tuple[str, bool, int]] = [
     ("/api/auth/login", True, 20),
+    ("/api/auth/passkey/", True, 30),
+    ("/api/auth/sso/", False, 30),
     ("/api/enroll/", False, 60),
     ("/e/", False, 60),
     ("/api/renew", False, 30),

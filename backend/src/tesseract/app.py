@@ -67,6 +67,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             from tesseract.reminders import watch as reminders_watch
 
             tasks.append(asyncio.create_task(reminders_watch(app.state.db)))
+            from tesseract.ldapsync import watch as ldap_watch
+
+            tasks.append(asyncio.create_task(ldap_watch(app)))
             from tesseract.gitmirror import watch as git_watch
 
             tasks.append(asyncio.create_task(git_watch(app)))
@@ -107,6 +110,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     from tesseract.agent_tasks import TaskBroker
 
     app.state.agent_tasks = TaskBroker()
+    # Admin-Anmeldung per SSO (OIDC) und Passkey
+    from tesseract.passkeys import Challenges
+    from tesseract.sso import OIDC
+
+    app.state.oidc = OIDC()
+    app.state.passkey_challenges = Challenges()
+    # LDAP: in Tests eine Mock-Verbindung (ldap3 MOCK_SYNC)
+    app.state.ldap_factory = None
     app.include_router(api_router, prefix="/api")
     # Sicherheits-Header und Rate-Limits für öffentliche Endpunkte (Phase 6)
     from tesseract.security import SecurityMiddleware

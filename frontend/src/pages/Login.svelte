@@ -2,7 +2,8 @@
   import { session } from '../lib/session.svelte';
   import { router } from '../lib/router.svelte';
   import Icon from '../lib/components/Icon.svelte';
-  import { api, type DeviceInfo } from '../lib/api';
+  import { api, type DeviceInfo, type Me } from '../lib/api';
+  import * as webauthn from '../lib/webauthn';
 
   let username = $state('admin');
   let password = $state('');
@@ -15,6 +16,32 @@
     (d) => (device = d),
     () => (device = null)
   );
+
+  // Anmeldewege: Passwort, Passkey, SSO (öffentlich abfragbar)
+  let methods = $state<{ password: boolean; passkey: boolean; sso: string | null }>({ password: true, passkey: false, sso: null });
+  api.get<typeof methods>('/auth/methods').then((m) => (methods = m), () => {});
+  // Fehler aus der SSO-Rückleitung (#/login?fehler=…)
+  const ssoError = new URLSearchParams(location.hash.split('?')[1] ?? '').get('fehler');
+  if (ssoError) error = ssoError;
+
+  async function passkeyLogin() {
+    error = '';
+    busy = true;
+    try {
+      const { id, options } = await api.post<{ id: string; options: Record<string, unknown> }>('/auth/passkey/options');
+      const credential = await webauthn.get(options);
+      session.set(await api.post<Me>('/auth/passkey/login', { id, credential, remember }));
+      router.go('');
+    } catch (err) {
+      error = webauthn.explain(err);
+    } finally {
+      busy = false;
+    }
+  }
+
+  function ssoLogin() {
+    location.href = `/api/auth/sso/start?remember=${remember ? 1 : 0}`;
+  }
 
   async function submit(e: SubmitEvent) {
     e.preventDefault();
@@ -67,9 +94,22 @@
         {/if}
       </div>
 
+      {#if methods.sso || methods.passkey}
+        <div class="alt">
+          {#if methods.passkey && webauthn.supported()}
+            <button type="button" class="secondary" disabled={busy} onclick={passkeyLogin}>Mit Passkey anmelden</button>
+          {/if}
+          {#if methods.sso}
+            <button type="button" class="secondary" disabled={busy} onclick={ssoLogin}>{methods.sso}</button>
+          {/if}
+        </div>
+        {#if methods.password}<div class="or"><span>oder mit Passwort</span></div>{/if}
+      {/if}
+
+      {#if methods.password}
       <label>
         Benutzername
-        <input type="text" autocomplete="username" required bind:value={username} />
+        <input type="text" autocomplete="username webauthn" required bind:value={username} />
       </label>
 
       <label>
@@ -77,6 +117,7 @@
         <!-- svelte-ignore a11y_autofocus -->
         <input type="password" autocomplete="current-password" required autofocus bind:value={password} aria-invalid={error ? 'true' : undefined} />
       </label>
+      {/if}
 
       <label class="check">
         <input type="checkbox" bind:checked={remember} />
@@ -85,7 +126,9 @@
 
       {#if error}<p class="error" role="alert">{error}</p>{/if}
 
-      <button type="submit" disabled={busy}>{busy ? 'Anmelden …' : 'Anmelden'}</button>
+      {#if methods.password}
+        <button type="submit" disabled={busy}>{busy ? 'Anmelden …' : 'Anmelden'}</button>
+      {/if}
 
       <p class="muted small">
         Passwort vergessen? Zurücksetzen geht nur auf dem Controller selbst:
@@ -276,6 +319,30 @@
     font: inherit;
     font-weight: 600;
     cursor: pointer;
+  }
+  .alt {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  button.secondary {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border-input);
+  }
+  .or {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+  .or::before,
+  .or::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
   }
   button:disabled {
     opacity: 0.6;

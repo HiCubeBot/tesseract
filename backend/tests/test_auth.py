@@ -13,7 +13,11 @@ def test_login_logout(client: TestClient) -> None:
     assert r.status_code == 200
     cookie = r.headers["set-cookie"]
     assert "HttpOnly" in cookie and "SameSite=strict" in cookie
-    assert client.get("/api/auth/me").json() == {"username": "admin", "password_from_env": False}
+    assert client.get("/api/auth/me").json() == {
+        "username": "admin",
+        "password_from_env": False,
+        "source": "local",
+    }
 
     assert client.post("/api/auth/logout").status_code == 204
     assert client.get("/api/auth/me").status_code == 401

@@ -45,7 +45,7 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | Gäste verlängern selbst | Link `https://<controller>/v` auf dem Gerät öffnen – das noch gültige Zertifikat ist der Ausweis, ohne Einladung und Freigabe. Ab einstellbaren Tagen vor Ablauf (Standard 30), nach einem CA-Wechsel sofort; abschaltbar (Einstellungen › Zertifizierungsstelle) | 1.2 |
 | Gültigkeit | Befristet (z. B. 1 Jahr) oder „unbegrenzt“ (begrenzt durch Zwischenzertifikat) | 2 |
 | Export gesperrter Zertifikate | Liste der widerrufenen Zertifikate | 2 |
-| LDAP-Sync *(niedrige Priorität)* | Personen und Gruppen aus einem LDAP-Verzeichnis übernehmen und abgleichen, damit Freigaben über LDAP-Gruppen laufen können. Geräte und Zertifikate bleiben in Tesseract | Backlog |
+| LDAP-Sync | Personen und Gruppen aus einem LDAP-Verzeichnis übernehmen und regelmäßig abgleichen (Name, E-Mail, Gruppen), Freigaben an LDAP-Gruppen; in LDAP deaktiviert oder entfernt → gesperrt samt Geräten; Vorschau, Vorlagen für OpenLDAP, AD, FreeIPA. Geräte und Zertifikate bleiben in Tesseract | 1.3 |
 
 ## 4. Einladungen
 
@@ -121,7 +121,7 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | Feature | Beschreibung | Phase |
 |---|---|---|
 | Doppelter Schutz | Admin-UI nur mit Admin-Gerätezertifikat erreichbar, zusätzlich Passwort. Eigene Anmeldung von Tesseract, unabhängig von der Authelia-Middleware für Hosts | 1 (Passwort) / 2 (mTLS) |
-| SSO für Admins *(niedrige Priorität)* | Anmeldung an der Admin-Oberfläche über einen externen Identity Provider (OIDC) statt Passwort. Betrifft nur Administratoren, nicht die Personen mit Zugriff auf Hosts. Das Admin-Gerätezertifikat bleibt Pflicht | Backlog |
-| Passkey *(niedrige Priorität)* | Anmeldung per WebAuthn zusätzlich oder statt Passwort | Backlog |
+| SSO für Admins | Anmeldung an der Admin-Oberfläche über OpenID Connect (Authelia, Keycloak, Authentik, Dex …); Admin über Gruppe oder freigegebene E-Mail. Betrifft nur Administratoren, nicht die Personen mit Zugriff auf Hosts. Das Admin-Gerätezertifikat bleibt Pflicht | 1.3 |
+| Passkey | Anmeldung per WebAuthn (Fingerabdruck, Gesicht, Sicherheitsschlüssel) zusätzlich oder statt Passwort; Passwort-Anmeldung abschaltbar | 1.3 |
 | Angemeldet bleiben | 30 Tage pro Gerät | 1 |
 | Passwort-Reset | Nur lokal auf dem Controller: `tesseract admin reset` | 1 |

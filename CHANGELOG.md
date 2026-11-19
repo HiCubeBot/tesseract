@@ -4,6 +4,23 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.3.0] – 2026-11-19
+
+### Neu
+- **SSO für die Admin-Oberfläche** über OpenID Connect (Authelia, Keycloak, Authentik, Dex …):
+  Authorization Code mit PKCE, ID-Token per JWKS geprüft, Admin über Gruppe oder E-Mail.
+  Das Admin-Gerätezertifikat bleibt die erste Hürde. Getestet mit Dex und Gruppen aus LDAP
+- **Passkeys (WebAuthn)** für Admins – Anmeldung ohne Passwort; mehrere pro Konto
+- **Passwort-Anmeldung abschaltbar**, sobald SSO oder ein Passkey eingerichtet ist;
+  Notausgang `tesseract admin password-login on`
+- **LDAP-Abgleich** für Personen und Gruppen (OpenLDAP, Active Directory, FreeIPA …):
+  regelmäßig oder von Hand, mit Vorschau; Deaktivierte oder Entfernte werden gesperrt samt
+  Geräten; Schutz vor Fehlkonfiguration. Getestet gegen OpenLDAP
+- Anleitung: [docs/anmeldung.md](docs/anmeldung.md)
+
+### Upgrade
+- Datenbank-Migration läuft automatisch. Neue Abhängigkeiten: `webauthn`, `ldap3`, `pyjwt`.
+
 ## [1.2.0] – 2026-11-19
 
 ### Neu

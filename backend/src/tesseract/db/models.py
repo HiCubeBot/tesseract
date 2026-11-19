@@ -40,6 +40,35 @@ class Admin(Base):
     password_hash: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(default=utcnow)
     password_changed_at: Mapped[datetime] = mapped_column(default=utcnow)
+    # "local" (Passwort/Passkey) oder "oidc" (Anmeldung über SSO, kein Passwort)
+    source: Mapped[str] = mapped_column(String(16), default="local")
+    # OIDC: Aussteller + „sub“ – eindeutig je Anbieter
+    oidc_subject: Mapped[str | None] = mapped_column(String(512), unique=True)
+    email: Mapped[str | None] = mapped_column(String(255))
+    last_login_at: Mapped[datetime | None]
+
+    passkeys: Mapped[list["AdminPasskey"]] = relationship(
+        back_populates="admin", cascade="all, delete-orphan", order_by="AdminPasskey.id"
+    )
+
+
+class AdminPasskey(Base):
+    """Passkey (WebAuthn) eines Admins – Anmeldung ohne Passwort."""
+
+    __tablename__ = "admin_passkeys"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    admin_id: Mapped[int] = mapped_column(ForeignKey("admins.id", ondelete="CASCADE"))
+    name: Mapped[str] = mapped_column(String(64))
+    # Base64url der Credential-ID
+    credential_id: Mapped[str] = mapped_column(String(1024), unique=True)
+    public_key: Mapped[bytes]
+    sign_count: Mapped[int] = mapped_column(default=0)
+    transports: Mapped[list[str]] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+    last_used_at: Mapped[datetime | None]
+
+    admin: Mapped[Admin] = relationship(back_populates="passkeys")
 
 
 class AdminSession(Base):
@@ -272,6 +301,8 @@ class Group(Base):
     # eingebaute Gruppen (z. B. "Admin") lassen sich nicht löschen
     builtin: Mapped[bool] = mapped_column(default=False)
     created_at: Mapped[datetime] = mapped_column(default=utcnow)
+    # Aus LDAP übernommen (DN); Mitglieder pflegt dann der Abgleich
+    ldap_dn: Mapped[str | None] = mapped_column(String(1024), unique=True)
 
     persons: Mapped[list["Person"]] = relationship(
         secondary="person_groups", back_populates="groups", order_by="Person.name"
@@ -289,6 +320,9 @@ class Person(Base):
     max_devices: Mapped[int] = mapped_column(default=3)
     disabled: Mapped[bool] = mapped_column(default=False)
     created_at: Mapped[datetime] = mapped_column(default=utcnow)
+    email: Mapped[str | None] = mapped_column(String(255))
+    # Aus LDAP übernommen (DN); Name, E-Mail, LDAP-Gruppen und Sperre kommen dann von dort
+    ldap_dn: Mapped[str | None] = mapped_column(String(1024), unique=True)
 
     groups: Mapped[list[Group]] = relationship(
         secondary="person_groups", back_populates="persons", order_by="Group.name"

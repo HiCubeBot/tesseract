@@ -27,6 +27,11 @@ class SessionState {
     this.user = await api.post<Me>('/auth/login', { username, password, remember });
   }
 
+  /** Nach Passkey-/SSO-Anmeldung: Benutzer übernehmen */
+  set(user: Me) {
+    this.user = user;
+  }
+
   async logout() {
     try {
       await api.post('/auth/logout');

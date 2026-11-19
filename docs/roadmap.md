@@ -15,10 +15,21 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 | 6 | Betrieb & Release | Backup, CA-Rotation, Härtung, v1.0 – **fertig** |
 | 1.1 | Lücken geschlossen | Selbst signierte Ziele, Modul-Prüfung, Aufgaben für Agents – **fertig** |
 | 1.2 | Aus dem Backlog | Loki, Git-Spiegel, Gäste verlängern selbst – **fertig** |
+| 1.3 | Anmeldung & Verzeichnis | SSO (OIDC) und Passkeys für Admins, LDAP-Abgleich – **fertig** |
 | – | [Offen / bekannte Grenzen](#offen--bekannte-grenzen) | Einschränkungen des aktuellen Stands |
 | – | [Backlog](#backlog-niedrige-priorität) | Niedrige Priorität, ohne festen Zeitpunkt |
 
 ---
+
+## Version 1.3 – Anmeldung & Verzeichnis (fertig)
+
+- [x] SSO für die Admin-Oberfläche über OpenID Connect (Authelia, Keycloak, Authentik, Dex …),
+  Admin über Gruppe oder E-Mail; Admin-Gerätezertifikat bleibt erste Hürde
+- [x] Passkeys (WebAuthn) für Admins – zusätzlich oder statt Passwort; Passwort-Anmeldung
+  abschaltbar, Notausgang `tesseract admin password-login on`
+- [x] LDAP-Abgleich für Personen und Gruppen, Sperre samt Geräten bei Deaktivierung, Vorschau,
+  Schutz vor Fehlkonfiguration
+- Anleitung: [anmeldung.md](anmeldung.md)
 
 ## Version 1.2 – aus dem Backlog (fertig)
 
@@ -45,16 +56,6 @@ Was im aktuellen Stand fehlt oder bewusst eingeschränkt ist.
 ## Backlog (niedrige Priorität)
 
 Gewünscht, aber ohne festen Platz in einer Phase. Wird bei Bedarf eingeplant.
-
-**Zugang & Identitäten**
-
-- **SSO für die Admin-Oberfläche** – Anmeldung der Administratoren über OIDC (z. B. Authelia,
-  Keycloak, Authentik). Betrifft nur Admins, nicht die angelegten Personen mit Zugriff auf Hosts.
-  Das Admin-Gerätezertifikat (mTLS) bleibt als erste Hürde bestehen.
-- **Passkey für die Admin-Anmeldung** – WebAuthn zusätzlich oder statt Passwort.
-- **LDAP-Sync für Personen** – Personen und Gruppen aus LDAP übernehmen und regelmäßig abgleichen.
-  Freigaben können dann an LDAP-Gruppen hängen; Geräte und Zertifikate verwaltet weiter Tesseract.
-  Wer in LDAP deaktiviert wird, wird in Tesseract samt Geräten gesperrt.
 
 **Zertifikate & CA**
 
