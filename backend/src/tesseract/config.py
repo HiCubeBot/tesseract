@@ -57,6 +57,10 @@ class Settings(BaseSettings):
     # Netze, kommagetrennt (z. B. "192.168.178.0/24,10.8.0.0/24")
     internal_networks: str | None = None
     trusted_proxies: str | None = None
+    # Cloudflare-API-Token für DNS-01 (auch für das Zertifikat der Oberfläche selbst).
+    # Gesetzt = gilt bei jedem Start, in der Oberfläche gesperrt. *_FILE: aus einer Datei.
+    cloudflare_token: str | None = None
+    cloudflare_token_file: Path | None = None
 
     # Session-Cookie nur über HTTPS senden (für lokale Entwicklung abschalten)
     cookie_secure: bool = True
@@ -91,6 +95,19 @@ class Settings(BaseSettings):
         if self.admin_password_file:
             return self.admin_password_file.read_text(encoding="utf-8").strip()
         return self.admin_password
+
+    @property
+    def resolved_cloudflare_token(self) -> str:
+        if self.cloudflare_token_file:
+            return self.cloudflare_token_file.read_text(encoding="utf-8").strip()
+        return (self.cloudflare_token or "").strip()
+
+    def env_managed(self) -> list[str]:
+        """Namen der Einstellungen, die aus der Umgebung kommen (für die Oberfläche)."""
+        names = list(self.env_overrides())
+        if self.resolved_cloudflare_token:
+            names.append("cloudflare_token")
+        return sorted(names)
 
     def env_overrides(self) -> dict:
         """Einstellungen der Oberfläche, die aus der Umgebung festgelegt sind."""

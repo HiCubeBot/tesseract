@@ -40,9 +40,10 @@ services:
     image: ghcr.io/hicubebot/tesseract-caddy:${TESSERACT_VERSION:-latest}
     restart: unless-stopped
     depends_on: [tesseract]
-    # --resume: nach einem Neustart die zuletzt vom Controller geladene Config verwenden
-    # (liegt in /config); nur beim allerersten Start gilt die Caddyfile.
-    command: caddy run --config /etc/caddy/Caddyfile --adapter caddyfile --resume
+    # Startet mit --resume: nach einem Neustart gilt die zuletzt vom Controller geladene
+    # Config (liegt in /config); nur beim allerersten Start gilt die Caddyfile
+    # (mit TESSERACT_CLOUDFLARE_TOKEN die Variante mit DNS-01).
+    command: tesseract-caddy
     # Härtung: nur das Recht, Ports unter 1024 zu öffnen
     security_opt:
       - no-new-privileges:true
@@ -52,6 +53,7 @@ services:
       - NET_BIND_SERVICE
     environment:
       TESSERACT_DOMAIN: ${TESSERACT_DOMAIN:-localhost}
+      TESSERACT_CLOUDFLARE_TOKEN: ${TESSERACT_CLOUDFLARE_TOKEN:-}
     ports:
       - "80:80"
       - "443:443"

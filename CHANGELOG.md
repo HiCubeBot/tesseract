@@ -4,6 +4,23 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.4.2] – 2026-11-19
+
+### Hinzugefügt
+- **Cloudflare-Token über die `.env`** (`TESSERACT_CLOUDFLARE_TOKEN` oder `…_FILE`): gilt bei
+  jedem Start und ist in der Oberfläche gesperrt
+- **Zertifikat der Oberfläche per DNS-01:** Ist ein Cloudflare-Token hinterlegt, holt sich auch
+  die Oberfläche ihr Zertifikat per DNS – ohne Portweiterleitung und ohne öffentlichen
+  DNS-Eintrag (z. B. `tesseract.home.beispiel.de` nur im lokalen DNS). Liegt sie unter einem
+  geteilten Wildcard-Zertifikat, nutzt sie dieses
+- Caddy nutzt den Token schon beim allerersten Start (`Caddyfile.cloudflare`), bevor der
+  Controller seine Config überträgt
+
+### Upgrade
+- Der Caddy-Container startet jetzt mit `command: tesseract-caddy` und bekommt
+  `TESSERACT_CLOUDFLARE_TOKEN` durchgereicht – `compose.yaml` übernehmen. Mit der alten
+  `compose.yaml` läuft alles weiter, nur der allererste Start nutzt dann kein DNS-01
+
 ## [1.4.1] – 2026-11-19
 
 ### Behoben

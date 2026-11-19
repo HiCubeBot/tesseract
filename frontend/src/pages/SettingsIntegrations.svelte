@@ -232,6 +232,12 @@
         Nötig ist ein API-Token mit dem Recht „Zone · DNS · Bearbeiten“ für deine Zone. Er wird verschlüsselt
         gespeichert und nie wieder angezeigt.
       </p>
+      {#if general.env_managed.includes('cloudflare_token')}
+        <p class="muted small">
+          Der Token kommt aus <code>TESSERACT_CLOUDFLARE_TOKEN</code> in der <code>.env</code> – dort ändern und neu starten.
+          Auch die Tesseract-Oberfläche holt ihr Zertifikat damit per DNS-01.
+        </p>
+      {:else}
       <label class="field">
         API-Token {general.cloudflare_token_set ? '· hinterlegt' : ''}
         <input
@@ -248,6 +254,7 @@
           <Button variant="ghost" label="Token löschen" disabled={cfSaving} onClick={() => saveToken('')} />
         {/if}
       </div>
+      {/if}
     </form>
 
     <form class="card" onsubmit={save} aria-labelledby="wild-title">

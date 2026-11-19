@@ -637,8 +637,14 @@ def tls_automation(spec: NodeSpec, hosts: list[HostSpec]) -> JSON | None:
     http_subjects = [h.domain for h in public if h.tls_challenge != "dns"]
     dns_subjects = [*wild, *(h.domain for h in public if h.tls_challenge == "dns")]
     dns_subjects = list(dict.fromkeys(dns_subjects))
-    if spec.controller_domain and is_public_name(spec.controller_domain):
-        http_subjects.insert(0, spec.controller_domain)
+    cd = spec.controller_domain
+    if cd and is_public_name(cd) and not covering_wildcard(cd, wild):
+        # Mit Cloudflare-Token per DNS-01 – klappt auch, wenn der Name nur im Heimnetz
+        # existiert (kein öffentlicher A-Eintrag, kein offener Port 80)
+        if spec.cloudflare_token:
+            dns_subjects.insert(0, cd)
+        else:
+            http_subjects.insert(0, cd)
 
     def issuer(dns: bool) -> JSON:
         acme: JSON = {"module": "acme"}
@@ -658,7 +664,6 @@ def tls_automation(spec: NodeSpec, hosts: list[HostSpec]) -> JSON | None:
         if not is_public_name(h.domain) and not _is_ip(h.domain) and h.domain != "localhost"
     ]
     # auch die Oberfläche selbst, wenn sie unter einem internen Namen läuft
-    cd = spec.controller_domain
     if cd and not is_public_name(cd) and not _is_ip(cd) and cd != "localhost":
         local.insert(0, cd)
     if local:
@@ -735,6 +740,9 @@ def build_config(spec: NodeSpec) -> JSON:
     covered = own + [
         h.domain for h in hosts if is_public_name(h.domain) and covering_wildcard(h.domain, wild)
     ]
+    cd = spec.controller_domain
+    if cd and is_public_name(cd) and covering_wildcard(cd, wild):
+        covered.append(cd)
     if covered:
         # kein Einzelzertifikat – Caddy liefert das passende Wildcard-Zertifikat aus
         https_server["automatic_https"]["skip_certificates"] = covered

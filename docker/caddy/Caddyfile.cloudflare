@@ -1,0 +1,15 @@
+# Start-Konfiguration für den allerersten Start, wenn TESSERACT_CLOUDFLARE_TOKEN gesetzt ist:
+# Das Zertifikat der Oberfläche kommt per DNS-01 über Cloudflare – ohne offenen Port 80 und
+# ohne öffentlichen DNS-Eintrag (z. B. für einen Namen, den es nur im Heimnetz gibt).
+# Danach überträgt der Controller die komplette Config (siehe Caddyfile).
+{
+	# Admin-API nur im internen Docker-Netz erreichbar – NICHT nach außen veröffentlichen.
+	admin 0.0.0.0:2019
+}
+
+{$TESSERACT_DOMAIN:localhost} {
+	tls {
+		dns cloudflare {$TESSERACT_CLOUDFLARE_TOKEN}
+	}
+	reverse_proxy tesseract:8000
+}

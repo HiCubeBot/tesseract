@@ -178,7 +178,7 @@ def get_settings_general(db: DB, _: CurrentActor, settings: AppSettings) -> Gene
         ),
         autoban_log_ready=bool(settings.caddy_waf_log and settings.waf_log_path),
         controller_domain=settings.controller_domain,
-        env_managed=sorted(settings.env_overrides()),
+        env_managed=settings.env_managed(),
         version=__version__,
     )
 
@@ -197,6 +197,12 @@ def put_settings_general(
     if "acme_email" in value:
         value["acme_email"] = value["acme_email"] or ""
     if body.cloudflare_token is not None:
+        if settings.resolved_cloudflare_token:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "Der Cloudflare-Token ist über TESSERACT_CLOUDFLARE_TOKEN festgelegt – "
+                "dort ändern und neu starten",
+            )
         token = body.cloudflare_token.strip()
         if not token and db.scalar(select(Host.id).where(Host.tls_challenge == "dns").limit(1)):
             raise HTTPException(

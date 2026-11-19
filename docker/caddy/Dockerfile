@@ -9,4 +9,6 @@ RUN xcaddy build \
 
 FROM caddy:${CADDY_VERSION}
 COPY --from=builder /usr/bin/caddy /usr/bin/caddy
-COPY Caddyfile /etc/caddy/Caddyfile
+COPY Caddyfile Caddyfile.cloudflare /etc/caddy/
+COPY --chmod=755 start.sh /usr/local/bin/tesseract-caddy
+CMD ["tesseract-caddy"]

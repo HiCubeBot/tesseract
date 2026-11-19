@@ -51,6 +51,19 @@ def init_database(settings: Settings) -> Database:
             set_general(db, overrides)
             db.commit()
             log.info("Einstellungen aus der Umgebung: %s", ", ".join(sorted(overrides)))
+        token = settings.resolved_cloudflare_token
+        if token:
+            from tesseract.services import cloudflare_token, set_general
+
+            # nur neu verschlüsseln, wenn sich der Token geändert hat
+            if cloudflare_token(db, settings) != token:
+                from tesseract.secretbox import load_secretbox
+                from tesseract.services import CLOUDFLARE_CONTEXT
+
+                enc = load_secretbox(settings).encrypt(token.encode(), CLOUDFLARE_CONTEXT)
+                set_general(db, {"cloudflare_token_enc": enc})
+                db.commit()
+                log.info("Cloudflare-Token aus der Umgebung übernommen")
         # Audit-Log: offene Einträge (z. B. aus älteren Versionen) versiegeln
         from tesseract.audit import seal
 

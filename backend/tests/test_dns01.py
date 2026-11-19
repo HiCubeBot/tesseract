@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 from fastapi.testclient import TestClient
 
 from tesseract.caddy.config import HostSpec, NodeSpec, build_config, redact
@@ -34,6 +36,31 @@ def test_policies_and_route_order() -> None:
 
     shown = redact(cfg)
     assert TOKEN not in str(shown) and TOKEN in str(cfg)
+
+
+def test_controller_domain_via_dns() -> None:
+    spec = NodeSpec(
+        admin_listen="x",
+        controller_domain="tesseract.home.example.org",
+        controller_upstream="tesseract:8000",
+        acme_email="a@example.org",
+    )
+    # ohne Token: HTTP-01
+    (http,) = build_config(spec)["apps"]["tls"]["automation"]["policies"]
+    assert http["subjects"] == ["tesseract.home.example.org"]
+    assert "challenges" not in http["issuers"][0]
+    # mit Token: DNS-01 – auch ohne Let's-Encrypt-E-Mail
+    spec = replace(spec, cloudflare_token=TOKEN, acme_email="")
+    (dns,) = build_config(spec)["apps"]["tls"]["automation"]["policies"]
+    assert dns["subjects"] == ["tesseract.home.example.org"]
+    assert dns["issuers"][0]["challenges"]["dns"]["provider"]["api_token"] == TOKEN
+    # unter einem geteilten Wildcard: kein Einzelzertifikat
+    spec = replace(spec, wildcard_certs=("*.home.example.org",))
+    cfg = build_config(spec)
+    (dns,) = cfg["apps"]["tls"]["automation"]["policies"]
+    assert dns["subjects"] == ["*.home.example.org"]
+    https = cfg["apps"]["http"]["servers"]["https"]
+    assert https["automatic_https"]["skip_certificates"] == ["tesseract.home.example.org"]
 
 
 def test_api(auth_client: TestClient, caddy: FakeCaddy) -> None:

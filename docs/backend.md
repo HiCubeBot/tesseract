@@ -227,6 +227,8 @@ Alle Einstellungen kommen aus Umgebungsvariablen oder einer `.env` im Arbeitsver
 | `TESSERACT_ADMIN_USERNAME` | `admin` | Name des Admins |
 | `TESSERACT_ADMIN_PASSWORD` | – | Admin-Passwort (mind. 12 Zeichen), gilt bei jedem Start; leer = Zufallspasswort im Log |
 | `TESSERACT_ADMIN_PASSWORD_FILE` | – | Passwort aus einer Datei (Docker-Secret), hat Vorrang |
+| `TESSERACT_CLOUDFLARE_TOKEN` | – | Cloudflare-Token für DNS-01 (Hosts, Wildcards und die Oberfläche selbst); gilt bei jedem Start, in der Oberfläche gesperrt |
+| `TESSERACT_CLOUDFLARE_TOKEN_FILE` | – | Token aus einer Datei (Docker-Secret), hat Vorrang. Der Caddy-Container liest beim allerersten Start nur `TESSERACT_CLOUDFLARE_TOKEN` |
 | `TESSERACT_ACME_EMAIL` | – | Let's-Encrypt-E-Mail festlegen (überschreibt die Oberfläche beim Start) |
 | `TESSERACT_LOGS_DAYS` | – | Aufbewahrung der Logs festlegen |
 | `TESSERACT_INTERNAL_NETWORKS` | – | Interne Netze, kommagetrennt, festlegen |

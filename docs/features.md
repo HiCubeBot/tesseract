@@ -13,6 +13,7 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | Optionen | HTTP→HTTPS-Umleitung, WebSockets, Kompression (gzip/zstd) | 1 |
 | Automatische Vorab-Prüfungen | DNS zeigt auf den gewählten Node (öffentliche IPs pro Node unter Nodes › Bearbeiten), Ziel erreichbar (bei Agent-Nodes vom Node aus geprüft), Domain frei | 1 / 1.1 / 1.4.1 |
 | TLS über Let's Encrypt | HTTP-01; DNS-01 (z. B. Cloudflare) für Wildcards/Hosts ohne Port 80 | 1 / 3 |
+| Oberfläche per DNS-01 | Mit `TESSERACT_CLOUDFLARE_TOKEN` in der `.env` holt auch die Oberfläche ihr Zertifikat per DNS – ohne Portweiterleitung, auch für Namen nur im Heimnetz | 1.4.2 |
 | Geteilte Wildcard-Zertifikate | Wildcard-Zertifikat (z. B. `*.home.beispiel.de`) einmal per DNS-01 holen und für alle passenden Hosts verwenden, die trotzdem eigene Einstellungen haben. Verrät einzelne Hostnamen nicht über die öffentlichen Certificate-Transparency-Logs | 3b |
 | Zertifikatsübersicht | Alle Zertifikate an einer Stelle (wie bei NPM): Name(n), Aussteller (Let's Encrypt, ZeroSSL, lokal, eigenes), gültig von/bis, Prüfart (HTTP-01/DNS-01), welche Hosts es nutzen, Status (gültig, läuft bald ab, Fehler beim Erneuern), Node; „Bald ablaufende Zertifikate“ in der Übersicht | 3b |
 | Eigene Zertifikate | Zertifikat + Schlüssel hochladen (z. B. von einer Firmen-CA) und Hosts zuordnen; Schlüssel verschlüsselt gespeichert | 3b |
