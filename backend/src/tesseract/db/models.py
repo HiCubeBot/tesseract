@@ -98,6 +98,8 @@ class Node(Base):
     admin_url: Mapped[str] = mapped_column(String(255), default="")
     # Adresse der Admin-API in der erzeugten Config (None = TESSERACT_CADDY_ADMIN_LISTEN)
     admin_listen: Mapped[str | None] = mapped_column(String(255))
+    # Öffentliche IPs des Servers – „Host anlegen“ prüft, ob der DNS-Eintrag dorthin zeigt
+    public_ips: Mapped[list[str] | None] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(default=utcnow)
     last_applied_at: Mapped[datetime | None]
     last_apply_error: Mapped[str | None]

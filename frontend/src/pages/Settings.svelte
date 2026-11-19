@@ -13,7 +13,6 @@
   let pwFromEnv = $state(false);
   api.get<{ password_from_env?: boolean }>('/auth/me').then((m) => (pwFromEnv = !!m.password_from_env));
   let email = $state('');
-  let ips = $state('');
   let saving = $state(false);
   let error = $state('');
 
@@ -57,7 +56,6 @@
   function fill(g: GeneralSettings) {
     general = g;
     email = g.acme_email;
-    ips = g.public_ips.join(', ');
   }
 
   api.get<GeneralSettings>('/settings/general').then(fill, (e) => (error = String(e.message ?? e)));
@@ -67,10 +65,7 @@
     saving = true;
     error = '';
     try {
-      const body = {
-        acme_email: email.trim() || null,
-        public_ips: ips.split(/[\s,]+/).filter(Boolean)
-      };
+      const body = { acme_email: email.trim() || null };
       fill(await api.put<GeneralSettings>('/settings/general', body));
       toasts.show('ok', 'Einstellungen gespeichert.');
     } catch (err) {
@@ -122,11 +117,10 @@
         <input class="input" type="email" autocomplete="email" placeholder="admin@beispiel.de" bind:value={email} />
         <span class="muted small">Leer lassen geht auch – dann ohne Benachrichtigung von Let's Encrypt.</span>
       </label>
-      <label class="field">
-        Öffentliche IP(s) des Nodes
-        <input class="input mono" type="text" placeholder="203.0.113.7, 2001:db8::7" bind:value={ips} />
-        <span class="muted small">Damit prüft „Host anlegen“, ob der DNS-Eintrag auf den Node zeigt.</span>
-      </label>
+      <p class="muted small">
+        Öffentliche IPs stehen jetzt bei jedem Node einzeln (<a href="#/nodes">Nodes</a> › Bearbeiten) – damit prüft „Host anlegen“, ob der
+        DNS-Eintrag auf den gewählten Node zeigt.
+      </p>
       <div class="row"><Button type="submit" label={saving ? 'Speichert …' : 'Speichern'} disabled={saving} /></div>
     </form>
 

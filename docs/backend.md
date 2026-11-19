@@ -84,7 +84,7 @@ Alle Endpunkte außer `/api/health` und `/api/auth/login` brauchen eine Session.
 | `GET /api/hosts/{id}/versions[/{v}]` | Verlauf mit Änderungen, Caddy-Route vorher/nachher |
 | `POST /api/hosts/{id}/versions/{v}/restore` | Version wiederherstellen (= neue Version) |
 | `GET /api/nodes` · `GET /api/nodes/{id}/config` · `POST /api/nodes/{id}/apply` | Nodes, erzeugte Config, erneut übertragen (Agent-Nodes: Soll-Stand setzen) |
-| `GET/PUT /api/settings/general` | Let's-Encrypt-E-Mail, öffentliche IPs des Nodes |
+| `GET/PUT /api/settings/general` | Let's-Encrypt-E-Mail und weitere allgemeine Einstellungen (öffentliche IPs stehen ab 1.4.1 am Node: `PUT /api/nodes/{id}` mit `public_ips`) |
 | `GET /api/audit` | Audit-Log (`q`, `limit`, `before_id`) |
 
 ### Speichern & übertragen

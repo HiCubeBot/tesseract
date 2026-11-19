@@ -480,6 +480,16 @@ def list_hosts(db: DB, _: CurrentActor) -> list[HostOut]:
     return [_out(db, h) for h in db.scalars(select(Host).order_by(Host.domain))]
 
 
+def _node_ips(db: Session, node_id: int | None) -> tuple[list[str], str]:
+    """Öffentliche IPs des Nodes, auf dem der Host laufen soll (ohne Angabe: der lokale)."""
+    node = db.get(Node, node_id) if node_id else None
+    if node is None:
+        node = db.scalar(select(Node).where(Node.kind == "local").order_by(Node.id))
+    if node is None:
+        return [], ""
+    return list(node.public_ips or []), node.name
+
+
 async def _upstream_check(request: Request, db: Session, node_id: int | None, host: str, port: int):
     """Erreichbarkeit des Ziels – vom Node aus, wenn es ein Agent-Node ist (ab Agent 1.1)."""
     from tesseract import nodes as node_svc
@@ -533,8 +543,8 @@ async def run_checks(
         return [checks.Check("domain", "Domain", "bad", str(e)).dict()]
     result = [
         checks.check_domain_free(db, domain, body.exclude_id, settings.controller_domain),
-        # Bei Wildcards einen Beispielnamen prüfen
-        checks.check_dns(domain.replace("*.", "test.", 1), list(get_general(db)["public_ips"])),
+        # Bei Wildcards einen Beispielnamen prüfen; verglichen wird mit den IPs des gewählten Nodes
+        checks.check_dns(domain.replace("*.", "test.", 1), *_node_ips(db, body.node_id)),
     ]
     if body.upstream_host and body.upstream_port:
         try:

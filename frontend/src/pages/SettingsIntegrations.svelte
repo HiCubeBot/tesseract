@@ -35,7 +35,6 @@
     try {
       general = await api.put<GeneralSettings>('/settings/general', {
         acme_email: general.acme_email || null,
-        public_ips: general.public_ips,
         waf_default_mode: general.waf_default_mode,
         waf_default_paranoia: Number(general.waf_default_paranoia),
         controller_waf_mode: general.controller_waf_mode,
@@ -72,7 +71,6 @@
     try {
       general = await api.put<GeneralSettings>('/settings/general', {
         acme_email: general.acme_email || null,
-        public_ips: general.public_ips,
         waf_default_mode: general.waf_default_mode,
         waf_default_paranoia: Number(general.waf_default_paranoia),
         controller_waf_mode: general.controller_waf_mode,

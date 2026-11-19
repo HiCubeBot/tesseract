@@ -4,6 +4,15 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.4.1] – 2026-11-19
+
+### Behoben
+- **Öffentliche IPs pro Node:** Bisher gab es nur eine Liste für alle Nodes, die DNS-Prüfung
+  bei „Host anlegen“ verglich deshalb auch Hosts auf anderen Nodes mit der IP des Controllers.
+  Die IPs stehen jetzt am Node (Nodes › Bearbeiten), die Prüfung nimmt die des gewählten Nodes.
+  Eine bisher eingetragene Liste übernimmt der lokale Node (Migration 0019)
+- Nodes lassen sich in der Oberfläche bearbeiten (Name, Standort, öffentliche IPs)
+
 ## [1.4.0] – 2026-11-19
 
 ### Neu

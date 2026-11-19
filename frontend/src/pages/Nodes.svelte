@@ -39,6 +39,34 @@
   let drifts = $state<Record<number, NodeDrift>>({});
   let remove = $state<NodeInfo | null>(null);
 
+  // Bearbeiten: Name (nur Agent-Nodes), Standort, öffentliche IPs
+  let editing = $state<{ id: number; name: string; location: string; ips: string } | null>(null);
+
+  function startEdit(n: NodeInfo) {
+    editing = { id: n.id, name: n.name, location: n.location, ips: n.public_ips.join(', ') };
+  }
+
+  async function saveEdit(e: SubmitEvent) {
+    e.preventDefault();
+    const ed = editing;
+    if (!ed) return;
+    busy = `edit-${ed.id}`;
+    try {
+      await api.put(`/nodes/${ed.id}`, {
+        name: ed.name,
+        location: ed.location,
+        public_ips: ed.ips.split(/[\s,;]+/).filter(Boolean)
+      });
+      editing = null;
+      toasts.show('ok', 'Gespeichert.');
+      await load();
+    } catch (err) {
+      toasts.show('bad', err instanceof Error ? err.message : String(err), 10000);
+    } finally {
+      busy = null;
+    }
+  }
+
   async function load() {
     try {
       nodes = await api.get<NodeInfo[]>('/nodes');
@@ -308,6 +336,7 @@
           <div class="titles">
             <h2 class="mono">{n.name}</h2>
             <span class="muted small">{n.location || '–'} · {n.kind === 'local' ? 'lokal (direkt)' : 'Agent'}</span>
+            {#if n.public_ips.length}<span class="muted small mono">{n.public_ips.join(', ')}</span>{/if}
           </div>
           <StatusPill tone={st.tone} label={st.label} />
         </div>
@@ -335,7 +364,28 @@
           {/if}
           {#if n.last_apply_error}<p class="bad small">{n.last_apply_error}</p>{/if}
         {/if}
+        {#if editing?.id === n.id}
+          <form class="edit" onsubmit={saveEdit}>
+            {#if n.kind === 'agent'}
+              <label class="field">Name<input class="input mono" bind:value={editing.name} maxlength="64" required /></label>
+            {/if}
+            <label class="field">Standort<input class="input" bind:value={editing.location} maxlength="128" /></label>
+            <label class="field">
+              Öffentliche IP(s)
+              <input class="input mono" placeholder="203.0.113.7, 2001:db8::7" bind:value={editing.ips} />
+              <span class="muted small">
+                Damit prüft „Host anlegen“, ob der DNS-Eintrag auf diesen Node zeigt. Bei wechselnder IP (DDNS) oder hinter dem
+                Cloudflare-Proxy leer lassen.
+              </span>
+            </label>
+            <div class="row">
+              <Button type="submit" size="sm" label={busy === `edit-${n.id}` ? 'Speichert …' : 'Speichern'} disabled={busy !== null} />
+              <Button variant="ghost" size="sm" label="Abbrechen" onClick={() => (editing = null)} />
+            </div>
+          </form>
+        {/if}
         <div class="row actions">
+          <Button variant="ghost" size="sm" label="Bearbeiten" disabled={busy !== null || editing?.id === n.id} onClick={() => startEdit(n)} />
           {#if n.state !== 'pending'}
             <Button variant="secondary" size="sm" label={configOpen === n.id ? 'Config schließen' : 'Config ansehen'} onClick={() => toggleConfig(n)} />
             <Button variant="secondary" size="sm" icon="refresh" label={busy === `apply-${n.id}` ? 'Überträgt …' : 'Neu übertragen'} disabled={busy !== null} onClick={() => apply(n)} />
@@ -458,6 +508,13 @@
   }
   .fp {
     font-size: 12px;
+  }
+  .edit {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 4px;
+    border-top: 1px solid var(--border);
   }
   .actions {
     margin-top: auto;

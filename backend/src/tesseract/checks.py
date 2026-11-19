@@ -40,8 +40,9 @@ def check_domain_free(
     return Check("domain_free", "Domain noch frei", "ok", "Kein anderer Host nutzt diese Domain")
 
 
-def check_dns(domain: str, public_ips: list[str]) -> Check:
+def check_dns(domain: str, public_ips: list[str], node: str = "") -> Check:
     title = "DNS-Eintrag"
+    where = f"den Node „{node}“" if node else "den Node"
     try:
         infos = socket.getaddrinfo(domain, None, proto=socket.IPPROTO_TCP)
     except (socket.gaierror, UnicodeError):
@@ -50,10 +51,10 @@ def check_dns(domain: str, public_ips: list[str]) -> Check:
     ips = sorted({str(i[4][0]) for i in infos})
     if public_ips:
         if set(ips) & set(public_ips):
-            return Check("dns", "DNS zeigt auf den Node", "ok", f"{domain} → {', '.join(ips)}")
+            return Check("dns", f"DNS zeigt auf {where}", "ok", f"{domain} → {', '.join(ips)}")
         return Check(
             "dns",
-            "DNS zeigt auf den Node",
+            f"DNS zeigt auf {where}",
             "warn",
             f"{domain} → {', '.join(ips)}, erwartet: {', '.join(public_ips)}",
         )
@@ -61,8 +62,8 @@ def check_dns(domain: str, public_ips: list[str]) -> Check:
         "dns",
         title,
         "ok",
-        f"{domain} → {', '.join(ips)} (öffentliche IP des Nodes in den Einstellungen "
-        "hinterlegen, um sie zu vergleichen)",
+        f"{domain} → {', '.join(ips)} (öffentliche IP unter Nodes › Bearbeiten hinterlegen, "
+        "um sie zu vergleichen)",
     )
 
 

@@ -314,6 +314,8 @@ export interface NodeInfo {
   location: string;
   /** "local" = Caddy im selben Stack, "agent" = entfernter Node mit Agent */
   kind: 'local' | 'agent';
+  /** öffentliche IPs des Servers – für die DNS-Prüfung bei „Host anlegen“ */
+  public_ips: string[];
   state: NodeState;
   hosts: number;
   last_applied_at: string | null;
@@ -368,7 +370,6 @@ export const MODULES: Record<string, string> = {
 
 export interface GeneralSettings {
   acme_email: string;
-  public_ips: string[];
   waf_default_mode: WafMode;
   waf_default_paranoia: number;
   controller_waf_mode: WafMode;

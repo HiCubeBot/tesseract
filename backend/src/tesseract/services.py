@@ -59,7 +59,6 @@ SNAPSHOT_FIELDS = (
 
 GENERAL_DEFAULTS: dict[str, Any] = {
     "acme_email": "",
-    "public_ips": [],
     "admin_mtls": False,
     # Coraza: Standard für neue Hosts und Schutz der Oberfläche
     "waf_default_mode": "detect",

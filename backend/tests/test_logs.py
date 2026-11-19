@@ -1,6 +1,7 @@
 """Phase 5: Zentrale Logs – Parser, WAF-Zuordnung, Suche, Aktionen."""
 
 import json
+import time
 
 from fastapi.testclient import TestClient
 from sqlalchemy import select
@@ -13,7 +14,8 @@ from tests.test_hosts import HOST
 from tests.test_nodes_agent import _joined
 
 # Zeilen wie vom echten Caddy 2.11 mit coraza-caddy (gekürzt)
-TS = 1795026076.95
+# relativ zu jetzt – Detail und Statistik zählen nur die letzten 24 Stunden
+TS = round(time.time() - 3600, 2)
 SQLI_URI = "/search?q=1%27+OR+%271%27=%271"
 WAF_WARNING = json.dumps(
     {

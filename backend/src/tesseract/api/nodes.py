@@ -1,8 +1,9 @@
+import ipaddress
 from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, select
 
 from tesseract import audit
@@ -21,6 +22,7 @@ class NodeOut(BaseModel):
     name: str
     location: str
     kind: str
+    public_ips: list[str]
     # pending | online | offline | drift | error
     state: str
     hosts: int
@@ -62,6 +64,25 @@ class NodeCreated(BaseModel):
 class NodeIn(BaseModel):
     name: str = Field(min_length=1, max_length=64)
     location: str = Field(default="", max_length=128)
+    # None = unverändert lassen
+    public_ips: list[str] | None = Field(default=None, max_length=16)
+
+    @field_validator("public_ips")
+    @classmethod
+    def _ips(cls, v: list[str] | None) -> list[str] | None:
+        if v is None:
+            return None
+        out: list[str] = []
+        for raw in v:
+            if not raw.strip():
+                continue
+            try:
+                ip = str(ipaddress.ip_address(raw.strip()))
+            except ValueError as e:
+                raise ValueError(f"„{raw.strip()}“ ist keine IP-Adresse") from e
+            if ip not in out:
+                out.append(ip)
+        return out
 
 
 def _get(db, node_id: int) -> Node:
@@ -87,6 +108,7 @@ def _out(db, node: Node, settings, hosts: int | None = None) -> NodeOut:
         name=node.name,
         location=node.location,
         kind=node.kind,
+        public_ips=node.public_ips or [],
         state=node_svc.state(node, now),
         hosts=hosts,
         last_applied_at=node.last_applied_at,
@@ -179,12 +201,13 @@ def update_node(
         raise HTTPException(status.HTTP_409_CONFLICT, f"Node „{name}“ gibt es schon")
     if name != node.name and not node.is_agent:
         raise HTTPException(status.HTTP_409_CONFLICT, "Der lokale Node behält seinen Namen")
-    changes = {
-        k: [getattr(node, k), v]
-        for k, v in (("name", name), ("location", body.location.strip()))
-        if getattr(node, k) != v
-    }
-    node.name, node.location = name, body.location.strip()
+    new = {"name": name, "location": body.location.strip()}
+    if body.public_ips is not None:
+        new["public_ips"] = body.public_ips
+    old = {"name": node.name, "location": node.location, "public_ips": node.public_ips or []}
+    changes = {k: [old[k], v] for k, v in new.items() if old[k] != v}
+    for k, v in new.items():
+        setattr(node, k, v)
     if changes:
         audit.record(
             db, actor=actor.name, action="node_updated", target=name, details=changes, ip=actor.ip

@@ -1,4 +1,3 @@
-import ipaddress
 import re
 import time
 from typing import Literal
@@ -29,7 +28,6 @@ class GeneralIn(BaseModel):
     """Nur mitgeschickte Felder werden geändert (Teil-Aktualisierung)."""
 
     acme_email: EmailStr | None = None
-    public_ips: list[str] = Field(default_factory=list, max_length=16)
     waf_default_mode: Literal["off", "detect", "block"] = "detect"
     waf_default_paranoia: int = Field(1, ge=1, le=4)
     controller_waf_mode: Literal["off", "detect", "block"] = "off"
@@ -107,11 +105,6 @@ class GeneralIn(BaseModel):
     def _proxies(cls, v: list[str]) -> list[str]:
         return normalize_networks(v)
 
-    @field_validator("public_ips")
-    @classmethod
-    def _ips(cls, v: list[str]) -> list[str]:
-        return [str(ipaddress.ip_address(ip.strip())) for ip in v if ip.strip()]
-
 
 class AdminAccessIn(BaseModel):
     enabled: bool
@@ -129,7 +122,6 @@ class AdminAccessOut(BaseModel):
 
 class GeneralOut(BaseModel):
     acme_email: str
-    public_ips: list[str]
     waf_default_mode: str
     waf_default_paranoia: int
     controller_waf_mode: str
@@ -163,7 +155,6 @@ def get_settings_general(db: DB, _: CurrentActor, settings: AppSettings) -> Gene
     g = get_general(db)
     return GeneralOut(
         acme_email=g["acme_email"],
-        public_ips=g["public_ips"],
         waf_default_mode=g["waf_default_mode"],
         waf_default_paranoia=g["waf_default_paranoia"],
         controller_waf_mode=g["controller_waf_mode"],

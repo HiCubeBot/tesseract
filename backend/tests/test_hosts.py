@@ -124,14 +124,12 @@ def test_settings(auth_client: TestClient, caddy: FakeCaddy) -> None:
     _create(auth_client)
     r = auth_client.put(
         "/api/settings/general",
-        json={"acme_email": "admin@example.org", "public_ips": ["203.0.113.7"]},
+        json={"acme_email": "admin@example.org"},
     )
     assert r.status_code == 200
     assert r.json()["controller_domain"] == "tesseract.example.org"
     issuer = caddy.last["apps"]["tls"]["automation"]["policies"][0]["issuers"][0]
     assert issuer["email"] == "admin@example.org"
-    r = auth_client.put("/api/settings/general", json={"public_ips": ["keine-ip"]})
-    assert r.status_code == 422
 
 
 def test_settings_partial_update(auth_client: TestClient) -> None:
@@ -180,3 +178,53 @@ def test_missing_modules_refused(auth_client: TestClient) -> None:
     # Wildcard braucht DNS-01 – das Modul ist da
     wild = {**HOST, "domain": "*.example.org", "tls_challenge": "dns", "waf_mode": "off"}
     assert auth_client.post("/api/hosts", json=wild).status_code in (201, 409)
+
+
+def test_dns_check_uses_ips_of_chosen_node(auth_client: TestClient, monkeypatch) -> None:
+    import socket
+
+    from tesseract.db.models import Node
+
+    def fake(domain, *a, **kw):
+        ip = {"musik.example.org": "203.0.113.7", "pi.example.org": "198.51.100.9"}[domain]
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", (ip, 0))]
+
+    monkeypatch.setattr(socket, "getaddrinfo", fake)
+    db = auth_client.app.state.db.sessionmaker()
+    remote = Node(name="pi-eltern", kind="agent")
+    db.add(remote)
+    db.commit()
+    remote_id = remote.id
+    local = db.query(Node).filter(Node.kind == "local").first()
+    local_id = local.id
+    db.close()
+
+    def dns(domain: str, node_id: int | None = None) -> dict:
+        r = auth_client.post("/api/hosts/check", json={"domain": domain, "node_id": node_id})
+        return next(c for c in r.json() if c["key"] == "dns")
+
+    # ohne IPs: nur Auflösung
+    assert "Nodes › Bearbeiten" in dns("musik.example.org")["detail"]
+
+    r = auth_client.put(
+        f"/api/nodes/{local_id}", json={"name": local.name, "public_ips": ["203.0.113.7"]}
+    )
+    assert r.status_code == 200 and r.json()["public_ips"] == ["203.0.113.7"]
+    r = auth_client.put(
+        f"/api/nodes/{remote_id}",
+        json={"name": "pi-eltern", "public_ips": ["198.51.100.9", " ", "198.51.100.9"]},
+    )
+    assert r.json()["public_ips"] == ["198.51.100.9"]
+    bad = auth_client.put(
+        f"/api/nodes/{remote_id}", json={"name": "pi-eltern", "public_ips": ["x"]}
+    )
+    assert bad.status_code == 422
+
+    assert dns("musik.example.org")["status"] == "ok"  # lokaler Node
+    assert dns("pi.example.org", remote_id)["status"] == "ok"
+    wrong = dns("musik.example.org", remote_id)
+    assert wrong["status"] == "warn" and "pi-eltern" in wrong["title"]
+    # Bearbeiten ohne IP-Feld lässt sie stehen
+    auth_client.put(f"/api/nodes/{remote_id}", json={"name": "pi-eltern", "location": "Eltern"})
+    node = next(n for n in auth_client.get("/api/nodes").json() if n["id"] == remote_id)
+    assert node["public_ips"] == ["198.51.100.9"] and node["location"] == "Eltern"
