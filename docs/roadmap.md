@@ -81,6 +81,15 @@ Gewünscht, aber ohne festen Platz in einer Phase. Wird bei Bedarf eingeplant.
   Issue: [HiCubeBot/tesseract#14](https://github.com/HiCubeBot/tesseract/issues/14)
 - **Log-Ansicht und Statistik direkt aus Loki** – Loki ist als zusätzlicher Speicher angebunden
   (1.2); Suche und Statistik in der Oberfläche nutzen weiter SQLite.
+- **Restic als Backup-Ziel** – Sicherungen zusätzlich in ein Restic-Repository schreiben
+  (lokal, SFTP, S3, REST-Server …), mit Deduplizierung und Aufbewahrungsregeln von Restic.
+  Heute gibt es lokale und S3-kompatible Ziele (Phase 6).
+
+**Oberfläche**
+
+- **Heller Modus** – helles Farbschema neben dem dunklen; folgt der Systemeinstellung und
+  lässt sich umschalten.
+- **Favicon** – eigenes Icon für Browser-Tab und Lesezeichen (bisher keins).
 
 ---
 
