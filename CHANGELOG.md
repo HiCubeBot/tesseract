@@ -4,7 +4,7 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
-## [Unveröffentlicht]
+## [1.2.0] – 2026-11-19
 
 ### Neu
 - **Loki als zusätzlicher Log-Speicher**: Zugriffs- und WAF-Logs aller Nodes gehen auch an
@@ -17,6 +17,11 @@ Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinwe
   das noch gültige Zertifikat ist der Ausweis. Ab 30 Tagen vor Ablauf (einstellbar), nach
   einem CA-Wechsel sofort. Abschaltbar unter Einstellungen › Zertifizierungsstelle; der Link
   steht nach der Registrierung auf der Einladungsseite
+
+### Upgrade
+- Controller aktualisieren. Die Config wird beim Start neu übertragen (öffentliche Pfade `/v`
+  und `/api/renew` für das Selbst-Verlängern). Agents brauchen kein Update.
+- Loki ist optional: `docker compose --profile loki up -d` und `TESSERACT_LOKI_URL` setzen.
 
 ## [1.1.0] – 2026-11-18
 

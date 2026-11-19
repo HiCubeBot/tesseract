@@ -14,13 +14,13 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 | 5 | Beobachtbarkeit | Logs, Statistik, Audit, Metriken, Benachrichtigungen – **fertig** |
 | 6 | Betrieb & Release | Backup, CA-Rotation, Härtung, v1.0 – **fertig** |
 | 1.1 | Lücken geschlossen | Selbst signierte Ziele, Modul-Prüfung, Aufgaben für Agents – **fertig** |
-| 1.2 | Aus dem Backlog | Loki, Git-Spiegel, Gäste verlängern selbst – **fertig** (noch nicht veröffentlicht) |
+| 1.2 | Aus dem Backlog | Loki, Git-Spiegel, Gäste verlängern selbst – **fertig** |
 | – | [Offen / bekannte Grenzen](#offen--bekannte-grenzen) | Einschränkungen des aktuellen Stands |
 | – | [Backlog](#backlog-niedrige-priorität) | Niedrige Priorität, ohne festen Zeitpunkt |
 
 ---
 
-## Version 1.2 – aus dem Backlog
+## Version 1.2 – aus dem Backlog (fertig)
 
 - [x] Loki als zusätzlicher Log-Speicher, optional im Compose-Stack (Profil `loki`)
 - [x] Git-Spiegel der Configs als Backup-Ziel

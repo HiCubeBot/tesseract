@@ -8,7 +8,7 @@ Hauptversion (1.x) sind Updates ohne Handarbeit möglich.
 ```bash
 # 1. Vorher sichern (Oberfläche: Einstellungen › Backup › Jetzt sichern) oder:
 docker compose exec tesseract tesseract backup create
-# 2. Version in der .env anheben (TESSERACT_VERSION=1.1.0) oder „latest“ lassen
+# 2. Version in der .env anheben (TESSERACT_VERSION=1.2.0) oder „latest“ lassen
 docker compose pull
 docker compose up -d
 ```
