@@ -92,6 +92,18 @@ Ist der Controller nicht erreichbar, läuft Caddy mit dem zuletzt geladenen Stan
 (`--resume`), und der Agent versucht es mit wachsender Pause (bis 60 s) erneut. Nach 90 s
 ohne Kontakt zeigt der Controller den Node als **offline**.
 
+**Neustart ohne Controller (ab 1.4):** Startet Caddy neu, lädt es per `--resume` seinen
+gespeicherten Stand (Volume `caddy-config`). Fehlt der – Volume neu angelegt, Caddy ohne
+`--resume` gestartet –, kommt Caddy nur mit der Admin-API hoch. Der Agent prüft alle 10 s, ob
+Caddy ohne Config läuft, und lädt dann seine eigene Kopie des zuletzt geladenen Stands
+(`/data/last-config.json`, nur für den Agent lesbar) – ohne den Controller zu fragen. Eine
+absichtlich geänderte, aber nicht leere Config fasst der Agent nicht an (das ist eine
+Abweichung, siehe unten).
+
+**CA-Wechsel (ab 1.4):** Stammt das Node-Zertifikat nicht mehr vom aktiven Zwischenzertifikat,
+sagt der Controller das in der Antwort auf den Status (`renew_cert`), und der Agent erneuert
+sein Zertifikat sofort statt erst 60 Tage vor Ablauf.
+
 ## Abweichung: überschreiben oder übernehmen
 
 - **Mit Controller überschreiben**: Der Controller zählt `force` hoch, und der Agent lädt den

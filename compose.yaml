@@ -85,6 +85,27 @@ services:
       - loki-data:/loki
     networks: [internal]
 
+  # Optional: VictoriaLogs statt Loki – braucht weniger Speicher und RAM.
+  # Starten mit: docker compose --profile victorialogs up -d
+  # und in der .env: TESSERACT_LOKI_URL=http://victorialogs:9428 und TESSERACT_LOKI_KIND=victorialogs
+  victorialogs:
+    image: victoriametrics/victoria-logs:${VICTORIALOGS_VERSION:-v1.53.0}
+    profiles: [victorialogs]
+    restart: unless-stopped
+    command:
+      - -storageDataPath=/vlogs
+      - -retentionPeriod=${VICTORIALOGS_RETENTION:-90d}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # Port 9428 (Abfrage und Web-Oberfläche /select/vmui) nur bei Bedarf veröffentlichen:
+    # ports:
+    #   - "127.0.0.1:9428:9428"
+    volumes:
+      - victorialogs-data:/vlogs
+    networks: [internal]
+
 networks:
   internal:
 
@@ -94,3 +115,4 @@ volumes:
   caddy-config:
   caddy-logs:
   loki-data:
+  victorialogs-data:

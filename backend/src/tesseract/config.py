@@ -52,6 +52,8 @@ class Settings(BaseSettings):
     logs_days: int | None = None
     # Loki-URL, z. B. http://loki:3100 (Compose-Profil „loki“)
     loki_url: str | None = None
+    # "loki" oder "victorialogs" – Art des Log-Speichers hinter der URL
+    loki_kind: str | None = None
     # Netze, kommagetrennt (z. B. "192.168.178.0/24,10.8.0.0/24")
     internal_networks: str | None = None
     trusted_proxies: str | None = None
@@ -99,6 +101,8 @@ class Settings(BaseSettings):
             out["logs_days"] = max(1, min(365, self.logs_days))
         if self.loki_url:
             out["loki_url"] = self.loki_url.strip()
+        if self.loki_kind and self.loki_kind.strip().lower() in ("loki", "victorialogs"):
+            out["loki_kind"] = self.loki_kind.strip().lower()
         for key in ("internal_networks", "trusted_proxies"):
             raw = getattr(self, key)
             if raw is not None:

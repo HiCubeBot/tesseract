@@ -23,6 +23,7 @@ class FakeController:
         self.csr: str | None = None
         self.want_metrics = False
         self.renewed: str | None = None
+        self.renew_cert = False
         self.new_cert = ""
 
     def handler(self, request: httpx.Request) -> httpx.Response:
@@ -60,7 +61,14 @@ class FakeController:
             )
         if path == "/api/agent/status":
             self.status.append(json.loads(request.content))
-            return httpx.Response(200, json={"ok": True, "caddy_metrics": self.want_metrics})
+            return httpx.Response(
+                200,
+                json={
+                    "ok": True,
+                    "caddy_metrics": self.want_metrics,
+                    "renew_cert": self.renew_cert,
+                },
+            )
         if path == "/api/agent/logs":
             body = json.loads(request.content)
             self.waf.append(body["waf"])
@@ -324,3 +332,47 @@ def test_tasks_from_poll_do_not_reload_config(env):
 
     time.sleep(0.2)
     assert caddy.loads == loads and results == [{"id": "t1", "kind": "tcp", "params": {}}]
+
+
+def test_caddy_restart_without_controller_gets_last_config(env):
+    ctrl, caddy, settings, make = env
+    agent = joined(env)
+    assert agent.poll_config(wait=0) is True
+    assert settings.last_config_file.exists()
+    assert agent.ensure_config() is False  # läuft normal
+
+    # Controller weg, Caddy startet neu und hat seinen gespeicherten Stand verloren
+    ctrl.down = True
+    caddy.running = {"admin": {"listen": "0.0.0.0:2019"}}
+    restarted = make()  # auch der Agent startet neu
+    assert restarted.ensure_config() is True
+    assert caddy.running == ctrl.config
+    assert restarted.ensure_config() is False
+
+
+def test_last_config_taken_over_from_running_caddy(env):
+    ctrl, caddy, settings, _ = env
+    agent = joined(env)
+    agent.poll_config(wait=0)
+    settings.last_config_file.unlink()  # Agent vor 1.4: keine Datei
+    assert agent.ensure_config() is False
+    assert json.loads(settings.last_config_file.read_text()) == ctrl.config
+    # abweichende laufende Config wird nicht als letzter Stand übernommen
+    settings.last_config_file.unlink()
+    caddy.running = {"apps": {"http": {"lokal": True}}}
+    agent.ensure_config()
+    assert not settings.last_config_file.exists()
+
+
+def test_cert_renewed_early_when_controller_asks(env):
+    ctrl, _, settings, _ = env
+    agent = joined(env)
+    settings.cert_file.write_text(_self_signed(300))
+    ctrl.new_cert = _self_signed(700)
+    ctrl.renew_cert = True  # CA gewechselt
+    agent.send_status()
+    assert agent.renew_requested and ctrl.renewed is None
+    ctrl.renew_cert = False
+    agent.send_status()  # nächste Runde erneuert trotz 300 Tagen Restlaufzeit
+    assert ctrl.renewed and settings.cert_file.read_text() == ctrl.new_cert
+    assert agent.renew_requested is False

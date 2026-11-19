@@ -14,6 +14,7 @@
     logs_days: number;
     loki_url: string;
     loki_tenant: string;
+    loki_kind: 'loki' | 'victorialogs';
     loki: { queued: number; pushed: number; dropped: number; last_push_at: string | null; last_error: string | null };
     logs_ready: boolean;
     geoip: boolean;
@@ -54,6 +55,7 @@
         logs_days: Number(cfg.logs_days),
         loki_url: cfg.loki_url,
         loki_tenant: cfg.loki_tenant,
+        loki_kind: cfg.loki_kind,
         metrics_enabled: cfg.metrics_enabled,
         metrics_auth: AUTH[auth],
         metrics_networks: cfg.metrics_networks,
@@ -69,16 +71,18 @@
   }
 
   let testing = $state(false);
+  const storeName = $derived(cfg?.loki_kind === 'victorialogs' ? 'VictoriaLogs' : 'Loki');
   async function testLoki() {
     if (!cfg?.loki_url) return;
     testing = true;
     try {
       const r = await api.post<{ ok: boolean; error: string | null }>('/settings/observability/loki-test', {
         loki_url: cfg.loki_url,
-        loki_tenant: cfg.loki_tenant
+        loki_tenant: cfg.loki_tenant,
+        loki_kind: cfg.loki_kind
       });
-      if (r.ok) toasts.show('ok', 'Loki hat den Test-Eintrag angenommen.');
-      else toasts.show('bad', `Loki: ${r.error}`, 10000);
+      if (r.ok) toasts.show('ok', `${storeName} hat den Test-Eintrag angenommen.`);
+      else toasts.show('bad', `${storeName}: ${r.error}`, 10000);
     } catch (e) {
       toasts.show('bad', e instanceof Error ? e.message : String(e), 10000);
     } finally {
@@ -208,7 +212,7 @@
 
     <section class="card" aria-labelledby="loki-title">
       <div class="row">
-        <h2 id="loki-title">Loki</h2>
+        <h2 id="loki-title">Log-Speicher (Loki / VictoriaLogs)</h2>
         <span class="spacer"></span>
         {#if cfg.loki_url}
           <span class="muted small">
@@ -220,18 +224,34 @@
           </span>
         {/if}
       </div>
-      <p class="muted small">
-        Zusätzlicher Speicher für lange Aufbewahrung: jeder neue Eintrag geht auch an Loki und lässt sich in Grafana mit LogQL
-        auswerten, z. B. <code>{'{job="tesseract", reason="waf"}'} | json</code>. Die Log-Ansicht und die Statistik hier nutzen weiter die
-        eigene Datenbank. Im Compose-Stack: <code>docker compose --profile loki up -d</code> und <code>http://loki:3100</code>.
-      </p>
+      {#if cfg.loki_kind === 'victorialogs'}
+        <p class="muted small">
+          Zusätzlicher Speicher für lange Aufbewahrung: jeder neue Eintrag geht auch an VictoriaLogs und lässt sich mit LogsQL
+          auswerten, z. B. <code>{'{job="tesseract", reason="waf"}'} status:&gt;=400</code>. Die Log-Ansicht und die Statistik hier nutzen
+          weiter die eigene Datenbank. Im Compose-Stack: <code>docker compose --profile victorialogs up -d</code> und
+          <code>http://victorialogs:9428</code>.
+        </p>
+      {:else}
+        <p class="muted small">
+          Zusätzlicher Speicher für lange Aufbewahrung: jeder neue Eintrag geht auch an Loki und lässt sich in Grafana mit LogQL
+          auswerten, z. B. <code>{'{job="tesseract", reason="waf"}'} | json</code>. Die Log-Ansicht und die Statistik hier nutzen weiter die
+          eigene Datenbank. Im Compose-Stack: <code>docker compose --profile loki up -d</code> und <code>http://loki:3100</code>.
+        </p>
+      {/if}
       <div class="loki-fields">
         <label class="field">
-          <span class="label">URL (leer = aus)</span>
-          <input class="input" type="url" placeholder="http://loki:3100" bind:value={cfg.loki_url} />
+          <span class="label">Art</span>
+          <select class="input" bind:value={cfg.loki_kind}>
+            <option value="loki">Loki</option>
+            <option value="victorialogs">VictoriaLogs</option>
+          </select>
         </label>
         <label class="field">
-          <span class="label">Mandant (X-Scope-OrgID, optional)</span>
+          <span class="label">URL (leer = aus)</span>
+          <input class="input" type="url" placeholder={cfg.loki_kind === 'victorialogs' ? 'http://victorialogs:9428' : 'http://loki:3100'} bind:value={cfg.loki_url} />
+        </label>
+        <label class="field">
+          <span class="label">{cfg.loki_kind === 'victorialogs' ? 'Mandant (AccountID[:ProjectID], optional)' : 'Mandant (X-Scope-OrgID, optional)'}</span>
           <input class="input" type="text" bind:value={cfg.loki_tenant} />
         </label>
       </div>

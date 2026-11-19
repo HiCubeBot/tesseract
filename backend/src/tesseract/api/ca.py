@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import PlainTextResponse
@@ -13,7 +14,10 @@ from tesseract.identity import (
     CAError,
     active_authority,
     devices_of,
+    install_ca,
+    nodes_of,
     rotate_intermediate,
+    rotate_root,
     setup_ca,
     trusted_intermediates,
 )
@@ -48,11 +52,40 @@ class PreviousOut(BaseModel):
     authority: AuthorityOut
     # aktive Geräte, die noch daran hängen – nach dem Verlängern fällt es weg
     devices: list[dict]
+    # Nodes mit Zertifikat davon – die Agents erneuern es nach einem Wechsel von selbst
+    nodes: list[dict] = []
 
 
 class RotateIn(BaseModel):
     root_key_pem: str = Field(min_length=50, max_length=10_000)
-    passphrase: str = Field(min_length=1, max_length=256)
+    # leer bei einem unverschlüsselten (importierten) Root-Schlüssel
+    passphrase: str = Field("", max_length=256)
+
+
+class ImportIn(BaseModel):
+    """Bestehende CA: Root-Zertifikat plus Root-Schlüssel – oder plus fertigem
+    Zwischenzertifikat mit Schlüssel (der Root-Schlüssel bleibt dann außerhalb)."""
+
+    root_cert_pem: str = Field(min_length=50, max_length=20_000)
+    root_key_pem: str = Field("", max_length=20_000)
+    passphrase: str = Field("", max_length=256)
+    intermediate_cert_pem: str = Field("", max_length=20_000)
+    intermediate_key_pem: str = Field("", max_length=20_000)
+    intermediate_passphrase: str = Field("", max_length=256)
+
+
+class RotateRootIn(ImportIn):
+    # "generate": neue Root erzeugen (Passphrase für den neuen Root-Schlüssel), "import":
+    # vorhandene Root übernehmen (Felder wie beim Import)
+    mode: Literal["generate", "import"]
+    root_cert_pem: str = Field("", max_length=20_000)
+
+
+class RotateRootOut(BaseModel):
+    status: "CAStatus"
+    # nur bei mode=generate: neuer Root, Schlüssel mit der Passphrase verschlüsselt
+    root_cert_pem: str | None = None
+    root_key_pem: str | None = None
 
 
 class SetupIn(BaseModel):
@@ -116,6 +149,7 @@ def ca_status(db: DB, _: CurrentActor) -> CAStatus:
                 {"id": d.id, "name": d.name, "person": d.person.name}
                 for d in devices_of(db, a, active_only=True)
             ],
+            nodes=[{"id": n.id, "name": n.name} for n in nodes_of(db, a)],
         )
         for a in trusted_intermediates(db)
         if not a.active
@@ -189,3 +223,91 @@ def rotate(
     apply_all(db, settings, request.app.state.caddy_transport)
     db.commit()
     return ca_status(db, actor)
+
+
+def _import_args(body: ImportIn) -> dict:
+    return body.model_dump(
+        include={
+            "root_cert_pem",
+            "root_key_pem",
+            "passphrase",
+            "intermediate_cert_pem",
+            "intermediate_key_pem",
+            "intermediate_passphrase",
+        }
+    )
+
+
+def _details(new: Authority, how: str) -> dict:
+    return {
+        "how": how,
+        "fingerprint": new.fingerprint[:16],
+        "not_after": new.not_after.isoformat(),
+    }
+
+
+@router.post("/import")
+def import_ca(
+    body: ImportIn, request: Request, db: DB, box: Box, actor: CurrentActor, settings: AppSettings
+) -> CAStatus:
+    """Bestehende CA übernehmen statt eine neue zu erzeugen (nur vor der Einrichtung)."""
+    try:
+        new = install_ca(db, box, **_import_args(body))
+    except CAError as e:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(e)) from e
+    how = "intermediate" if body.intermediate_cert_pem.strip() else "root_key"
+    root = active_authority(db, "root")
+    audit.record(
+        db,
+        actor=actor.name,
+        action="ca_imported",
+        target=_out(root).subject if root else "Root-CA",
+        details=_details(new, how),
+        ip=actor.ip,
+    )
+    db.commit()
+    apply_all(db, settings, request.app.state.caddy_transport)
+    db.commit()
+    return ca_status(db, actor)
+
+
+@router.post("/rotate-root")
+def rotate_root_ca(
+    body: RotateRootIn,
+    request: Request,
+    db: DB,
+    box: Box,
+    actor: CurrentActor,
+    settings: AppSettings,
+) -> RotateRootOut:
+    """Wechsel der Root-CA – neu erzeugt oder importiert. Das alte Zwischenzertifikat bleibt
+    vertraut, bis Geräte verlängert und die Nodes erneuert sind."""
+    result = None
+    try:
+        if body.mode == "generate":
+            result = rotate_root(db, box, body.passphrase)
+            new = active_authority(db, "intermediate")
+        else:
+            if not body.root_cert_pem.strip():
+                raise CAError("Root-Zertifikat fehlt")
+            new = install_ca(db, box, replace=True, **_import_args(body))
+    except CAError as e:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(e)) from e
+    root = active_authority(db, "root")
+    audit.record(
+        db,
+        actor=actor.name,
+        action="ca_root_rotated",
+        target=_out(root).subject if root else "Root-CA",
+        details=_details(new, body.mode),
+        ip=actor.ip,
+    )
+    db.commit()
+    # Caddy vertraut ab jetzt neuem und altem Zwischenzertifikat
+    apply_all(db, settings, request.app.state.caddy_transport)
+    db.commit()
+    return RotateRootOut(
+        status=ca_status(db, actor),
+        root_cert_pem=result.root_cert_pem if result else None,
+        root_key_pem=result.root_key_pem if result else None,
+    )

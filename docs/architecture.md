@@ -55,7 +55,9 @@ der sich ausgehend beim Controller meldet und die Config abholt – siehe
 
 - **Eigene PKI:** Root-CA (ECDSA P-384) liegt offline und wird nur zum Signieren neuer
   Zwischenzertifikate gebraucht. Das Geräte-Zwischenzertifikat liegt verschlüsselt auf dem
-  Controller und signiert Geräte-, Admin- und Node-Zertifikate.
+  Controller und signiert Geräte-, Admin- und Node-Zertifikate. Eine bestehende CA lässt sich
+  importieren (auch RSA), die Root wechseln (ab 1.4): Caddy vertraut jedem gültigen
+  Zwischenzertifikat, an dem noch aktive Geräte oder Nodes hängen.
 - **Ein Gerät = ein Zertifikat.** Rechte hängen an Personen/Gruppen, nicht an Geräten; ein
   verlorenes Gerät wird einzeln gesperrt.
 - **Admin-UI doppelt geschützt:** Admin-Gerätezertifikat (mTLS) + Passwort/Passkey.
@@ -270,5 +272,5 @@ der sich ausgehend beim Controller meldet und die Config abholt – siehe
 | Thema | Entscheidung | Notiz |
 |---|---|---|
 | Datenbank / ORM | SQLite + SQLAlchemy 2 + Alembic | SQLite reicht für den Controller, Backup einfach. |
-| Log-Speicher | SQLite mit Aufbewahrung (Standard 14 Tage), optional zusätzlich Loki | Oberfläche liest SQLite; Loki für lange Aufbewahrung und Grafana. |
+| Log-Speicher | SQLite mit Aufbewahrung (Standard 14 Tage), optional zusätzlich Loki oder VictoriaLogs | Oberfläche liest SQLite; Loki/VictoriaLogs für lange Aufbewahrung und Grafana. |
 | Admin-Passkey | Vorerst nur Passwort (+ Admin-Gerätezertifikat) | WebAuthn steht im [Backlog](roadmap.md#backlog-niedrige-priorität). |

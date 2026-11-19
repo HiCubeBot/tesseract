@@ -67,6 +67,11 @@ class Settings:
         return self.data_dir / "agent.json"
 
     @property
+    def last_config_file(self) -> Path:
+        # zuletzt erfolgreich geladene Caddy-Config – Rückfall, wenn Caddy ohne Config startet
+        return self.data_dir / "last-config.json"
+
+    @property
     def buffer_file(self) -> Path:
         # Name aus Agent 0.1 beibehalten – ein alter Puffer wird so noch geliefert
         return self.data_dir / "waf-buffer.jsonl"

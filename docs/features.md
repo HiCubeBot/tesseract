@@ -83,6 +83,7 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | Config-Abweichung | Erkennt lokale Änderungen (Diff pro Host) – „Mit Controller überschreiben“ oder „Änderung übernehmen“ (gilt bis zur nächsten Übertragung) | 4 |
 | Modul-Übersicht | Welche Caddy-Module (Coraza, DNS Cloudflare) je Node vorhanden sind; Hosts, die ein fehlendes Modul brauchen, werden beim Speichern abgelehnt | 4 / 1.1 |
 | Offline-Pufferung | Ohne Controller läuft Caddy mit dem letzten Stand weiter; Zugriffs- und WAF-Logs puffert der Agent und liefert sie nach | 4 / 5 |
+| Neustart ohne Controller | Startet Caddy auf einem Node neu, lädt es den zuletzt bekannten Stand (`--resume`); fehlt der, lädt ihn der Agent aus seiner eigenen Kopie (`last-config.json`) – ohne Controller | 1.4 |
 
 ## 7. Statistik & Logs
 
@@ -95,6 +96,7 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | Aktionen aus Logs | IP sperren (24 h, alle Nodes), Ausnahme für Fehlalarm anlegen, alle Einträge einer IP | 5 |
 | Filter | Zeitraum (24 h / 7 / 30 Tage), Node | 5 |
 | Loki | Zusätzlicher Log-Speicher: jeder Eintrag geht auch an Loki (Push-API, Labels `node`, `host`, `reason`, Rest als JSON), gepuffert, falls Loki nicht erreichbar ist. Loki optional im Compose-Stack (Profil `loki`), Auswertung in Grafana per LogQL | 1.2 |
+| VictoriaLogs | Statt Loki: dieselben Einträge über `/insert/jsonline` (Stream-Felder `job`, `node`, `host`, `reason`, alle anderen Werte als Felder), Mandant `AccountID[:ProjectID]`; optional im Compose-Stack (Profil `victorialogs`), Abfrage mit LogsQL | 1.4 |
 
 ## 8. Audit-Log
 
@@ -111,6 +113,8 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | Allgemein | Controller-Domain, Let's-Encrypt-Konto, Standards für alle Nodes | 1 |
 | Zertifizierungsstelle | Root-CA offline (z. B. USB-Stick), Geräte-Zwischenzertifikat verschlüsselt auf dem Controller, ECDSA P-384, Root-Zertifikat herunterladen | 2 |
 | CA-Wechsel | Neues Zwischenzertifikat mit dem offline aufbewahrten Root-Schlüssel; das alte bleibt vertraut, bis seine Geräte verlängert sind; Warnung, wenn Geräte länger gültig sind als das Zwischenzertifikat; Erinnerung 90/30/7 Tage vorher | 6 |
+| CA importieren | Bestehende PKI übernehmen: Root-Zertifikat mit Root-Schlüssel (Tesseract erzeugt das Zwischenzertifikat) oder mit fertigem Zwischenzertifikat samt Schlüssel; ECDSA oder RSA ab 2048 Bit; Prüfung von CA-Merkmalen, Aussteller, Schlüssel und Laufzeit | 1.4 |
+| Root-Wechsel | Neue Root erzeugen oder importieren; das alte Zwischenzertifikat bleibt vertraut, solange Geräte oder Nodes daran hängen; Agents erneuern ihr Node-Zertifikat danach von selbst | 1.4 |
 | Integrationen | Authelia-Instanz für die Host-Middleware (URL, weitergereichte Header), IP-Listen, vertrauenswürdige Proxys (X-Forwarded-For), Coraza-Standards, Caddy-Module pro Node | 3 |
 | Benachrichtigungen | E-Mail, Webhook, ntfy; Ereignis × Kanal × Stufe; Bündeln (max. 1× / 15 Min.), Ruhezeit nachts | 5 |
 | Metriken | Prometheus-Endpunkt für Controller und alle Nodes, Schutz per Bearer-Token / mTLS / IP-Liste, `prometheus.yml`-Snippet, Grafana-Dashboard (JSON) | 5 |

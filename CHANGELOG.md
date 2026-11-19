@@ -4,6 +4,24 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.4.0] – 2026-11-19
+
+### Neu
+- **Bestehende CA importieren:** Root-Zertifikat mit Root-Schlüssel (Tesseract erzeugt das
+  Zwischenzertifikat und vergisst den Root-Schlüssel) oder mit fertigem Zwischenzertifikat samt
+  Schlüssel. ECDSA oder RSA (ab 2048 Bit)
+- **Wechsel der Root-CA:** neu erzeugt oder importiert. Das alte Zwischenzertifikat bleibt
+  vertraut, solange Geräte oder Nodes daran hängen; Agents erneuern ihr Zertifikat danach von
+  selbst (`renew_cert` in der Antwort auf den Status)
+- **VictoriaLogs** als Log-Speicher neben Loki (`TESSERACT_LOKI_KIND=victorialogs`,
+  Compose-Profil `victorialogs`)
+- **Node ohne Controller:** Der Agent hebt die zuletzt geladene Config auf und lädt sie wieder,
+  wenn Caddy nach einem Neustart ohne Config hochkommt – auch ohne Controller
+
+### Behoben
+- Nach einem Wechsel des Zwischenzertifikats blieb das alte nur vertraut, solange Geräte
+  daran hingen – Nodes zählten nicht mit und konnten den Kontakt zum Controller verlieren
+
 ## [1.3.1] – 2026-11-19
 
 ### Neu

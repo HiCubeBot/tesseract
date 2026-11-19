@@ -3,6 +3,8 @@
 - Root:          ECDSA P-384, 10 Jahre, signiert nur Zwischenzertifikate (pathlen 0 darunter)
 - Zwischenzert.: ECDSA P-384, 3 Jahre, signiert Geräte-, Admin- und Node-Zertifikate
 - Gerät:         ECDSA P-256, EKU clientAuth – P-256 wird von allen Plattformen unterstützt
+
+Eine importierte CA darf auch RSA-Schlüssel haben (mindestens 2048 Bit).
 """
 
 import hashlib
@@ -12,7 +14,7 @@ from datetime import UTC, datetime, timedelta
 
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.asymmetric import ec, rsa
 from cryptography.hazmat.primitives.serialization import pkcs12
 from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
 
@@ -21,10 +23,24 @@ INTERMEDIATE_YEARS = 3
 BACKDATE = timedelta(minutes=5)  # gegen leicht falsch gehende Uhren
 
 
+# Schlüssel einer CA: eigene immer ECDSA, importierte auch RSA
+CAKey = ec.EllipticCurvePrivateKey | rsa.RSAPrivateKey
+
+
 @dataclass
 class KeyPair:
-    key: ec.EllipticCurvePrivateKey
+    key: CAKey
     cert: x509.Certificate
+
+
+def authority_key_id(issuer: KeyPair) -> x509.AuthorityKeyIdentifier:
+    """AKI für ein ausgestelltes Zertifikat – passend zur SKI des Ausstellers, falls dieser eine
+    hat (importierte CAs berechnen sie mitunter anders), sonst aus dessen Schlüssel."""
+    try:
+        ski = issuer.cert.extensions.get_extension_for_class(x509.SubjectKeyIdentifier).value
+        return x509.AuthorityKeyIdentifier.from_issuer_subject_key_identifier(ski)
+    except x509.ExtensionNotFound:
+        return x509.AuthorityKeyIdentifier.from_issuer_public_key(issuer.key.public_key())
 
 
 def _name(cn: str, org: str = "Tesseract") -> x509.Name:
@@ -91,10 +107,7 @@ def generate_intermediate(
         .add_extension(x509.BasicConstraints(ca=True, path_length=0), critical=True)
         .add_extension(_ca_usage(), critical=True)
         .add_extension(_ski(key), critical=False)
-        .add_extension(
-            x509.AuthorityKeyIdentifier.from_issuer_public_key(root.key.public_key()),
-            critical=False,
-        )
+        .add_extension(authority_key_id(root), critical=False)
         .sign(root.key, hashes.SHA384())
     )
     return KeyPair(key, cert)
@@ -156,10 +169,7 @@ def sign_client(
         )
         .add_extension(x509.ExtendedKeyUsage([ExtendedKeyUsageOID.CLIENT_AUTH]), critical=False)
         .add_extension(x509.SubjectKeyIdentifier.from_public_key(public_key), critical=False)
-        .add_extension(
-            x509.AuthorityKeyIdentifier.from_issuer_public_key(issuer.key.public_key()),
-            critical=False,
-        )
+        .add_extension(authority_key_id(issuer), critical=False)
         .sign(issuer.key, hashes.SHA256())
     )
 
@@ -200,7 +210,7 @@ def load_cert(pem: str) -> x509.Certificate:
     return x509.load_pem_x509_certificate(pem.encode())
 
 
-def key_pem(key: ec.EllipticCurvePrivateKey, passphrase: str | None = None) -> str:
+def key_pem(key: CAKey, passphrase: str | None = None) -> str:
     enc = (
         serialization.BestAvailableEncryption(passphrase.encode())
         if passphrase
@@ -211,12 +221,22 @@ def key_pem(key: ec.EllipticCurvePrivateKey, passphrase: str | None = None) -> s
     ).decode()
 
 
-def load_key(pem: str | bytes, passphrase: str | None = None) -> ec.EllipticCurvePrivateKey:
+def load_key(pem: str | bytes, passphrase: str | None = None) -> CAKey:
     data = pem.encode() if isinstance(pem, str) else pem
     key = serialization.load_pem_private_key(data, passphrase.encode() if passphrase else None)
+    if isinstance(key, rsa.RSAPrivateKey):
+        if key.key_size < 2048:
+            raise ValueError("RSA-Schlüssel braucht mindestens 2048 Bit")
+        return key
     if not isinstance(key, ec.EllipticCurvePrivateKey):
-        raise ValueError("Nur ECDSA-Schlüssel werden unterstützt")
+        raise ValueError("Nur ECDSA- und RSA-Schlüssel werden unterstützt")
     return key
+
+
+def same_key(key: CAKey, cert: x509.Certificate) -> bool:
+    """Gehört der private Schlüssel zum Zertifikat?"""
+    fmt = (serialization.Encoding.DER, serialization.PublicFormat.SubjectPublicKeyInfo)
+    return key.public_key().public_bytes(*fmt) == cert.public_key().public_bytes(*fmt)
 
 
 def fingerprint(cert: x509.Certificate) -> str:

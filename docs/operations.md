@@ -76,6 +76,7 @@ Das Repository sollte trotzdem privat sein – es zeigt Hostnamen, interne Ziele
 |---|---|---|
 | Gerät verlängern | Erinnerung 30 und 7 Tage vorher | **Geräte › Verlängern** – neue `.p12`, Freigaben bleiben; oder der Gast selbst über `https://<controller>/v` (abschaltbar) |
 | Zwischenzertifikat wechseln | Erinnerung 90/30/7 Tage vorher (gilt 3 Jahre) | **Einstellungen › Zertifizierungsstelle › Wechsel** mit Root-Schlüssel; alte Geräte funktionieren weiter, bis sie verlängert sind |
+| Root-CA wechseln | Root läuft ab (10 Jahre), Root-Schlüssel verloren oder kompromittiert, Umzug auf eine vorhandene PKI | **Einstellungen › Zertifizierungsstelle › Wechsel der Root-CA**: neu erzeugen (neuer Root-Schlüssel zum Sichern) oder importieren. Alte Geräte funktionieren weiter, bis sie verlängert sind; Nodes erneuern selbst. Das neue Root-Zertifikat dort installieren, wo das alte als vertrauenswürdig hinterlegt ist |
 | Node-Zertifikat | gilt 2 Jahre | erneuert der Agent ab 60 Tage vorher selbst |
 | Root-Zertifikat | gilt 10 Jahre | neue CA einrichten (Backlog: Import/Übergang) |
 
@@ -85,7 +86,8 @@ Das Repository sollte trotzdem privat sein – es zeigt Hostnamen, interne Ziele
 - **Benachrichtigungen** melden u. a. Node offline, fehlgeschlagene Übertragung oder
   Sicherung, Abweichungen, Ablauf von Zertifikaten.
 - **Prometheus:** `/metrics` (Einstellungen › Metriken), Grafana-Dashboard zum Herunterladen.
-- **Loki (optional):** für lange Aufbewahrung der Zugriffs- und WAF-Logs, siehe unten.
+- **Loki oder VictoriaLogs (optional):** für lange Aufbewahrung der Zugriffs- und WAF-Logs,
+  siehe unten.
 - **Audit-Log:** Prüfung der Prüfsummenkette oben auf der Seite.
 
 ### Logs in Loki
@@ -113,6 +115,32 @@ In Grafana Loki als Datenquelle hinzufügen (`http://loki:3100`, dazu Grafana in
 {job="tesseract", reason="waf"} | json
 sum by (host) (count_over_time({job="tesseract"} | json | status >= 500 [5m]))
 {job="tesseract"} | json | ip="198.51.100.7"
+```
+
+### Logs in VictoriaLogs
+
+Statt Loki geht auch VictoriaLogs (weniger Speicher und RAM, eigene Abfragesprache LogsQL).
+Der Controller schickt dieselben Einträge über die JSON-Lines-Schnittstelle
+(`/insert/jsonline`); `job`, `node`, `host` und `reason` sind Stream-Felder, alle anderen Werte
+(`status`, `ip`, `country`, `waf_rules` …) einzelne Felder.
+
+```bash
+# in der .env
+TESSERACT_LOKI_URL=http://victorialogs:9428
+TESSERACT_LOKI_KIND=victorialogs
+VICTORIALOGS_RETENTION=90d   # optional
+
+docker compose --profile victorialogs up -d
+```
+
+Oder unter Einstellungen › Metriken › Log-Speicher „VictoriaLogs“ wählen und die URL
+eintragen; Mandant als `AccountID` oder `AccountID:ProjectID`. In Grafana mit dem Plugin
+„VictoriaLogs“, oder direkt in der eingebauten Oberfläche unter `/select/vmui`. Beispiele:
+
+```logsql
+{job="tesseract", reason="waf"}
+{job="tesseract"} status:>=500 | stats by (host) count()
+{job="tesseract"} ip:="198.51.100.7"
 ```
 
 ## Notausgänge (nur auf dem Controller)

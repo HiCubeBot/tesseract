@@ -16,10 +16,23 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 | 1.1 | Lücken geschlossen | Selbst signierte Ziele, Modul-Prüfung, Aufgaben für Agents – **fertig** |
 | 1.2 | Aus dem Backlog | Loki, Git-Spiegel, Gäste verlängern selbst – **fertig** |
 | 1.3 | Anmeldung & Verzeichnis | SSO (OIDC) und Passkeys für Admins, LDAP-Abgleich – **fertig** |
+| 1.4 | CA, Logs, Ausfallsicherheit | CA-Import und Root-Wechsel, VictoriaLogs, Node ohne Controller – **fertig** |
 | – | [Offen / bekannte Grenzen](#offen--bekannte-grenzen) | Einschränkungen des aktuellen Stands |
 | – | [Backlog](#backlog-niedrige-priorität) | Niedrige Priorität, ohne festen Zeitpunkt |
 
 ---
+
+## Version 1.4 – CA, Logs, Ausfallsicherheit (fertig)
+
+- [x] Bestehende CA importieren – Root mit Schlüssel oder fertiges Zwischenzertifikat (ECDSA
+  oder RSA); Root-Schlüssel wird nie gespeichert
+- [x] Wechsel der Root-CA – neu erzeugt oder importiert; altes Zwischenzertifikat bleibt
+  vertraut, bis Geräte verlängert und Nodes erneuert sind; Agents erneuern ihr Zertifikat
+  nach dem Wechsel von selbst
+- [x] VictoriaLogs als Log-Speicher neben Loki (JSON-Lines-Schnittstelle, Compose-Profil
+  `victorialogs`)
+- [x] Node ohne Controller: Startet Caddy ohne Config, lädt der Agent den zuletzt bekannten
+  Stand aus seinem Datenverzeichnis
 
 ## Version 1.3 – Anmeldung & Verzeichnis (fertig)
 
@@ -59,8 +72,6 @@ Gewünscht, aber ohne festen Platz in einer Phase. Wird bei Bedarf eingeplant.
 
 **Zertifikate & CA**
 
-- **Import einer bestehenden CA** und **Wechsel des Root-Zertifikats** (heute gibt es nur den
-  Wechsel des Zwischenzertifikats).
 - **Weitere DNS-Anbieter** für DNS-01 neben Cloudflare.
 
 **Betrieb**

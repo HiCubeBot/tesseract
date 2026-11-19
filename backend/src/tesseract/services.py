@@ -93,6 +93,8 @@ GENERAL_DEFAULTS: dict[str, Any] = {
     # Loki als zusätzlicher Log-Speicher: Basis-URL (leer = aus), optional Mandant
     "loki_url": "",
     "loki_tenant": "",
+    # "loki" oder "victorialogs" (gleiche Einträge, andere Schnittstelle)
+    "loki_kind": "loki",
     # Prometheus-Endpunkt /metrics: aus, Schutz "token" | "mtls" | "ip"
     "metrics_enabled": False,
     "metrics_auth": "token",

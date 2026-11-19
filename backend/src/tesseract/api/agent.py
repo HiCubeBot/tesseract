@@ -21,7 +21,7 @@ from tesseract.autoban import expire_bans
 from tesseract.caddy.config import config_hash
 from tesseract.db.models import Node, utcnow
 from tesseract.deps import DB, AppSettings, client_fingerprint, client_ip
-from tesseract.identity import ca_configured
+from tesseract.identity import ca_configured, node_cert_outdated
 from tesseract.services import apply_all, get_general, node_config
 
 log = logging.getLogger("tesseract.agent")
@@ -213,7 +213,13 @@ def post_status(body: StatusIn, request: Request, node: AgentNode, db: DB) -> di
     want = bool(g["metrics_enabled"] and g["metrics_caddy"])
     if want and body.caddy_metrics:
         request.app.state.logs.metrics.set_caddy(node.name, body.caddy_metrics)
-    return {"ok": True, "heartbeat": node_svc.HEARTBEAT_SECONDS, "caddy_metrics": want}
+    return {
+        "ok": True,
+        "heartbeat": node_svc.HEARTBEAT_SECONDS,
+        "caddy_metrics": want,
+        # nach einem CA-Wechsel: Zertifikat gleich erneuern, nicht erst kurz vor Ablauf
+        "renew_cert": node_cert_outdated(db, node),
+    }
 
 
 class TaskResult(BaseModel):

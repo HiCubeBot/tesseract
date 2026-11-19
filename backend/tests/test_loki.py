@@ -116,3 +116,52 @@ def test_payload_sorted() -> None:
     b = {**a, "ts": datetime(2026, 1, 1, 0, 0, 1, tzinfo=UTC)}
     s = payload([a, b])["streams"][0]
     assert s["stream"]["host"] == "-" and s["values"][0][0] < s["values"][1][0]
+
+
+class FakeVictoriaLogs:
+    def __init__(self) -> None:
+        self.requests: list[httpx.Request] = []
+        self.rows: list[dict] = []
+
+    def handler(self, request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/insert/jsonline"
+        self.requests.append(request)
+        self.rows += [json.loads(x) for x in request.content.decode().splitlines() if x]
+        return httpx.Response(200)
+
+
+def test_victorialogs(auth_client: TestClient) -> None:
+    vl = FakeVictoriaLogs()
+    app = auth_client.app
+    app.state.loki_transport = httpx.MockTransport(vl.handler)
+    assert push_url("http://vl:9428", "victorialogs") == "http://vl:9428/insert/jsonline"
+    r = auth_client.put(
+        "/api/settings/observability",
+        json={"loki_url": "http://vl:9428", "loki_kind": "victorialogs", "loki_tenant": "3:7"},
+    )
+    assert r.status_code == 200 and r.json()["loki_kind"] == "victorialogs"
+    _local_ingest(
+        auth_client,
+        [access(), access(SQLI_URI, status=403, ip="198.51.100.140")],
+        [WAF_WARNING, WAF_SCORE, WAF_VIOLATION],
+    )
+    shipper = app.state.logs.loki
+    assert flush(shipper, "http://vl:9428", "3:7", app.state.loki_transport, "victorialogs")
+    req = vl.requests[0]
+    assert req.headers["AccountID"] == "3" and req.headers["ProjectID"] == "7"
+    assert req.url.params["_stream_fields"] == "job,node,host,reason"
+    waf = next(r for r in vl.rows if r["reason"] == "waf")
+    assert waf["job"] == "tesseract" and waf["host"] == "git.example.org"
+    assert waf["status"] == 403 and waf["waf_rules"] == [942100]
+    assert waf["_time"].endswith("Z") and waf["_msg"].startswith("GET git.example.org")
+    assert "device" not in waf
+
+    r = auth_client.post(
+        "/api/settings/observability/loki-test",
+        json={"loki_url": "http://vl:9428", "loki_kind": "victorialogs"},
+    )
+    assert r.json()["ok"] is True and vl.rows[-1]["_msg"] == "Verbindungstest"
+    assert (
+        auth_client.put("/api/settings/observability", json={"loki_kind": "elastic"}).status_code
+        == 422
+    )

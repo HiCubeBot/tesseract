@@ -3,6 +3,9 @@
 - Config:  Long-Polling `GET /api/agent/config` – neue Config wird per `POST /load` in Caddy
            geladen. Caddy rollt bei Fehlern selbst zurück; ohne Controller läuft der letzte
            Stand weiter.
+- Rückfall: Der Agent hebt die zuletzt geladene Config auf (`last-config.json`). Startet
+           Caddy neu und kommt ohne Config hoch (z. B. weil sein gespeicherter Stand fehlt),
+           lädt der Agent diesen Stand wieder – auch wenn der Controller nicht erreichbar ist.
 - Status:  alle 30 s (und nach jedem Laden) – laufende Config (Abweichung), Module, Version.
 - Logs:    neue Zeilen aus Caddys Zugriffs- und WAF-Log landen erst in einem Puffer auf der
            Platte und werden nachgeliefert, sobald der Controller erreichbar ist.
@@ -42,6 +45,8 @@ LONG_POLL = 25
 HEARTBEAT = 30.0
 MODULES_EVERY = 600.0
 LOGS_EVERY = 5.0
+# so oft prüfen, ob Caddy nach einem Neustart ohne Config läuft
+CADDY_CHECK_EVERY = 10.0
 # Node-Zertifikat so viele Tage vor Ablauf erneuern
 RENEW_DAYS = 60
 LOG_BATCH = 1000
@@ -278,6 +283,8 @@ class Agent:
         self.rejected_hash = ""
         # Will der Controller die Caddy-Metriken? (kommt mit der Antwort auf den Status)
         self.want_metrics = False
+        # Controller verlangt ein neues Zertifikat (nach einem Wechsel der CA)
+        self.renew_requested = False
         self._modules: list[str] | None = None
         self._modules_at = 0.0
         self._version = caddy_version(settings.caddy_bin or "caddy")
@@ -410,12 +417,49 @@ class Agent:
             self.wake.set()
             return False
         # httpx.HTTPError (Caddy nicht erreichbar) geht nach oben → neuer Versuch mit Pause
+        self.remember(data["config"])
         self.load_error = None
         self.rejected_hash = ""
         self.state.loaded_hash = data["hash"]
         self.state.force = data["force"]
         self.save()
         log.info("Neue Config geladen (%s)", data["hash"][:12])
+        self.wake.set()
+        return True
+
+    # --- Letzter Stand ohne Controller ---
+
+    def remember(self, config: dict[str, Any]) -> None:
+        """Geladene Config im eigenen Datenverzeichnis aufheben (nur für den Besitzer lesbar)."""
+        raw = json.dumps(config, separators=(",", ":")).encode()
+        tmp = self.settings.last_config_file.with_suffix(".tmp")
+        write_private(tmp, raw)
+        tmp.replace(self.settings.last_config_file)
+
+    def ensure_config(self) -> bool:
+        """Läuft Caddy ohne Config (nur Admin-API, keine Apps), den zuletzt geladenen Stand
+        wieder laden – unabhängig vom Controller. True, wenn geladen wurde.
+
+        Normalerweise sorgt schon Caddys `--resume` dafür; das hier greift, wenn dessen
+        gespeicherter Stand fehlt (Volume neu, Caddy ohne --resume gestartet …)."""
+        if not self.state.loaded_hash:
+            return False
+        running = self.caddy.running()
+        path = self.settings.last_config_file
+        if running.get("apps"):
+            # Agent älter als diese Funktion: laufenden Stand einmalig übernehmen
+            if not path.exists() and config_hash(running) == self.state.loaded_hash:
+                self.remember(running)
+            return False
+        if not path.exists():
+            log.warning("Caddy läuft ohne Config, und es gibt keinen gespeicherten Stand")
+            return False
+        config = json.loads(path.read_text(encoding="utf-8"))
+        self.caddy.load(config)
+        log.warning(
+            "Caddy lief ohne Config – letzten bekannten Stand (%s) wieder geladen",
+            config_hash(config)[:12],
+        )
         self.wake.set()
         return True
 
@@ -474,7 +518,7 @@ class Agent:
         """Neuen Schlüssel erzeugen und das Zertifikat erneuern lassen, solange das alte
         noch gilt. Erst nach Erfolg werden Schlüssel und Zertifikat ersetzt."""
         left = self.cert_days_left()
-        if left is None or left > RENEW_DAYS:
+        if left is None or (left > RENEW_DAYS and not self.renew_requested):
             return False
         key = ec.generate_private_key(ec.SECP256R1())
         csr = (
@@ -505,6 +549,7 @@ class Agent:
             key_tmp.replace(self.settings.key_file)
             cert_tmp.replace(self.settings.cert_file)
             self.settings.chain_file.write_text(data["chain_pem"], encoding="utf-8")
+        self.renew_requested = False
         log.info("Node-Zertifikat erneuert, gültig bis %s", data.get("not_after"))
         return True
 
@@ -515,9 +560,14 @@ class Agent:
         if r.status_code != 200:
             raise AgentError(f"Status senden fehlgeschlagen ({r.status_code}): {_detail(r)}")
         try:
-            self.want_metrics = bool(r.json().get("caddy_metrics"))
+            answer = r.json()
         except ValueError:
-            self.want_metrics = False
+            answer = {}
+        self.want_metrics = bool(answer.get("caddy_metrics"))
+        if answer.get("renew_cert") and not self.renew_requested:
+            log.info("Controller hat eine neue CA – Zertifikat wird erneuert")
+            self.renew_requested = True
+            self.wake.set()
 
     def send_logs(self, access: list[str], waf: list[str]) -> None:
         with self._http(with_cert=True) as c:
@@ -556,6 +606,11 @@ class Agent:
             raise AgentError("Noch nicht beigetreten")
         log.info("Agent %s läuft für Node „%s“", __version__, self.state.name)
         threads = [
+            threading.Thread(
+                target=self._loop,
+                args=("caddy", self.ensure_config, CADDY_CHECK_EVERY),
+                daemon=True,
+            ),
             threading.Thread(target=self._loop, args=("config", self.poll_config, 0), daemon=True),
             threading.Thread(
                 target=self._loop,

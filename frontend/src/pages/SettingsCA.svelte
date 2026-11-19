@@ -8,6 +8,8 @@
   import Icon from '../lib/components/Icon.svelte';
   import IssuedCertificate from '../lib/components/IssuedCertificate.svelte';
   import Toggle from '../lib/components/Toggle.svelte';
+  import ConfirmDialog from '../lib/components/ConfirmDialog.svelte';
+  import CAImportFields, { emptyImport, importBody, importReady, type CAImport } from '../lib/components/CAImportFields.svelte';
   import { api, downloadFile, formatDay, type AuthorityInfo, type CAStatus, type GeneralSettings, type IssuedDevice } from '../lib/api';
   import { toasts } from '../lib/toast.svelte';
 
@@ -18,6 +20,9 @@
   let pass2 = $state('');
   let creating = $state(false);
   let created = $state<{ root_cert_pem: string; root_key_pem: string } | null>(null);
+  // Einrichtung: neue CA erzeugen oder bestehende importieren
+  let setupMode = $state<'generate' | 'import'>('generate');
+  let setupImport = $state<CAImport>(emptyImport());
   let keySaved = $state(false);
   let keyDownloaded = $state(false);
 
@@ -64,6 +69,19 @@
   async function setup(e: SubmitEvent) {
     e.preventDefault();
     error = '';
+    if (setupMode === 'import') {
+      creating = true;
+      try {
+        status = await api.post<CAStatus>('/ca/import', importBody(setupImport));
+        setupImport = emptyImport();
+        toasts.show('ok', 'Bestehende CA übernommen.');
+      } catch (err) {
+        error = err instanceof Error ? err.message : String(err);
+      } finally {
+        creating = false;
+      }
+      return;
+    }
     if (pass1 !== pass2) {
       error = 'Die Passphrasen stimmen nicht überein.';
       return;
@@ -133,6 +151,38 @@
     }
   }
 
+  // ---------- Wechsel der Root-CA ----------
+  let rootMode = $state<'generate' | 'import'>('generate');
+  let rootImport = $state<CAImport>(emptyImport());
+  let newPass1 = $state('');
+  let newPass2 = $state('');
+  let rootRotating = $state(false);
+  let confirmRoot = $state(false);
+
+  const rootReady = $derived(rootMode === 'generate' ? newPass1.length >= 12 && newPass1 === newPass2 : importReady(rootImport));
+
+  async function rotateRoot() {
+    confirmRoot = false;
+    rootRotating = true;
+    try {
+      const body = rootMode === 'generate' ? { mode: 'generate', passphrase: newPass1 } : { mode: 'import', ...importBody(rootImport) };
+      const r = await api.post<{ status: CAStatus; root_cert_pem: string | null; root_key_pem: string | null }>('/ca/rotate-root', body);
+      status = r.status;
+      newPass1 = newPass2 = '';
+      rootImport = emptyImport();
+      if (r.root_cert_pem && r.root_key_pem) {
+        // neuen Root-Schlüssel sichern lassen – wie bei der Einrichtung
+        created = { root_cert_pem: r.root_cert_pem, root_key_pem: r.root_key_pem };
+        keySaved = keyDownloaded = false;
+      }
+      toasts.show('ok', 'Neue Root-CA aktiv. Alte Geräte funktionieren weiter, Nodes erneuern ihr Zertifikat selbst.', 10000);
+    } catch (err) {
+      toasts.show('bad', err instanceof Error ? err.message : String(err), 12000);
+    } finally {
+      rootRotating = false;
+    }
+  }
+
   async function renew(id: number) {
     renewing = id;
     try {
@@ -155,6 +205,9 @@
   {#if created}
     <section class="card setup done" aria-labelledby="done-title">
       <h2 id="done-title">Root-Schlüssel jetzt sichern</h2>
+      {#if status?.configured}
+        <p class="muted">Die neue Root-CA ist aktiv. Geräte bekommen beim Verlängern das neue Root-Zertifikat mit.</p>
+      {/if}
       <p class="muted">
         Der Root-Schlüssel ist mit deiner Passphrase verschlüsselt. Er wird nur gebraucht, um später ein neues
         Zwischenzertifikat zu signieren – bewahre ihn offline auf (z. B. USB-Stick im Schrank).
@@ -173,24 +226,39 @@
   {:else if status && !status.configured}
     <form class="card setup" onsubmit={setup} aria-labelledby="setup-title">
       <h2 id="setup-title">Zertifizierungsstelle einrichten</h2>
-      <ol class="steps muted">
-        <li>Tesseract erzeugt eine <strong>Root-CA</strong> (ECDSA P-384, 10 Jahre) und ein <strong>Geräte-Zwischenzertifikat</strong> (3 Jahre).</li>
-        <li>Den Root-Schlüssel lädst du einmal herunter – verschlüsselt mit dieser Passphrase. Danach vergisst Tesseract ihn.</li>
-        <li>Das Zwischenzertifikat bleibt verschlüsselt auf dem Controller und stellt die Gerätezertifikate aus.</li>
-      </ol>
-      <div class="grid2">
-        <label class="field">
-          Passphrase für den Root-Schlüssel (mind. 12 Zeichen)
-          <input class="input" type="password" autocomplete="new-password" minlength="12" required bind:value={pass1} />
-        </label>
-        <label class="field">
-          Passphrase wiederholen
-          <input class="input" type="password" autocomplete="new-password" minlength="12" required bind:value={pass2} />
-        </label>
+      <div class="modes" role="radiogroup" aria-label="Art der Einrichtung">
+        <label class="check"><input type="radio" name="setup-mode" value="generate" bind:group={setupMode} /> Neue CA erzeugen</label>
+        <label class="check"><input type="radio" name="setup-mode" value="import" bind:group={setupMode} /> Bestehende CA importieren</label>
       </div>
-      <div class="row">
-        <Button type="submit" label={creating ? 'Erzeugt …' : 'CA erzeugen'} disabled={creating} />
-      </div>
+      {#if setupMode === 'generate'}
+        <ol class="steps muted">
+          <li>Tesseract erzeugt eine <strong>Root-CA</strong> (ECDSA P-384, 10 Jahre) und ein <strong>Geräte-Zwischenzertifikat</strong> (3 Jahre).</li>
+          <li>Den Root-Schlüssel lädst du einmal herunter – verschlüsselt mit dieser Passphrase. Danach vergisst Tesseract ihn.</li>
+          <li>Das Zwischenzertifikat bleibt verschlüsselt auf dem Controller und stellt die Gerätezertifikate aus.</li>
+        </ol>
+        <div class="grid2">
+          <label class="field">
+            Passphrase für den Root-Schlüssel (mind. 12 Zeichen)
+            <input class="input" type="password" autocomplete="new-password" minlength="12" required bind:value={pass1} />
+          </label>
+          <label class="field">
+            Passphrase wiederholen
+            <input class="input" type="password" autocomplete="new-password" minlength="12" required bind:value={pass2} />
+          </label>
+        </div>
+        <div class="row">
+          <Button type="submit" label={creating ? 'Erzeugt …' : 'CA erzeugen'} disabled={creating} />
+        </div>
+      {:else}
+        <p class="muted small">
+          Für eine vorhandene PKI (z. B. die der Firma oder eine bisherige Homelab-CA). Geräte, die dieser CA schon vertrauen, brauchen kein
+          neues Root-Zertifikat. Schlüssel liegen danach nur verschlüsselt auf dem Controller – ein Root-Schlüssel gar nicht.
+        </p>
+        <CAImportFields bind:value={setupImport} id="setup" />
+        <div class="row">
+          <Button type="submit" label={creating ? 'Prüft …' : 'CA importieren'} disabled={creating || !importReady(setupImport)} />
+        </div>
+      {/if}
     </form>
   {:else if status}
     {#if status.devices_beyond_intermediate > 0 && status.intermediate}
@@ -270,7 +338,11 @@
           <StatusPill tone="warn" label={`${prev.devices.length} Gerät(e)`} />
         </div>
         <p class="muted small">
-          Gültig bis {formatDay(prev.authority.not_after)}. Caddy vertraut ihm, bis alle Geräte unten verlängert sind – danach fällt es weg.
+          {prev.authority.subject} · gültig bis {formatDay(prev.authority.not_after)}. Caddy vertraut ihm, bis alle Geräte unten verlängert
+          und alle Nodes erneuert sind – danach fällt es weg.
+          {#if prev.nodes.length}
+            Nodes ({prev.nodes.map((n) => n.name).join(', ')}) erneuern ihr Zertifikat beim nächsten Kontakt selbst.
+          {/if}
         </p>
         <ul class="devlist">
           {#each prev.devices as d (d.id)}
@@ -303,11 +375,58 @@
         <Button type="submit" label={rotating ? 'Wechselt …' : 'Wechsel durchführen'} disabled={rotating || !rootKey.trim() || !rootPass} />
       </div>
     </form>
+
+    <section class="card" aria-labelledby="root-title">
+      <h2 id="root-title">Wechsel der Root-CA</h2>
+      <p class="muted small">
+        Neue Root samt neuem Zwischenzertifikat – z. B. wenn die Root bald abläuft, der Root-Schlüssel verloren oder kompromittiert ist, oder
+        um auf eine vorhandene PKI umzuziehen. Bestehende Geräte funktionieren weiter, bis sie verlängert sind; Nodes erneuern ihr Zertifikat
+        selbst. Wo das alte Root-Zertifikat als vertrauenswürdig installiert ist, muss das neue hinzu.
+        {#if status.root}Aktuelle Root gültig bis {formatDay(status.root.not_after)}.{/if}
+      </p>
+      <div class="modes" role="radiogroup" aria-label="Art des Wechsels">
+        <label class="check"><input type="radio" name="root-mode" value="generate" bind:group={rootMode} /> Neue Root erzeugen</label>
+        <label class="check"><input type="radio" name="root-mode" value="import" bind:group={rootMode} /> Bestehende Root importieren</label>
+      </div>
+      {#if rootMode === 'generate'}
+        <div class="grid2">
+          <label class="field">
+            Passphrase für den neuen Root-Schlüssel (mind. 12 Zeichen)
+            <input class="input" type="password" autocomplete="new-password" minlength="12" bind:value={newPass1} />
+          </label>
+          <label class="field">
+            Passphrase wiederholen
+            <input class="input" type="password" autocomplete="new-password" minlength="12" bind:value={newPass2} />
+          </label>
+        </div>
+      {:else}
+        <CAImportFields bind:value={rootImport} id="root" />
+      {/if}
+      <div class="row">
+        <Button variant="secondary" label={rootRotating ? 'Wechselt …' : 'Root wechseln …'} disabled={rootRotating || !rootReady} onClick={() => (confirmRoot = true)} />
+      </div>
+    </section>
+
+    {#if confirmRoot}
+      <ConfirmDialog
+        title="Root-CA wechseln?"
+        text="Neue und verlängerte Geräte bekommen ihr Zertifikat ab sofort von der neuen Root. Das alte Zwischenzertifikat bleibt vertraut, solange Geräte oder Nodes daran hängen. Zurück geht es nur mit einem weiteren Wechsel."
+        word="wechseln"
+        confirmLabel="Root wechseln"
+        onConfirm={rotateRoot}
+        onCancel={() => (confirmRoot = false)}
+      />
+    {/if}
     {#if renewed}<IssuedCertificate issued={renewed} onClose={() => (renewed = null)} />{/if}
   {/if}
 </AppShell>
 
 <style>
+  .modes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+  }
   .retiring {
     border-color: rgba(229, 164, 67, 0.45);
   }

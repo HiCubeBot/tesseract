@@ -573,7 +573,12 @@ export interface CAStatus {
   devices_revoked: number;
   devices_beyond_intermediate: number;
   /** ältere Zwischenzertifikate, denen nach einem Wechsel noch vertraut wird */
-  previous: { authority: AuthorityInfo; devices: { id: number; name: string; person: string }[] }[];
+  previous: {
+    authority: AuthorityInfo;
+    devices: { id: number; name: string; person: string }[];
+    /** Nodes mit Zertifikat davon – erneuern es nach einem Wechsel selbst */
+    nodes: { id: number; name: string }[];
+  }[];
 }
 
 export interface Group {
