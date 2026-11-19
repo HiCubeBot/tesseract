@@ -50,6 +50,8 @@ class Settings(BaseSettings):
     # (überschreibt, was in der Oberfläche eingestellt wurde).
     acme_email: str | None = None
     logs_days: int | None = None
+    # Loki-URL, z. B. http://loki:3100 (Compose-Profil „loki“)
+    loki_url: str | None = None
     # Netze, kommagetrennt (z. B. "192.168.178.0/24,10.8.0.0/24")
     internal_networks: str | None = None
     trusted_proxies: str | None = None
@@ -95,6 +97,8 @@ class Settings(BaseSettings):
             out["acme_email"] = self.acme_email.strip()
         if self.logs_days is not None:
             out["logs_days"] = max(1, min(365, self.logs_days))
+        if self.loki_url:
+            out["loki_url"] = self.loki_url.strip()
         for key in ("internal_networks", "trusted_proxies"):
             raw = getattr(self, key)
             if raw is not None:

@@ -247,6 +247,7 @@ def ingest(
     tracker: WafTracker,
     geo: Geo | None = None,
     metrics=None,
+    sink=None,
 ) -> IngestResult:
     """Speichert neue Zeilen eines Nodes. Commit macht der Aufrufer."""
     result = IngestResult(violations=tracker.feed(waf_lines))
@@ -287,6 +288,28 @@ def ingest(
                 user_agent=p["user_agent"],
             )
         )
+        if sink is not None:
+            sink(
+                {
+                    "ts": ts,
+                    "node": node.name,
+                    "host": p["host"],
+                    "reason": reason if reason in REASONS else "ok",
+                    "method": p["method"],
+                    "uri": p["uri"],
+                    "status": p["status"],
+                    "duration_ms": p["duration_ms"],
+                    "size": p["size"],
+                    "ip": p["ip"],
+                    "country": geo.country(p["ip"]) if geo else None,
+                    "device": device.name if device else None,
+                    "person": device.person.name if device else None,
+                    "waf_rules": ev.rules if ev else [],
+                    "waf_msg": ev.msgs[0] if ev and ev.msgs else None,
+                    "waf_score": ev.score if ev else None,
+                    "user_agent": p["user_agent"],
+                }
+            )
         if metrics is not None:
             metrics.observe(node.name, p["host"], p["status"], reason, p["duration_ms"], p["size"])
         if device is not None:
@@ -401,17 +424,22 @@ class Collector:
     """Hält pro Node den WAF-Zwischenstand und die GeoIP-Datenbank (eine Instanz pro App)."""
 
     def __init__(self, geo: Geo | None = None) -> None:
+        from tesseract.loki import LokiShipper
         from tesseract.metrics import Metrics
 
         self.geo = geo or Geo()
         self.trackers: dict[int, WafTracker] = {}
         self.metrics = Metrics()
+        # zusätzlicher Speicher in Loki (optional)
+        self.loki = LokiShipper()
 
     def node(
         self, db: Session, node: Node, access_lines: list[str], waf_lines: list[str]
     ) -> list[tuple[str, str]]:
         tracker = self.trackers.setdefault(node.id, WafTracker())
-        return ingest(db, node, access_lines, waf_lines, tracker, self.geo, self.metrics).violations
+        return ingest(
+            db, node, access_lines, waf_lines, tracker, self.geo, self.metrics, self.loki.add
+        ).violations
 
     def local(
         self, db: Session, access_lines: list[str], waf_lines: list[str]

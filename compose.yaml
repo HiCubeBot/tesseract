@@ -63,6 +63,28 @@ services:
       - caddy-logs:/var/log/tesseract
     networks: [internal]
 
+  # Optional: Loki als zusätzlicher Log-Speicher (lange Aufbewahrung, Auswertung in Grafana).
+  # Starten mit: docker compose --profile loki up -d
+  # und in der .env: TESSERACT_LOKI_URL=http://loki:3100
+  loki:
+    image: grafana/loki:${LOKI_VERSION:-3.4.2}
+    profiles: [loki]
+    restart: unless-stopped
+    command: -config.file=/etc/loki/tesseract.yaml -config.expand-env=true
+    environment:
+      LOKI_RETENTION: ${LOKI_RETENTION:-2160h}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # Port 3100 nur bei Bedarf veröffentlichen (z. B. für ein Grafana außerhalb des Stacks):
+    # ports:
+    #   - "127.0.0.1:3100:3100"
+    volumes:
+      - ./docker/loki/config.yaml:/etc/loki/tesseract.yaml:ro
+      - loki-data:/loki
+    networks: [internal]
+
 networks:
   internal:
 
@@ -71,3 +93,4 @@ volumes:
   caddy-data:
   caddy-config:
   caddy-logs:
+  loki-data:

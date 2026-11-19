@@ -67,6 +67,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             from tesseract.reminders import watch as reminders_watch
 
             tasks.append(asyncio.create_task(reminders_watch(app.state.db)))
+            from tesseract.loki import watch as loki_watch
+
+            tasks.append(asyncio.create_task(loki_watch(app)))
         yield
         for task in tasks:
             task.cancel()
@@ -94,6 +97,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.notify_transport = None
     # Sicherungen: S3-Ziel in Tests als MockTransport; Sperre fürs Wiederherstellen
     app.state.backup_transport = None
+    # Loki (zusätzlicher Log-Speicher) – in Tests ein MockTransport
+    app.state.loki_transport = None
     app.state.restore_lock = asyncio.Lock()
     # Aufgaben für Agents (Erreichbarkeit vom Node, Zertifikate des Nodes)
     from tesseract.agent_tasks import TaskBroker

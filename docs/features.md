@@ -92,6 +92,7 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | Logs | Live-Ansicht, Suche mit Filtersyntax (`host:git status:403 ip:…`), Detailansicht mit Regel und Meldung, Anomalie-Score (wenn Coraza ihn schreibt), Grund jeder Ablehnung | 5 |
 | Aktionen aus Logs | IP sperren (24 h, alle Nodes), Ausnahme für Fehlalarm anlegen, alle Einträge einer IP | 5 |
 | Filter | Zeitraum (24 h / 7 / 30 Tage), Node | 5 |
+| Loki | Zusätzlicher Log-Speicher: jeder Eintrag geht auch an Loki (Push-API, Labels `node`, `host`, `reason`, Rest als JSON), gepuffert, falls Loki nicht erreichbar ist. Loki optional im Compose-Stack (Profil `loki`), Auswertung in Grafana per LogQL | 1.2 |
 
 ## 8. Audit-Log
 

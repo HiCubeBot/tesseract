@@ -64,7 +64,35 @@ Wer `TESSERACT_SECRET_KEY` nutzt, muss auf dem neuen Server denselben Wert setze
 - **Benachrichtigungen** melden u. a. Node offline, fehlgeschlagene Übertragung oder
   Sicherung, Abweichungen, Ablauf von Zertifikaten.
 - **Prometheus:** `/metrics` (Einstellungen › Metriken), Grafana-Dashboard zum Herunterladen.
+- **Loki (optional):** für lange Aufbewahrung der Zugriffs- und WAF-Logs, siehe unten.
 - **Audit-Log:** Prüfung der Prüfsummenkette oben auf der Seite.
+
+### Logs in Loki
+
+Die Log-Ansicht und die Statistik nutzen die eigene Datenbank (Aufbewahrung: Einstellungen ›
+Metriken, Standard 14 Tage). Für längere Aufbewahrung oder Auswertung in Grafana schickt der
+Controller jeden Eintrag zusätzlich an Loki.
+
+```bash
+# in der .env
+TESSERACT_LOKI_URL=http://loki:3100
+LOKI_RETENTION=2160h   # 90 Tage, optional
+
+docker compose --profile loki up -d
+```
+
+Ein vorhandenes Loki trägt man stattdessen unter Einstellungen › Metriken › Loki ein (optional
+mit Mandant `X-Scope-OrgID`). Ist Loki nicht erreichbar, puffert der Controller bis zu 50 000
+Einträge im Speicher und sendet sie nach.
+
+In Grafana Loki als Datenquelle hinzufügen (`http://loki:3100`, dazu Grafana ins Netz
+`internal` des Stacks hängen oder den Port 3100 in `compose.yaml` freigeben). Beispiele:
+
+```logql
+{job="tesseract", reason="waf"} | json
+sum by (host) (count_over_time({job="tesseract"} | json | status >= 500 [5m]))
+{job="tesseract"} | json | ip="198.51.100.7"
+```
 
 ## Notausgänge (nur auf dem Controller)
 

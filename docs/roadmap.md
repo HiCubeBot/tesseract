@@ -14,10 +14,17 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 | 5 | Beobachtbarkeit | Logs, Statistik, Audit, Metriken, Benachrichtigungen – **fertig** |
 | 6 | Betrieb & Release | Backup, CA-Rotation, Härtung, v1.0 – **fertig** |
 | 1.1 | Lücken geschlossen | Selbst signierte Ziele, Modul-Prüfung, Aufgaben für Agents – **fertig** |
+| 1.2 | Aus dem Backlog | Loki, Git-Spiegel, Gäste verlängern selbst – **in Arbeit** |
 | – | [Offen / bekannte Grenzen](#offen--bekannte-grenzen) | Einschränkungen des aktuellen Stands |
 | – | [Backlog](#backlog-niedrige-priorität) | Niedrige Priorität, ohne festen Zeitpunkt |
 
 ---
+
+## Version 1.2 – aus dem Backlog
+
+- [x] Loki als zusätzlicher Log-Speicher, optional im Compose-Stack (Profil `loki`)
+- [ ] Git-Spiegel der Configs als Backup-Ziel
+- [ ] Gäste verlängern ihr Gerät selbst über einen Link (abschaltbar)
 
 ## Offen / bekannte Grenzen
 
@@ -61,8 +68,8 @@ Gewünscht, aber ohne festen Platz in einer Phase. Wird bei Bedarf eingeplant.
 - **Docker-Labels** – Hosts automatisch aus Container-Labels anlegen (Domain, Ziel-Port,
   Zugriff …), ähnlich wie bei anderen Reverse Proxys.
   Issue: [HiCubeBot/tesseract#14](https://github.com/HiCubeBot/tesseract/issues/14)
-- **Eigener Log-Speicher** (DuckDB, Loki) für sehr viel Verkehr – heute SQLite mit 14 Tagen
-  Aufbewahrung.
+- **Log-Ansicht und Statistik direkt aus Loki** – Loki ist als zusätzlicher Speicher angebunden
+  (1.2); Suche und Statistik in der Oberfläche nutzen weiter SQLite.
 - **Git-Spiegel der Configs** als zusätzliches Backup-Ziel.
 
 ---

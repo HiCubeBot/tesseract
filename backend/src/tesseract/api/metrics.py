@@ -86,8 +86,19 @@ def metrics(request: Request, db: DB, settings: AppSettings) -> Response:
 # ---------- Einstellungen ----------
 
 
+class LokiStatus(BaseModel):
+    queued: int
+    pushed: int
+    dropped: int
+    last_push_at: datetime | None
+    last_error: str | None
+
+
 class ObservabilityOut(BaseModel):
     logs_days: int
+    loki_url: str
+    loki_tenant: str
+    loki: LokiStatus
     logs_ready: bool
     geoip: bool
     metrics_enabled: bool
@@ -103,6 +114,8 @@ class ObservabilityOut(BaseModel):
 
 class ObservabilityIn(BaseModel):
     logs_days: int = Field(14, ge=1, le=365)
+    loki_url: str = Field("", max_length=500)
+    loki_tenant: str = Field("", max_length=100)
     metrics_enabled: bool = False
     metrics_auth: Literal["token", "mtls", "ip"] = "token"
     metrics_networks: list[str] = Field(default_factory=list, max_length=200)
@@ -120,6 +133,9 @@ def _out(request: Request, db, settings) -> ObservabilityOut:
     g = get_general(db)
     return ObservabilityOut(
         logs_days=g["logs_days"],
+        loki_url=g["loki_url"],
+        loki_tenant=g["loki_tenant"],
+        loki=LokiStatus(**request.app.state.logs.loki.status()),
         logs_ready=bool(settings.caddy_access_log and settings.access_log_path),
         geoip=request.app.state.logs.geo.ready,
         metrics_enabled=g["metrics_enabled"],
@@ -151,6 +167,14 @@ def put_observability(
             value["metrics_networks"] = normalize_networks(value["metrics_networks"])
         except ValueError as e:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(e)) from e
+    if "loki_url" in value:
+        url = value["loki_url"].strip().rstrip("/")
+        if url and not url.startswith(("http://", "https://")):
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_CONTENT, "Loki-URL muss mit http(s):// beginnen"
+            )
+        value["loki_url"] = url
+        request.app.state.logs.loki.enabled = bool(url)
     before = get_general(db)
     after = {**before, **value}
     if (
@@ -174,6 +198,20 @@ def put_observability(
         )
     db.commit()
     return _out(request, db, settings)
+
+
+class LokiTestIn(BaseModel):
+    loki_url: str = Field(min_length=1, max_length=500)
+    loki_tenant: str = Field("", max_length=100)
+
+
+@router.post("/observability/loki-test")
+def test_loki(body: LokiTestIn, request: Request, _: CurrentActor) -> dict[str, Any]:
+    """Schickt einen Test-Eintrag an Loki."""
+    from tesseract.loki import ready
+
+    err = ready(body.loki_url, body.loki_tenant, request.app.state.loki_transport)
+    return {"ok": err is None, "error": err}
 
 
 @router.post("/observability/token")

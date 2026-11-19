@@ -269,5 +269,5 @@ der sich ausgehend beim Controller meldet und die Config abholt – siehe
 | Thema | Entscheidung | Notiz |
 |---|---|---|
 | Datenbank / ORM | SQLite + SQLAlchemy 2 + Alembic | SQLite reicht für den Controller, Backup einfach. |
-| Log-Speicher | SQLite mit Aufbewahrung (Standard 14 Tage) | Bei sehr viel Verkehr DuckDB oder Loki – siehe [Backlog](roadmap.md#backlog-niedrige-priorität). |
+| Log-Speicher | SQLite mit Aufbewahrung (Standard 14 Tage), optional zusätzlich Loki | Oberfläche liest SQLite; Loki für lange Aufbewahrung und Grafana. |
 | Admin-Passkey | Vorerst nur Passwort (+ Admin-Gerätezertifikat) | WebAuthn steht im [Backlog](roadmap.md#backlog-niedrige-priorität). |

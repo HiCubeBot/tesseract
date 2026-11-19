@@ -12,6 +12,9 @@
 
   interface Observability {
     logs_days: number;
+    loki_url: string;
+    loki_tenant: string;
+    loki: { queued: number; pushed: number; dropped: number; last_push_at: string | null; last_error: string | null };
     logs_ready: boolean;
     geoip: boolean;
     metrics_enabled: boolean;
@@ -49,6 +52,8 @@
     try {
       cfg = await api.put<Observability>('/settings/observability', {
         logs_days: Number(cfg.logs_days),
+        loki_url: cfg.loki_url,
+        loki_tenant: cfg.loki_tenant,
         metrics_enabled: cfg.metrics_enabled,
         metrics_auth: AUTH[auth],
         metrics_networks: cfg.metrics_networks,
@@ -60,6 +65,24 @@
       toasts.show('bad', e instanceof Error ? e.message : String(e), 10000);
     } finally {
       saving = false;
+    }
+  }
+
+  let testing = $state(false);
+  async function testLoki() {
+    if (!cfg?.loki_url) return;
+    testing = true;
+    try {
+      const r = await api.post<{ ok: boolean; error: string | null }>('/settings/observability/loki-test', {
+        loki_url: cfg.loki_url,
+        loki_tenant: cfg.loki_tenant
+      });
+      if (r.ok) toasts.show('ok', 'Loki hat den Test-Eintrag angenommen.');
+      else toasts.show('bad', `Loki: ${r.error}`, 10000);
+    } catch (e) {
+      toasts.show('bad', e instanceof Error ? e.message : String(e), 10000);
+    } finally {
+      testing = false;
     }
   }
 
@@ -183,6 +206,45 @@
       </p>
     </section>
 
+    <section class="card" aria-labelledby="loki-title">
+      <div class="row">
+        <h2 id="loki-title">Loki</h2>
+        <span class="spacer"></span>
+        {#if cfg.loki_url}
+          <span class="muted small">
+            {cfg.loki.last_error
+              ? `Fehler: ${cfg.loki.last_error}`
+              : cfg.loki.last_push_at
+                ? `zuletzt gesendet ${formatAgo(cfg.loki.last_push_at)}`
+                : 'noch nichts gesendet'}
+          </span>
+        {/if}
+      </div>
+      <p class="muted small">
+        Zusätzlicher Speicher für lange Aufbewahrung: jeder neue Eintrag geht auch an Loki und lässt sich in Grafana mit LogQL
+        auswerten, z. B. <code>{'{job="tesseract", reason="waf"}'} | json</code>. Die Log-Ansicht und die Statistik hier nutzen weiter die
+        eigene Datenbank. Im Compose-Stack: <code>docker compose --profile loki up -d</code> und <code>http://loki:3100</code>.
+      </p>
+      <div class="loki-fields">
+        <label class="field">
+          <span class="label">URL (leer = aus)</span>
+          <input class="input" type="url" placeholder="http://loki:3100" bind:value={cfg.loki_url} />
+        </label>
+        <label class="field">
+          <span class="label">Mandant (X-Scope-OrgID, optional)</span>
+          <input class="input" type="text" bind:value={cfg.loki_tenant} />
+        </label>
+      </div>
+      <div class="row">
+        <Button variant="secondary" size="sm" icon="refresh" label={testing ? 'Prüft …' : 'Verbindung testen'} onClick={testLoki} disabled={!cfg.loki_url || testing} />
+        {#if cfg.loki_url}
+          <span class="muted small">
+            {cfg.loki.pushed} gesendet · {cfg.loki.queued} im Puffer{cfg.loki.dropped ? ` · ${cfg.loki.dropped} verworfen (Puffer voll)` : ''}
+          </span>
+        {/if}
+      </div>
+    </section>
+
     <section class="card" aria-labelledby="cat-title">
       <h2 id="cat-title">Verfügbare Metriken</h2>
       <div class="table-wrap">
@@ -220,6 +282,15 @@
     border-radius: var(--radius);
     background: var(--bg-sunken);
     overflow-wrap: anywhere;
+  }
+  .loki-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  .loki-fields .field {
+    flex-direction: column;
+    gap: 6px;
   }
   .days {
     max-width: 220px;

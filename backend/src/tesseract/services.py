@@ -87,6 +87,9 @@ GENERAL_DEFAULTS: dict[str, Any] = {
     "wildcard_certs": [],
     # Logs: Aufbewahrung in Tagen (Phase 5)
     "logs_days": 14,
+    # Loki als zusätzlicher Log-Speicher: Basis-URL (leer = aus), optional Mandant
+    "loki_url": "",
+    "loki_tenant": "",
     # Prometheus-Endpunkt /metrics: aus, Schutz "token" | "mtls" | "ip"
     "metrics_enabled": False,
     "metrics_auth": "token",

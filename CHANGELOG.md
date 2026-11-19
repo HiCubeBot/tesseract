@@ -4,6 +4,13 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [Unveröffentlicht]
+
+### Neu
+- **Loki als zusätzlicher Log-Speicher**: Zugriffs- und WAF-Logs aller Nodes gehen auch an
+  Loki (Einstellungen › Metriken, Verbindungstest, Puffer bei Ausfall). Loki optional im
+  Compose-Stack: `docker compose --profile loki up -d`, `TESSERACT_LOKI_URL=http://loki:3100`
+
 ## [1.1.0] – 2026-11-18
 
 ### Neu
