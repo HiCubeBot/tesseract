@@ -51,7 +51,7 @@ Servers geht es nicht (der Browser schickt dann keinen Namen, Caddy bricht mit
 | `TESSERACT_DOMAIN` | Zertifikat | Voraussetzung |
 |---|---|---|
 | öffentliche Domain (`tesseract.beispiel.de`) | Let's Encrypt per HTTP-01 | öffentlicher DNS-Eintrag auf den Server, Port 80 von außen erreichbar |
-| öffentliche Domain + `TESSERACT_CLOUDFLARE_TOKEN` | Let's Encrypt per DNS-01 | nur der Token (Recht „Zone › DNS › Bearbeiten“) – der Name darf auch nur im Heimnetz existieren, z. B. `tesseract.home.beispiel.de` im lokalen DNS |
+| öffentliche Domain + `TESSERACT_CLOUDFLARE_TOKEN` | Let's Encrypt per DNS-01 | nur der Token (Rechten „Zone › Zone › Lesen“ und „Zone › DNS › Bearbeiten“) – der Name darf auch nur im Heimnetz existieren, z. B. `tesseract.home.beispiel.de` im lokalen DNS |
 | interner Name (`.lan`, `.home.arpa`, `.local`) | Caddys eigene CA | keine; der Browser warnt, bis Caddys Root-Zertifikat importiert ist |
 
 Ob ein Name „intern“ ist, entscheidet nur die Endung – nicht, wohin der lokale DNS zeigt.

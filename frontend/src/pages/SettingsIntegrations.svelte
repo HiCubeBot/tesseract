@@ -229,7 +229,7 @@
       <h2 id="dns-title">DNS-01 über Cloudflare</h2>
       <p class="muted small">
         Damit holt Caddy Zertifikate auch ohne offenen Port 80 und für Wildcard-Hosts (<code>*.beispiel.de</code>).
-        Nötig ist ein API-Token mit dem Recht „Zone · DNS · Bearbeiten“ für deine Zone. Er wird verschlüsselt
+        Nötig ist ein API-Token mit dem Rechten „Zone · Zone · Lesen“ und „Zone · DNS · Bearbeiten“ für deine Zone. Er wird verschlüsselt
         gespeichert und nie wieder angezeigt.
       </p>
       {#if general.env_managed.includes('cloudflare_token')}

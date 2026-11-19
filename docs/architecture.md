@@ -125,7 +125,7 @@ der sich ausgehend beim Controller meldet und die Config abholt – siehe
 - Pro Host Prüfung `http` (HTTP-01, Port 80) oder `dns` (DNS-01 über Cloudflare).
   Wildcard-Hosts (`*.beispiel.de`) gehen nur mit DNS-01 und werden **nach** den konkreten
   Namen geroutet.
-- Der Cloudflare-API-Token (Recht „Zone · DNS · Bearbeiten“) liegt AES-GCM-verschlüsselt in
+- Der Cloudflare-API-Token (Rechten „Zone · Zone · Lesen“ und „Zone · DNS · Bearbeiten“) liegt AES-GCM-verschlüsselt in
   den Einstellungen, wird nie ausgeliefert, im Audit-Log nur als „geändert“ vermerkt und in
   `GET /api/nodes/{id}/config` geschwärzt. In die an Caddy übertragene Config muss er im Klartext.
 - Eine eigene ACME-Richtlinie je Prüfart; die Let's-Encrypt-E-Mail gilt für beide.
