@@ -21,6 +21,7 @@ from tesseract.api import (
     nodes,
     notify,
     people,
+    renew,
     settings,
     stats,
 )
@@ -37,6 +38,7 @@ api_router.include_router(people.router)
 api_router.include_router(access.router)
 api_router.include_router(invites.admin)
 api_router.include_router(invites.public)
+api_router.include_router(renew.public)
 api_router.include_router(iplists.router)
 api_router.include_router(bans.router)
 api_router.include_router(certificates.router)

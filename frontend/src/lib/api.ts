@@ -384,6 +384,9 @@ export interface GeneralSettings {
   internal_networks: string[];
   internal_list_ids: number[];
   wildcard_certs: string[];
+  device_self_renew: boolean;
+  device_self_renew_days: number;
+  device_self_renew_url: string;
   controller_domain: string;
   /** über die Umgebung (.env) festgelegt – wird beim Start überschrieben */
   env_managed: string[];
@@ -696,6 +699,7 @@ export interface GuestCertificate {
   not_after: string;
   services: string[];
   slots_left: number;
+  renew_url: string | null;
 }
 
 export const ENROLLMENT_STATUS: Record<Enrollment['status'], { label: string; tone: 'ok' | 'warn' | 'bad' | 'neutral' }> = {

@@ -14,7 +14,7 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 | 5 | Beobachtbarkeit | Logs, Statistik, Audit, Metriken, Benachrichtigungen – **fertig** |
 | 6 | Betrieb & Release | Backup, CA-Rotation, Härtung, v1.0 – **fertig** |
 | 1.1 | Lücken geschlossen | Selbst signierte Ziele, Modul-Prüfung, Aufgaben für Agents – **fertig** |
-| 1.2 | Aus dem Backlog | Loki, Git-Spiegel, Gäste verlängern selbst – **in Arbeit** |
+| 1.2 | Aus dem Backlog | Loki, Git-Spiegel, Gäste verlängern selbst – **fertig** (noch nicht veröffentlicht) |
 | – | [Offen / bekannte Grenzen](#offen--bekannte-grenzen) | Einschränkungen des aktuellen Stands |
 | – | [Backlog](#backlog-niedrige-priorität) | Niedrige Priorität, ohne festen Zeitpunkt |
 
@@ -24,7 +24,7 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 
 - [x] Loki als zusätzlicher Log-Speicher, optional im Compose-Stack (Profil `loki`)
 - [x] Git-Spiegel der Configs als Backup-Ziel
-- [ ] Gäste verlängern ihr Gerät selbst über einen Link (abschaltbar)
+- [x] Gäste verlängern ihr Gerät selbst über einen Link (abschaltbar)
 
 ## Offen / bekannte Grenzen
 
@@ -55,7 +55,6 @@ Gewünscht, aber ohne festen Platz in einer Phase. Wird bei Bedarf eingeplant.
 - **LDAP-Sync für Personen** – Personen und Gruppen aus LDAP übernehmen und regelmäßig abgleichen.
   Freigaben können dann an LDAP-Gruppen hängen; Geräte und Zertifikate verwaltet weiter Tesseract.
   Wer in LDAP deaktiviert wird, wird in Tesseract samt Geräten gesperrt.
-- **Gäste verlängern ihr Gerät selbst** über einen Link (heute verlängert der Admin).
 
 **Zertifikate & CA**
 

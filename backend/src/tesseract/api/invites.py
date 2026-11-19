@@ -15,6 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from tesseract import audit
+from tesseract.api.renew import renew_url
 from tesseract.config import Settings
 from tesseract.db.models import Enrollment, Host, Invite, Person, utcnow
 from tesseract.deps import DB, AppSettings, Box, CurrentActor, client_ip
@@ -113,6 +114,8 @@ class Certificate(BaseModel):
     not_after: datetime
     services: list[str]
     slots_left: int
+    # Link zum späteren Selbst-Verlängern (None = ausgeschaltet)
+    renew_url: str | None = None
 
 
 # ---------- Hilfen ----------
@@ -441,4 +444,5 @@ def certificate(
         not_after=issued.device.not_after,
         services=services_for(db, person),
         slots_left=slots_left(db, person, e.invite),
+        renew_url=renew_url(public_base(request, settings), db),
     )

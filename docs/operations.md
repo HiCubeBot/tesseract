@@ -74,7 +74,7 @@ Das Repository sollte trotzdem privat sein – es zeigt Hostnamen, interne Ziele
 
 | Was | Wann | Wie |
 |---|---|---|
-| Gerät verlängern | Erinnerung 30 und 7 Tage vorher | **Geräte › Verlängern** – neue `.p12`, Freigaben bleiben |
+| Gerät verlängern | Erinnerung 30 und 7 Tage vorher | **Geräte › Verlängern** – neue `.p12`, Freigaben bleiben; oder der Gast selbst über `https://<controller>/v` (abschaltbar) |
 | Zwischenzertifikat wechseln | Erinnerung 90/30/7 Tage vorher (gilt 3 Jahre) | **Einstellungen › Zertifizierungsstelle › Wechsel** mit Root-Schlüssel; alte Geräte funktionieren weiter, bis sie verlängert sind |
 | Node-Zertifikat | gilt 2 Jahre | erneuert der Agent ab 60 Tage vorher selbst |
 | Root-Zertifikat | gilt 10 Jahre | neue CA einrichten (Backlog: Import/Übergang) |

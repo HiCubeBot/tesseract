@@ -10,6 +10,7 @@ Stand des Sicherheits-Reviews zu Version 1.0 (Phase 6). Ergänzt das
 | Hosts (Ports 80/443 der Nodes) | Internet bzw. internes Netz | IP-Filter, mTLS, Coraza WAF, Authelia – pro Host |
 | Oberfläche + API (Controller-Domain) | wer die Domain erreicht | Passwort (Argon2), Session-Cookie `HttpOnly`/`Secure`/`SameSite=Strict`, optional nur mit Admin-Gerätezertifikat |
 | Einladungsseite `/e/…`, `/api/enroll/*` | öffentlich | Token (nur SHA-256 gespeichert), separater Bestätigungscode, Admin-Freigabe, Bremse pro IP, Rate-Limit |
+| Selbst verlängern `/v`, `/api/renew` | öffentlich | Ausweis ist das gültige, nicht gesperrte Gerätezertifikat (von Caddy geprüft, Fingerabdruck per Header); nur im Zeitfenster vor Ablauf; abschaltbar; Rate-Limit 30/Min. |
 | `/api/agent/*` | öffentlich | Beitritt: einmaliges Token (30 Min.) + Bestätigung mit Schlüssel-Fingerabdruck; danach Node-Zertifikat **und** Agent-Token |
 | `/metrics` | öffentlich, wenn eingeschaltet | Bearer-Token, Admin-Zertifikat oder IP-Liste |
 | Caddy-Admin-API | nur internes Docker-Netz | nie veröffentlicht |

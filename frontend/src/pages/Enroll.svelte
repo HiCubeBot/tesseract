@@ -275,6 +275,12 @@
             Das Zertifikat gilt bis {formatDay(cert.not_after)}.
             {#if cert.slots_left > 0}Noch ein Gerät? Öffne denselben Link auf dem anderen Gerät – {cert.slots_left} Platz/Plätze frei.{/if}
           </p>
+          {#if cert.renew_url}
+            <p class="muted small">
+              Kurz vor Ablauf kannst du das Zertifikat selbst verlängern: öffne dann auf diesem Gerät
+              <a class="mono" href={cert.renew_url}>{cert.renew_url}</a> – am besten jetzt als Lesezeichen speichern.
+            </p>
+          {/if}
         {/if}
       {/if}
     {/if}

@@ -75,6 +75,7 @@ def test_full_flow(auth_client: TestClient, caddy: FakeCaddy) -> None:
     assert c is not None and len(chain) == 2
     assert cert["services"] == ["filme.example.org"]
     assert cert["slots_left"] == 1
+    assert cert["renew_url"] == "https://tesseract.example.org/v"
     # Nur einmal abholbar
     assert auth_client.post(status_url + "/certificate", headers=headers).status_code == 410
 

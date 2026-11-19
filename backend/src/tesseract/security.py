@@ -37,6 +37,7 @@ LIMITS: list[tuple[str, bool, int]] = [
     ("/api/auth/login", True, 20),
     ("/api/enroll/", False, 60),
     ("/e/", False, 60),
+    ("/api/renew", False, 30),
     ("/api/agent/join", False, 30),
     ("/metrics", False, 120),
 ]

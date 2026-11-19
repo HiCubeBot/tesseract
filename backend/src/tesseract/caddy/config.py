@@ -32,6 +32,9 @@ FINGERPRINT_HEADER = "X-Tesseract-Client-Fingerprint"
 CONTROLLER_PUBLIC_PATHS = (
     "/e/*",
     "/api/enroll/*",
+    # Gäste verlängern ihr Gerät selbst (Ausweis: das Gerätezertifikat)
+    "/v",
+    "/api/renew",
     "/api/agent/*",
     "/assets/*",
     "/api/health",

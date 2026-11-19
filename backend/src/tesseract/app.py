@@ -140,6 +140,11 @@ def _mount_frontend(app: FastAPI, static_dir: Path) -> None:
     async def index_html() -> FileResponse:
         return FileResponse(index)
 
+    # Gäste verlängern ihr Gerät selbst: /v liefert dieselbe SPA aus
+    @app.get("/v", include_in_schema=False)
+    async def renew_page() -> FileResponse:
+        return FileResponse(index, headers={"Referrer-Policy": "no-referrer"})
+
     # Öffentliche Einladungsseite: /e/<token> liefert dieselbe SPA aus
     @app.get("/e/{token}", include_in_schema=False)
     async def enroll_page(token: str) -> FileResponse:

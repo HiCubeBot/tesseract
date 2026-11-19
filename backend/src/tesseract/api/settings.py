@@ -46,6 +46,8 @@ class GeneralIn(BaseModel):
     internal_networks: list[str] = Field(default_factory=list, max_length=200)
     internal_list_ids: list[int] = Field(default_factory=list, max_length=20)
     wildcard_certs: list[str] = Field(default_factory=list, max_length=20)
+    device_self_renew: bool = True
+    device_self_renew_days: int = Field(30, ge=1, le=365)
 
     @field_validator("wildcard_certs")
     @classmethod
@@ -144,6 +146,9 @@ class GeneralOut(BaseModel):
     internal_networks: list[str]
     internal_list_ids: list[int]
     wildcard_certs: list[str]
+    device_self_renew: bool
+    device_self_renew_days: int
+    device_self_renew_url: str
     # Liest der Controller das WAF-Log? (sonst sieht die Auto-Sperre keine Treffer)
     autoban_log_ready: bool
     # nur lesbar – kommen aus der Umgebung
@@ -175,6 +180,11 @@ def get_settings_general(db: DB, _: CurrentActor, settings: AppSettings) -> Gene
         internal_networks=g["internal_networks"],
         internal_list_ids=g["internal_list_ids"],
         wildcard_certs=g["wildcard_certs"],
+        device_self_renew=g["device_self_renew"],
+        device_self_renew_days=g["device_self_renew_days"],
+        device_self_renew_url=(
+            f"https://{settings.controller_domain}/v" if settings.controller_domain else "/v"
+        ),
         autoban_log_ready=bool(settings.caddy_waf_log and settings.waf_log_path),
         controller_domain=settings.controller_domain,
         env_managed=sorted(settings.env_overrides()),

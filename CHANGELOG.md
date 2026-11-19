@@ -13,6 +13,10 @@ Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinwe
 - **Git-Spiegel der Configs** (Einstellungen › Backup): Hosts, Caddy-Configs, IP-Listen und
   Einstellungen lesbar in einem Git-Repository, jede Änderung ein Commit. Anmeldung per Token
   oder SSH-Deploy-Key; ohne Geheimnisse und Personen. Das Image enthält dafür `git` und `ssh`
+- **Gäste verlängern ihr Gerät selbst** über `https://<controller>/v` – auf dem Gerät öffnen,
+  das noch gültige Zertifikat ist der Ausweis. Ab 30 Tagen vor Ablauf (einstellbar), nach
+  einem CA-Wechsel sofort. Abschaltbar unter Einstellungen › Zertifizierungsstelle; der Link
+  steht nach der Registrierung auf der Einladungsseite
 
 ## [1.1.0] – 2026-11-18
 

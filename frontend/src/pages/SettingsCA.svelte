@@ -7,7 +7,8 @@
   import StatusPill from '../lib/components/StatusPill.svelte';
   import Icon from '../lib/components/Icon.svelte';
   import IssuedCertificate from '../lib/components/IssuedCertificate.svelte';
-  import { api, downloadFile, formatDay, type AuthorityInfo, type CAStatus, type IssuedDevice } from '../lib/api';
+  import Toggle from '../lib/components/Toggle.svelte';
+  import { api, downloadFile, formatDay, type AuthorityInfo, type CAStatus, type GeneralSettings, type IssuedDevice } from '../lib/api';
   import { toasts } from '../lib/toast.svelte';
 
   let status = $state<CAStatus | null>(null);
@@ -20,7 +21,38 @@
   let keySaved = $state(false);
   let keyDownloaded = $state(false);
 
+  // Gäste verlängern ihr Gerät selbst
+  let selfRenew = $state<{ enabled: boolean; days: number; url: string } | null>(null);
+  let savingRenew = $state(false);
+
+  async function loadRenew() {
+    const g = await api.get<GeneralSettings>('/settings/general');
+    selfRenew = { enabled: g.device_self_renew, days: g.device_self_renew_days, url: g.device_self_renew_url };
+  }
+
+  async function saveRenew() {
+    if (!selfRenew) return;
+    savingRenew = true;
+    try {
+      const g = await api.put<GeneralSettings>('/settings/general', {
+        device_self_renew: selfRenew.enabled,
+        device_self_renew_days: Number(selfRenew.days)
+      });
+      selfRenew = { enabled: g.device_self_renew, days: g.device_self_renew_days, url: g.device_self_renew_url };
+      toasts.show('ok', 'Gespeichert.');
+    } catch (e) {
+      toasts.show('bad', e instanceof Error ? e.message : String(e), 10000);
+    } finally {
+      savingRenew = false;
+    }
+  }
+
+  function copyRenewUrl() {
+    if (selfRenew) navigator.clipboard?.writeText(selfRenew.url).then(() => toasts.show('ok', 'Link kopiert.'));
+  }
+
   async function load() {
+    loadRenew().catch(() => {});
     try {
       status = await api.get<CAStatus>('/ca');
     } catch (e) {
@@ -202,6 +234,34 @@
       </div>
     </section>
 
+    {#if selfRenew}
+      <section class="card" aria-labelledby="renew-title">
+        <h2 id="renew-title">Gäste verlängern selbst</h2>
+        <Toggle
+          label="Selbst verlängern erlauben"
+          description="Gäste öffnen den Link auf dem Gerät und bekommen ein neues Zertifikat – ohne neue Einladung und ohne Freigabe. Ausweis ist das noch gültige Zertifikat; gesperrte oder abgelaufene Geräte gehen nicht."
+          bind:checked={selfRenew.enabled}
+        />
+        {#if selfRenew.enabled}
+          <div class="row renew-row">
+            <label class="field days">
+              <span class="muted small">Ab wie vielen Tagen vor Ablauf</span>
+              <input class="input" type="number" min="1" max="365" bind:value={selfRenew.days} />
+            </label>
+            <span class="mono small link">{selfRenew.url}</span>
+            <Button variant="ghost" size="sm" icon="clipboard" label="Link kopieren" onClick={copyRenewUrl} />
+          </div>
+          <p class="muted small">
+            Den Link bekommen Gäste nach der Registrierung angezeigt. Nach einem Wechsel des Zwischenzertifikats geht das Verlängern
+            für alte Geräte sofort.
+          </p>
+        {/if}
+        <div class="row">
+          <Button variant="secondary" size="sm" icon="check" label={savingRenew ? 'Speichert …' : 'Speichern'} onClick={saveRenew} disabled={savingRenew} />
+        </div>
+      </section>
+    {/if}
+
     {#each status.previous as prev (prev.authority.fingerprint)}
       <section class="card retiring">
         <div class="row">
@@ -342,5 +402,19 @@
   }
   .small {
     font-size: 12px;
+  }
+  .renew-row {
+    align-items: flex-end;
+    flex-wrap: wrap;
+  }
+  .days {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 200px;
+  }
+  .link {
+    overflow-wrap: anywhere;
+    padding-bottom: 10px;
   }
 </style>

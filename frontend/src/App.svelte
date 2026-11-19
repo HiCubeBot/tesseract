@@ -6,11 +6,15 @@
   import LoginPage from './pages/Login.svelte';
   import Toasts from './lib/components/Toasts.svelte';
   import EnrollPage from './pages/Enroll.svelte';
+  import RenewPage from './pages/Renew.svelte';
 
   // Öffentliche Einladungsseite /e/<token> – ohne Anmeldung, ohne Hash-Router
   const enrollToken = window.location.pathname.match(/^\/e\/([A-Za-z0-9_-]{8,64})\/?$/)?.[1] ?? null;
 
-  if (!enrollToken) session.check();
+  // Gäste verlängern ihr Gerät selbst: /v – ebenfalls ohne Anmeldung
+  const renewPage = /^\/v\/?$/.test(window.location.pathname);
+
+  if (!enrollToken && !renewPage) session.check();
 
   const path = $derived(aliases[router.path] ?? router.path);
   const designPath = $derived(path.startsWith('design/') ? path.slice('design/'.length) : null);
@@ -22,12 +26,14 @@
   const title = $derived(match?.page.title ?? prototype?.title ?? 'Screens');
 
   $effect(() => {
-    document.title = enrollToken ? 'Einladung – Tesseract' : (needsLogin ? 'Anmelden' : title) + ' – Tesseract';
+    document.title = enrollToken ? 'Einladung – Tesseract' : renewPage ? 'Gerät verlängern – Tesseract' : (needsLogin ? 'Anmelden' : title) + ' – Tesseract';
   });
 </script>
 
 {#if enrollToken}
   <EnrollPage token={enrollToken} />
+{:else if renewPage}
+  <RenewPage />
 {:else if !session.checked}
   <div class="loading" aria-busy="true">Lade …</div>
 {:else if needsLogin}

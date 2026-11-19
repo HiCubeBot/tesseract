@@ -85,6 +85,9 @@ GENERAL_DEFAULTS: dict[str, Any] = {
     "internal_list_ids": [],
     # Geteilte Wildcard-Zertifikate (DNS-01)
     "wildcard_certs": [],
+    # Gäste verlängern ihr Gerät selbst (Link /v, Ausweis ist das noch gültige Zertifikat)
+    "device_self_renew": True,
+    "device_self_renew_days": 30,
     # Logs: Aufbewahrung in Tagen (Phase 5)
     "logs_days": 14,
     # Loki als zusätzlicher Log-Speicher: Basis-URL (leer = aus), optional Mandant
