@@ -18,6 +18,7 @@ def test_csp_on_html(settings, tmp_path) -> None:
     static = tmp_path / "static"
     (static / "assets").mkdir(parents=True)
     (static / "index.html").write_text("<!doctype html><title>x</title>")
+    (static / "favicon.svg").write_text("<svg xmlns='http://www.w3.org/2000/svg'/>")
     settings.static_dir = static
     with TestClient(create_app(settings)) as c:
         r = c.get("/")
@@ -25,6 +26,8 @@ def test_csp_on_html(settings, tmp_path) -> None:
         assert "script-src 'self'" in csp and "frame-ancestors 'none'" in csp
         # Einladungsseite behält ihre eigene Referrer-Policy
         assert c.get("/e/abc").headers["referrer-policy"] == "no-referrer"
+        icon = c.get("/favicon.svg")
+        assert icon.status_code == 200 and icon.headers["content-type"] == "image/svg+xml"
 
 
 def test_rate_limit_login(client: TestClient) -> None:

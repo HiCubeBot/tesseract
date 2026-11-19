@@ -1,4 +1,25 @@
-import type { Host, HostInput } from './api';
+import { api, type Host, type HostInput, type HostSaved } from './api';
+import { reportApply } from './nodes';
+import { toasts } from './toast.svelte';
+
+/** Tabs der Host-Seite */
+export type HostTab = 'general' | 'access' | 'security' | 'history';
+
+/** Host ein- oder ausschalten (sonst unverändert); gibt den gespeicherten Host zurück */
+export async function setEnabled(h: Host, enabled: boolean): Promise<Host | null> {
+  try {
+    const r = await api.put<HostSaved>(`/hosts/${h.id}`, {
+      ...toInput(h),
+      enabled,
+      comment: enabled ? 'Aktiviert' : 'Deaktiviert'
+    });
+    reportApply(r.apply, `${r.host.domain} (${enabled ? 'aktiviert' : 'deaktiviert'})`);
+    return r.host;
+  } catch (e) {
+    toasts.show('bad', e instanceof Error ? e.message : String(e));
+    return null;
+  }
+}
 
 export function emptyHost(nodeId = 0): HostInput {
   return {

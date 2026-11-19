@@ -4,6 +4,21 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.5.0] – 2026-11-19
+
+### Hinzugefügt
+- **Heller Modus:** folgt der Systemeinstellung, Umschalter in der Seitenleiste
+  (System → Hell → Dunkel), pro Browser gemerkt
+- **Favicon** für Browser-Tab und Lesezeichen
+- **Hosts in der Liste ein- und ausschalten:** Schalter direkt in der Zeile, neuer Filter
+  „Deaktiviert“, deaktivierte Hosts gedimmt
+
+### Geändert
+- **Host bearbeiten ist eine eigene Seite** statt der schmalen Seitenleiste neben der Liste:
+  Tabs Allgemein · Zugriff · Sicherheit · Verlauf, Aktiv-Schalter im Kopf, Vorab-Prüfungen
+  wie beim Anlegen, Speichern-Leiste bleibt beim Scrollen sichtbar. Bei ungespeicherten
+  Änderungen fragt ein Tab-Wechsel nach
+
 ## [1.4.2] – 2026-11-19
 
 ### Hinzugefügt

@@ -94,7 +94,15 @@ Beim Ausbau einer Seite empfiehlt sich:
 ## Routen
 
 **Echte Seiten (Phase 1):** `#/login` · `#/` Übersicht · `#/hosts` · `#/hosts/new` ·
-`#/hosts/:id` (Bearbeiten-Panel) · `#/hosts/:id/history` · `#/settings` · `#/audit`
+`#/hosts/:id` (Bearbeiten, Tab Allgemein) · `#/hosts/:id/access` · `#/hosts/:id/security` ·
+`#/hosts/:id/history` · `#/settings` · `#/audit`
+
+Die Host-Seiten teilen sich den Kopf `HostHeader` (Domain, Status, Aktiv-Schalter, Tabs).
+
+**Farbschema:** Alle Farben kommen aus den Tokens in `app.css`. Hell gilt bei
+`prefers-color-scheme: light` oder `<html data-theme="light">`; `lib/theme.svelte.ts` setzt
+`data-theme` nach Wahl in der Seitenleiste. Neue Komponenten nutzen nur Tokens, keine festen
+Farben (Ausnahme: Diagrammfarben).
 
 Die alten Pfade `#/host-new-1..3` leiten auf `#/hosts/new` um.
 

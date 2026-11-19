@@ -575,11 +575,11 @@
     color: var(--text);
   }
   .minus {
-    color: #f59a90;
+    color: var(--bad-text);
     background: rgba(240, 113, 103, 0.1);
   }
   .plus {
-    color: #7fd9ac;
+    color: var(--ok-text);
     background: rgba(76, 195, 138, 0.1);
   }
 </style>

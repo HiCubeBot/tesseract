@@ -500,7 +500,7 @@
     align-items: center;
     justify-content: center;
     background: rgba(139, 124, 246, 0.18);
-    color: #c9c1ff;
+    color: var(--accent-text);
   }
   dl {
     margin: 0;

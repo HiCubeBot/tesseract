@@ -7,6 +7,8 @@ import '@fontsource/inter/latin-700.css';
 import '@fontsource/jetbrains-mono/latin-400.css';
 import '@fontsource/jetbrains-mono/latin-500.css';
 import './app.css';
+// Farbschema vor dem ersten Rendern setzen (kein Aufblitzen)
+import './lib/theme.svelte';
 import App from './App.svelte';
 
 const app = mount(App, { target: document.getElementById('app')! });

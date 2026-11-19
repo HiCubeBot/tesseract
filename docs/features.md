@@ -7,7 +7,8 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 
 | Feature | Beschreibung | Phase |
 |---|---|---|
-| Host-Liste | Suche nach Domain/Ziel, Filter nach Zugriffsart (Alle / Öffentlich / mTLS) und Node | 1 |
+| Host-Liste | Suche nach Domain/Ziel, Filter (Alle / Aktiv / mTLS / Deaktiviert / Entwürfe) und Node; Hosts per Schalter direkt in der Zeile ein- und ausschalten (bleiben gespeichert, gehen nicht an Caddy) | 1 / 1.5 |
+| Host bearbeiten | Eigene Seite mit Tabs Allgemein · Zugriff · Sicherheit · Verlauf; Aktiv-Schalter im Kopf, Vorab-Prüfungen wie beim Anlegen, Nachfrage bei ungespeicherten Änderungen | 1.5 |
 | Host-Assistent | 3 Schritte: Domain & Ziel → Zugriff → Prüfen & übertragen | 1 |
 | Ziel | Schema (http/https), Ziel-IP/Host und Port, Auswahl des Nodes; bei https optional ohne Prüfung des Zertifikats (selbst signiert) | 1 / 4 / 1.1 |
 | Optionen | HTTP→HTTPS-Umleitung, WebSockets, Kompression (gzip/zstd) | 1 |
@@ -131,3 +132,10 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | Passkey | Anmeldung per WebAuthn (Fingerabdruck, Gesicht, Sicherheitsschlüssel) zusätzlich oder statt Passwort; Passwort-Anmeldung abschaltbar | 1.3 |
 | Angemeldet bleiben | 30 Tage pro Gerät | 1 |
 | Passwort-Reset | Nur lokal auf dem Controller: `tesseract admin reset` | 1 |
+
+## Oberfläche
+
+| Feature | Beschreibung | Phase |
+|---|---|---|
+| Heller und dunkler Modus | Folgt der Systemeinstellung; Umschalter in der Seitenleiste (System → Hell → Dunkel), pro Browser gemerkt | 1.5 |
+| Favicon | Logo als SVG-Icon für Tab und Lesezeichen | 1.5 |

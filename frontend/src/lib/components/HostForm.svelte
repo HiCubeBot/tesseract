@@ -99,7 +99,6 @@
           </label>
         {/each}
       </div>
-      <span class="muted small">Weitere Nodes kommen mit Phase 4.</span>
     </fieldset>
   {:else}
     <label class="field" for="{id}-node">
@@ -156,9 +155,6 @@
     <label class="check"><input type="checkbox" bind:checked={value.websockets} />WebSockets erlauben</label>
     <label class="check"><input type="checkbox" bind:checked={value.force_https} />HTTP → HTTPS umleiten</label>
     <label class="check"><input type="checkbox" bind:checked={value.compression} />Kompression (gzip/zstd)</label>
-    {#if compact}
-      <label class="check"><input type="checkbox" bind:checked={value.enabled} />Aktiv</label>
-    {/if}
   </div>
 </div>
 

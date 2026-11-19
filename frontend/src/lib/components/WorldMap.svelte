@@ -122,16 +122,16 @@
     height: auto;
   }
   .land {
-    fill: #232833;
-    stroke: #161920;
+    fill: var(--surface-active);
+    stroke: var(--surface);
     stroke-width: 0.5;
   }
   .land.active {
-    fill: #2e3440;
+    fill: var(--border-dashed);
   }
   .bubble {
     fill-opacity: 0.6;
-    stroke: #161920;
+    stroke: var(--surface);
     stroke-width: 2;
     cursor: default;
     transition: opacity 0.15s;

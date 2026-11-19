@@ -41,7 +41,7 @@
   .warn .dot { background: var(--warn); }
   .bad { color: var(--bad-text); background: var(--bad-soft); }
   .bad .dot { background: var(--bad); }
-  .mtls { color: #c9c1ff; background: var(--accent-soft); }
+  .mtls { color: var(--accent-text); background: var(--accent-soft); }
   .mtls .dot { background: var(--accent); }
   .neutral { color: var(--text-soft); background: var(--surface-raised); }
   .neutral .dot { background: var(--text-muted); }

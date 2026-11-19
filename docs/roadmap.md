@@ -17,10 +17,21 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 | 1.2 | Aus dem Backlog | Loki, Git-Spiegel, Gäste verlängern selbst – **fertig** |
 | 1.3 | Anmeldung & Verzeichnis | SSO (OIDC) und Passkeys für Admins, LDAP-Abgleich – **fertig** |
 | 1.4 | CA, Logs, Ausfallsicherheit | CA-Import und Root-Wechsel, VictoriaLogs, Node ohne Controller – **fertig** |
+| 1.5 | Oberfläche | Heller Modus, Favicon, Host-Seite mit Tabs, Hosts direkt in der Liste abschalten – **fertig** |
 | – | [Offen / bekannte Grenzen](#offen--bekannte-grenzen) | Einschränkungen des aktuellen Stands |
 | – | [Backlog](#backlog-niedrige-priorität) | Niedrige Priorität, ohne festen Zeitpunkt |
 
 ---
+
+## Version 1.5 – Oberfläche (fertig)
+
+- [x] Heller Modus – folgt der Systemeinstellung, umschaltbar in der Seitenleiste
+  (System → Hell → Dunkel), pro Browser gemerkt
+- [x] Favicon
+- [x] Hosts direkt in der Liste ein- und ausschalten; Filter „Deaktiviert“, deaktivierte Zeilen
+  gedimmt
+- [x] Host bearbeiten als eigene Seite statt Seitenleiste – Tabs Allgemein · Zugriff ·
+  Sicherheit · Verlauf, Aktiv-Schalter im Kopf, Speichern-Leiste bleibt sichtbar
 
 ## Version 1.4 – CA, Logs, Ausfallsicherheit (fertig)
 
@@ -84,18 +95,6 @@ Gewünscht, aber ohne festen Platz in einer Phase. Wird bei Bedarf eingeplant.
 - **Restic als Backup-Ziel** – Sicherungen zusätzlich in ein Restic-Repository schreiben
   (lokal, SFTP, S3, REST-Server …), mit Deduplizierung und Aufbewahrungsregeln von Restic.
   Heute gibt es lokale und S3-kompatible Ziele (Phase 6).
-
-**Oberfläche**
-
-- **Heller Modus** – helles Farbschema neben dem dunklen; folgt der Systemeinstellung und
-  lässt sich umschalten.
-- **Favicon** – eigenes Icon für Browser-Tab und Lesezeichen (bisher keins).
-- **Proxy-Host schneller deaktivieren** – Abschalten geht heute nur über „Bearbeiten“ › Haken
-  „Aktiv“. Gewünscht: Schalter direkt in der Host-Liste (und Status „deaktiviert“ deutlich zeigen).
-- **Host bearbeiten als eigene Seite mit Tabs** – statt der schmalen Seitenleiste neben der
-  Liste: volle Breite wie beim Anlegen eines Hosts, aufgeteilt in Tabs (z. B. Allgemein ·
-  Zugriff · Schutz/WAF · Zertifikat · Verlauf · Sicherheit). Verlauf und Sicherheit sind heute
-  nur ganz unten in der Seitenleiste erreichbar.
 
 ---
 

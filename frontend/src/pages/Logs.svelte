@@ -359,13 +359,13 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #5e6573;
+    background: var(--text-faint);
   }
   .live[aria-pressed='true'] {
     color: var(--text);
   }
   .live[aria-pressed='true'] .dot {
-    background: #4cc38a;
+    background: var(--ok);
     box-shadow: 0 0 0 3px rgba(76, 195, 138, 0.2);
   }
   .layout {
@@ -386,7 +386,7 @@
     cursor: pointer;
   }
   tbody tr:hover {
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--overlay);
   }
   tr.sel {
     background: rgba(139, 124, 246, 0.1);
@@ -417,13 +417,13 @@
     font-weight: 600;
   }
   .ok {
-    color: #7fd9ac;
+    color: var(--ok-text);
   }
   .bad {
     color: var(--bad-text);
   }
   .device {
-    color: #c9c1ff;
+    color: var(--accent-text);
   }
   .key {
     display: inline-block;
@@ -431,7 +431,7 @@
     height: 9px;
     border-radius: 3px;
     margin-right: 6px;
-    background: #5e6573;
+    background: var(--text-faint);
   }
   .key.waf {
     background: #14a399;

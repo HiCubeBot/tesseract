@@ -1,6 +1,6 @@
 [project]
 name = "tesseract"
-version = "1.4.2"
+version = "1.5.0"
 description = "Tesseract Controller – Caddy-Verwaltung mit mTLS und Coraza WAF"
 readme = "README.md"
 authors = [

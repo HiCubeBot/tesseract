@@ -151,6 +151,15 @@ def _mount_frontend(app: FastAPI, static_dir: Path) -> None:
     async def index_html() -> FileResponse:
         return FileResponse(index)
 
+    favicon = static_dir / "favicon.svg"
+    if favicon.is_file():
+
+        @app.get("/favicon.svg", include_in_schema=False)
+        async def favicon_svg() -> FileResponse:
+            return FileResponse(
+                favicon, media_type="image/svg+xml", headers={"Cache-Control": "max-age=86400"}
+            )
+
     # Gäste verlängern ihr Gerät selbst: /v liefert dieselbe SPA aus
     @app.get("/v", include_in_schema=False)
     async def renew_page() -> FileResponse:

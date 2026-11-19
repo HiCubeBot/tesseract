@@ -106,7 +106,7 @@
 <style>
   .invite {
     background: var(--bg);
-    border-color: #3a3460;
+    border-color: var(--accent-border);
   }
   h3 {
     margin: 0;

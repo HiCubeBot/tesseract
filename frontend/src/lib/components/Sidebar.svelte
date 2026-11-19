@@ -2,6 +2,14 @@
   import Icon from './Icon.svelte';
   import { icons } from '../icons';
   import { session } from '../session.svelte';
+  import { theme, THEME_LABELS } from '../theme.svelte';
+
+  // Symbole: Monitor (System), Sonne (hell), Mond (dunkel)
+  const THEME_ICONS = {
+    system: 'M3 5h18v11H3zM8 20h8M12 16v4',
+    light: 'M12 8a4 4 0 1 0 0 8a4 4 0 1 0 0-8M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4',
+    dark: 'M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z'
+  } as const;
 
   type NavId =
     | 'main'
@@ -38,7 +46,7 @@
 <nav aria-label="Hauptnavigation" class="sidebar">
   <div class="brand">
     <div class="logo">
-      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0E1014" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3z"></path><path d="M8 8h8v8H8z"></path><path d="M3 3l5 5M21 3l-5 5M3 21l5-5M21 21l-5-5"></path></svg>
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" style="stroke: var(--bg)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3z"></path><path d="M8 8h8v8H8z"></path><path d="M3 3l5 5M21 3l-5 5M3 21l5-5M21 21l-5-5"></path></svg>
     </div>
     <div class="stack">
       <span class="brand-name">Tesseract</span>
@@ -62,6 +70,15 @@
       <span class="user-name">{session.user?.username ?? 'nicht angemeldet'}</span>
       <span class="muted small">Controller</span>
     </div>
+    <button
+      type="button"
+      class="logout"
+      onclick={() => theme.next()}
+      aria-label={`Farbschema: ${THEME_LABELS[theme.choice]} – umschalten`}
+      title={`Farbschema: ${THEME_LABELS[theme.choice]}`}
+    >
+      <Icon d={THEME_ICONS[theme.choice]} />
+    </button>
     {#if session.user}
       <button type="button" class="logout" onclick={() => session.logout()} aria-label="Abmelden" title="Abmelden">
         <Icon d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10" />
@@ -133,7 +150,7 @@
   }
   .item:hover {
     color: var(--text);
-    background: #1a1e26;
+    background: var(--surface-hover);
   }
   .item.current {
     color: var(--text);

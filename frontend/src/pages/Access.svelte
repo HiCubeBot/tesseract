@@ -226,7 +226,7 @@
   .box.via {
     background: var(--accent-soft);
     border-color: transparent;
-    color: #c9c1ff;
+    color: var(--accent-text);
   }
   tr.disabled th,
   tr.disabled .box {

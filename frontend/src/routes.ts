@@ -35,6 +35,7 @@ import LoginPage from "./pages/Login.svelte";
 import OverviewPage from "./pages/Overview.svelte";
 import HostsPage from "./pages/Hosts.svelte";
 import HostWizardPage from "./pages/HostWizard.svelte";
+import HostEditPage from "./pages/HostEdit.svelte";
 import HostHistoryPage from "./pages/HostHistory.svelte";
 import SettingsPage from "./pages/Settings.svelte";
 import AuditPage from "./pages/Audit.svelte";
@@ -82,7 +83,8 @@ export const pages: Page[] = [
   { pattern: "settings-backup", title: "Einstellungen · Backup", component: SettingsBackupPage },
   { pattern: "settings-auth", title: "Einstellungen · Anmeldung", component: SettingsAuthPage },
   { pattern: "settings-ldap", title: "Einstellungen · LDAP", component: SettingsLdapPage },
-  { pattern: "hosts/:id", title: "Proxy-Hosts", component: HostsPage },
+  { pattern: "hosts/:id", title: "Host bearbeiten", component: HostEditPage },
+  { pattern: "hosts/:id/access", title: "Host · Zugriff", component: HostEditPage },
   { pattern: "hosts/:id/history", title: "Host · Verlauf", component: HostHistoryPage },
   { pattern: "hosts/:id/security", title: "Host · Sicherheit", component: HostSecurityPage },
   { pattern: "settings-integrations", title: "Einstellungen · Integrationen", component: SettingsIntegrationsPage },

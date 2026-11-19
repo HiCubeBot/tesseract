@@ -231,7 +231,7 @@
   }
   .chip.on {
     background: var(--accent-soft);
-    color: #d6d0ff;
+    color: var(--accent-text);
   }
   .chip input {
     margin: 0;

@@ -3,6 +3,7 @@
   import Button from '../lib/components/Button.svelte';
   import Alert from '../lib/components/Alert.svelte';
   import StatusPill from '../lib/components/StatusPill.svelte';
+  import HostHeader from '../lib/components/HostHeader.svelte';
   import {
     api,
     formatDate,
@@ -73,11 +74,8 @@
 </script>
 
 <AppShell active="hosts">
-  <header class="head">
-    <a href={`#/hosts/${hostId}`} class="crumb">← {host?.domain ?? 'Proxy-Hosts'}</a>
-    <h1>Verlauf</h1>
-    <p class="muted">Jede gespeicherte Änderung wird eine Version. Nichts wird überschrieben.</p>
-  </header>
+  <HostHeader {hostId} {host} tab="history" onChange={() => load()} />
+  <p class="muted intro">Jede gespeicherte Änderung wird eine Version. Nichts wird überschrieben.</p>
 
   {#if error}<Alert tone="bad" title="Fehler" text={error} />{/if}
 
@@ -159,23 +157,8 @@
 </AppShell>
 
 <style>
-  .head {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .head p {
+  .intro {
     margin: 0;
-  }
-  .crumb {
-    font-size: 13px;
-    font-weight: 500;
-    text-decoration: none;
-  }
-  h1 {
-    margin: 0;
-    font-size: 26px;
-    letter-spacing: -0.02em;
   }
   h2 {
     margin: 0;
@@ -217,7 +200,7 @@
     cursor: pointer;
   }
   ol button:hover {
-    background: #1a1e26;
+    background: var(--surface-hover);
   }
   ol button.on {
     background: var(--surface-raised);

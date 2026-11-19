@@ -7,6 +7,7 @@
   import ChipInput from '../lib/components/ChipInput.svelte';
   import Toggle from '../lib/components/Toggle.svelte';
   import AreaEditor from '../lib/components/AreaEditor.svelte';
+  import HostHeader from '../lib/components/HostHeader.svelte';
   import {
     api,
     IP_MODES,
@@ -126,10 +127,16 @@
 </script>
 
 <AppShell active="hosts">
-  <header class="head">
-    <a href={`#/hosts/${hostId}`} class="crumb">← {host?.domain ?? 'Proxy-Hosts'}</a>
-    <h1>Sicherheit</h1>
-  </header>
+  <HostHeader
+    {hostId}
+    {host}
+    tab="security"
+    {dirty}
+    onChange={(h) => {
+      host = h;
+      if (form) form.enabled = h.enabled;
+    }}
+  />
 
   {#if error}<Alert tone="bad" title="Fehler" text={error} />{/if}
 
@@ -272,21 +279,6 @@
 </AppShell>
 
 <style>
-  .head {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .crumb {
-    font-size: 13px;
-    font-weight: 500;
-    text-decoration: none;
-  }
-  h1 {
-    margin: 0;
-    font-size: 26px;
-    letter-spacing: -0.02em;
-  }
   h2 {
     margin: 0;
     font-size: 16px;
@@ -404,7 +396,7 @@
   }
   .chip.on {
     background: var(--accent-soft);
-    color: #d6d0ff;
+    color: var(--accent-text);
   }
   .chip input {
     margin: 0;

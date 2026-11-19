@@ -18,7 +18,7 @@
 </script>
 
 <div class="empty">
-  <div class="icon"><Icon name={iconName} size={22} color="#C9CED8" /></div>
+  <div class="icon"><Icon name={iconName} size={22} /></div>
   <h3>{title}</h3>
   {#if text}<p>{text}</p>{/if}
   {#if actionLabel}
@@ -68,5 +68,8 @@
   }
   .action {
     margin-top: 6px;
+  }
+  .icon {
+    color: var(--text-soft);
   }
 </style>

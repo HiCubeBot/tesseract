@@ -503,7 +503,7 @@
   }
   .panel {
     flex: 999 1 460px;
-    border-color: #3a3460;
+    border-color: var(--accent-border);
   }
   .people,
   .group-list,
@@ -644,7 +644,7 @@
   }
   .chip.on {
     background: var(--accent-soft);
-    color: #d6d0ff;
+    color: var(--accent-text);
   }
   .chip input {
     margin: 0;

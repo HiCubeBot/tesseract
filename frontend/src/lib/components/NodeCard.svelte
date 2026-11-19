@@ -33,7 +33,7 @@
 <article class="card {status}">
   <div class="top">
     <div class="who">
-      <div class="icon"><Icon name="server" color="#C9CED8" /></div>
+      <div class="icon"><Icon name="server" /></div>
       <div class="names">
         <span class="name">{nodeName}</span>
         <span class="loc">{location}</span>
@@ -125,5 +125,8 @@
   .link {
     font-size: 13px;
     font-weight: 500;
+  }
+  .icon {
+    color: var(--text-soft);
   }
 </style>
