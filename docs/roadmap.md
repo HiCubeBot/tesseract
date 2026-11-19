@@ -90,9 +90,12 @@ Gewünscht, aber ohne festen Platz in einer Phase. Wird bei Bedarf eingeplant.
 - **Heller Modus** – helles Farbschema neben dem dunklen; folgt der Systemeinstellung und
   lässt sich umschalten.
 - **Favicon** – eigenes Icon für Browser-Tab und Lesezeichen (bisher keins).
-- **Proxy-Host deaktivieren** – Host vorübergehend abschalten, ohne ihn zu löschen (Einstellungen
-  und Versionen bleiben). Das Backend kann es schon (`enabled` am Host, deaktivierte Hosts gehen
-  nicht an Caddy); es fehlt der Schalter in der Host-Liste bzw. im Host-Assistenten.
+- **Proxy-Host schneller deaktivieren** – Abschalten geht heute nur über „Bearbeiten“ › Haken
+  „Aktiv“. Gewünscht: Schalter direkt in der Host-Liste (und Status „deaktiviert“ deutlich zeigen).
+- **Host bearbeiten als eigene Seite mit Tabs** – statt der schmalen Seitenleiste neben der
+  Liste: volle Breite wie beim Anlegen eines Hosts, aufgeteilt in Tabs (z. B. Allgemein ·
+  Zugriff · Schutz/WAF · Zertifikat · Verlauf · Sicherheit). Verlauf und Sicherheit sind heute
+  nur ganz unten in der Seitenleiste erreichbar.
 
 ---
 
