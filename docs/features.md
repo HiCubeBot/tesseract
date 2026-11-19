@@ -117,7 +117,8 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 
 | Feature | Beschreibung | Phase |
 |---|---|---|
-| Doppelter Schutz | Admin-UI nur mit Admin-Gerätezertifikat erreichbar, zusätzlich Passwort oder Passkey. Eigene Anmeldung von Tesseract, unabhängig von der Authelia-Middleware für Hosts | 1 (Passwort) / 2 (mTLS) |
+| Doppelter Schutz | Admin-UI nur mit Admin-Gerätezertifikat erreichbar, zusätzlich Passwort. Eigene Anmeldung von Tesseract, unabhängig von der Authelia-Middleware für Hosts | 1 (Passwort) / 2 (mTLS) |
 | SSO für Admins *(niedrige Priorität)* | Anmeldung an der Admin-Oberfläche über einen externen Identity Provider (OIDC) statt Passwort. Betrifft nur Administratoren, nicht die Personen mit Zugriff auf Hosts. Das Admin-Gerätezertifikat bleibt Pflicht | Backlog |
+| Passkey *(niedrige Priorität)* | Anmeldung per WebAuthn zusätzlich oder statt Passwort | Backlog |
 | Angemeldet bleiben | 30 Tage pro Gerät | 1 |
 | Passwort-Reset | Nur lokal auf dem Controller: `tesseract admin reset` | 1 |

@@ -264,10 +264,10 @@ der sich ausgehend beim Controller meldet und die Config abholt – siehe
   dann wie früher vom Controller mit Hinweis.
 - Aufgaben: `tcp` (Ziel erreichbar?), `certs` (ausgelieferte Zertifikate per TLS mit SNI).
 
-## Offene Entscheidungen
+## Entscheidungen
 
-| Thema | Optionen | Notiz |
+| Thema | Entscheidung | Notiz |
 |---|---|---|
-| Datenbank / ORM | SQLite + SQLModel oder SQLAlchemy 2 + Alembic | SQLite reicht für den Controller, Backup einfach. |
-| Log-Speicher | SQLite (umgesetzt), DuckDB oder Loki | Phase 5 nutzt SQLite mit Aufbewahrung (14 Tage); bei viel Verkehr wechseln. |
-| Admin-Passkey | WebAuthn zusätzlich/alternativ zum Passwort | Design zeigt „per Passkey“ im Audit-Log. |
+| Datenbank / ORM | SQLite + SQLAlchemy 2 + Alembic | SQLite reicht für den Controller, Backup einfach. |
+| Log-Speicher | SQLite mit Aufbewahrung (Standard 14 Tage) | Bei sehr viel Verkehr DuckDB oder Loki – siehe [Backlog](roadmap.md#backlog-niedrige-priorität). |
+| Admin-Passkey | Vorerst nur Passwort (+ Admin-Gerätezertifikat) | WebAuthn steht im [Backlog](roadmap.md#backlog-niedrige-priorität). |

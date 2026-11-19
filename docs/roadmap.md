@@ -13,11 +13,63 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 | 4 | Multi-Node | Agent, mehrere Server, auch hinter NAT – **fertig** |
 | 5 | Beobachtbarkeit | Logs, Statistik, Audit, Metriken, Benachrichtigungen – **fertig** |
 | 6 | Betrieb & Release | Backup, CA-Rotation, Härtung, v1.0 – **fertig** |
-| – | Backlog | Niedrige Priorität, ohne festen Zeitpunkt |
+| 1.1 | Lücken geschlossen | Selbst signierte Ziele, Modul-Prüfung, Aufgaben für Agents – **fertig** |
+| – | [Offen / bekannte Grenzen](#offen--bekannte-grenzen) | Einschränkungen des aktuellen Stands |
+| – | [Backlog](#backlog-niedrige-priorität) | Niedrige Priorität, ohne festen Zeitpunkt |
 
 ---
 
-## Phase 0 – Fundament
+## Offen / bekannte Grenzen
+
+Was im aktuellen Stand fehlt oder bewusst eingeschränkt ist.
+
+- **DNS-01 nicht mit echter Zone getestet** – der Zertifikatsabruf per DNS-01 (Cloudflare) ist
+  bisher nur über die Format-Prüfung der Caddy-Config getestet.
+- **Caddy-Version im Docker-Betrieb** – sie wird nur angezeigt, wenn der Agent das
+  `caddy`-Programm aufrufen kann. Läuft der Agent im eigenen Container, steht dort „–“
+  (Caddys Admin-API liefert keine Version).
+- **„Änderung übernehmen“ bei Abweichungen** – die lokale Änderung auf dem Node wird nicht in
+  die Hosts des Controllers übernommen und gilt nur bis zur nächsten Übertragung.
+- **Abgelehnte TLS-Handshakes** (strenges mTLS) stehen nicht im Zugriffs-Log – Caddy schreibt
+  dafür keine Anfrage. Sichtbar sind nur die 403 der Hinweisseite und der Pfad-Regeln.
+- **Anomalie-Score** – Coraza schreibt ihn bei OWASP CRS 4 nicht ins Log; er wird nur gezeigt,
+  wenn vorhanden.
+
+## Backlog (niedrige Priorität)
+
+Gewünscht, aber ohne festen Platz in einer Phase. Wird bei Bedarf eingeplant.
+
+**Zugang & Identitäten**
+
+- **SSO für die Admin-Oberfläche** – Anmeldung der Administratoren über OIDC (z. B. Authelia,
+  Keycloak, Authentik). Betrifft nur Admins, nicht die angelegten Personen mit Zugriff auf Hosts.
+  Das Admin-Gerätezertifikat (mTLS) bleibt als erste Hürde bestehen.
+- **Passkey für die Admin-Anmeldung** – WebAuthn zusätzlich oder statt Passwort.
+- **LDAP-Sync für Personen** – Personen und Gruppen aus LDAP übernehmen und regelmäßig abgleichen.
+  Freigaben können dann an LDAP-Gruppen hängen; Geräte und Zertifikate verwaltet weiter Tesseract.
+  Wer in LDAP deaktiviert wird, wird in Tesseract samt Geräten gesperrt.
+- **Gäste verlängern ihr Gerät selbst** über einen Link (heute verlängert der Admin).
+
+**Zertifikate & CA**
+
+- **Import einer bestehenden CA** und **Wechsel des Root-Zertifikats** (heute gibt es nur den
+  Wechsel des Zwischenzertifikats).
+- **Weitere DNS-Anbieter** für DNS-01 neben Cloudflare.
+
+**Betrieb**
+
+- **Docker-Labels** – Hosts automatisch aus Container-Labels anlegen (Domain, Ziel-Port,
+  Zugriff …), ähnlich wie bei anderen Reverse Proxys.
+  Issue: [HiCubeBot/tesseract#14](https://github.com/HiCubeBot/tesseract/issues/14)
+- **Eigener Log-Speicher** (DuckDB, Loki) für sehr viel Verkehr – heute SQLite mit 14 Tagen
+  Aufbewahrung.
+- **Git-Spiegel der Configs** als zusätzliches Backup-Ziel.
+
+---
+
+## Erledigte Phasen
+
+### Phase 0 – Fundament
 
 **Ziel:** Saubere Basis, auf der alle weiteren Phasen aufbauen.
 
@@ -25,13 +77,12 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 - [x] Backend-Gerüst mit uv + FastAPI (`backend/`), Health-Endpunkt, Tests
 - [x] Dockerfile (Frontend + Backend in einem Image), Caddy-Image mit Coraza, `compose.yaml`
 - [x] Dokumentation in `docs/`, Featureliste, Roadmap
-- [x] Git-Repository
-- [x] CI (Lint, Tests, `svelte-check`, Image-Build) – mit Phase 6
-- [ ] Architekturentscheidungen aus [architecture.md](architecture.md#offene-entscheidungen) treffen
+- [x] Git-Repository, CI (Lint, Tests, `svelte-check`, Image-Build)
+- [x] Architekturentscheidungen ([architecture.md](architecture.md#entscheidungen))
 
 **Fertig, wenn:** `docker compose up` startet Controller + Caddy, UI und `/api/health` sind erreichbar.
 
-## Phase 1 – Proxy-Manager (Single-Node)
+### Phase 1 – Proxy-Manager (Single-Node)
 
 **Ziel:** Funktionsgleich mit den Kernfunktionen von NPM – für einen Caddy im selben Compose-Stack.
 
@@ -45,15 +96,10 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 - [x] Basis-Audit-Log (wer hat was geändert)
 - [x] Frontend: Übersicht, Hosts, Host anlegen, Verlauf, Einstellungen/Allgemein, Audit-Log an die API angebunden
 
-Offen / bewusst verschoben:
-- Coraza-WAF in der erzeugten Config (auch für die Controller-Domain) → Phase 3
-- Erreichbarkeit des Ziels wird vom Controller aus geprüft, nicht vom Node → Phase 4 (Agent)
-- Upstream-HTTPS mit selbstsigniertem Zertifikat (`insecure_skip_verify`) → in 1.1 erledigt
-
 **Fertig, wenn:** Ein öffentlicher Host mit gültigem Let's-Encrypt-Zertifikat lässt sich komplett
 über das UI anlegen, ändern und auf eine alte Version zurücksetzen.
 
-## Phase 2 – mTLS & Identitäten
+### Phase 2 – mTLS & Identitäten
 
 **Ziel:** Private Dienste nur für freigegebene Geräte – die VPN-Alternative.
 
@@ -66,18 +112,12 @@ Offen / bewusst verschoben:
 - [x] Einladungsfluss: Link + QR + separater Bestätigungscode, Admin-Freigabe, Installationsanleitungen je Plattform
 - [x] Admin-UI nur mit Admin-Gerätezertifikat (+ Passwort), Notausgang `tesseract admin mtls off`
 
-Offen / bewusst verschoben:
-- Verlängern eines Geräts ohne neue Registrierung und Ablauf-Erinnerungen → in Phase 6 erledigt
-- Passkey als Alternative zum Passwort → Backlog/Phase 6
-- Signieren eines neuen Zwischenzertifikats mit dem Root-Schlüssel → in Phase 6 erledigt; Import einer bestehenden CA → Backlog
-- Eigene Freigaben pro Pfad (heute gelten die Freigaben des Hosts für alle geschützten Pfade) → Phase 3 („Host-Bereiche“)
-
 **Fertig, wenn:** Ein eingeladener Gast registriert ein iPhone und einen Laptop, erreicht genau die
 freigegebenen Dienste, und nach dem Sperren eines Geräts schlägt dessen TLS-Handshake fehl.
 Bei einem Host mit öffentlicher `/api/*` und geschütztem `/admin/*` antwortet die API ohne
 Zertifikat, `/admin/*` nur mit.
 
-## Phase 3 – WAF & Zugriffsschutz
+### Phase 3 – WAF & Zugriffsschutz
 
 **Ziel:** Öffentliche Dienste absichern.
 
@@ -90,15 +130,10 @@ Zertifikat, `/admin/*` nur mit.
 - [x] DNS-01-Challenge (Cloudflare) für Wildcards und Hosts ohne Port 80
 - [x] Host-Bereiche: Pfade mit eigenen Regeln für Zugriff/Freigaben, WAF, IP-Filter, Authelia
 
-Offen / bewusst verschoben:
-- „Aktionen aus Logs“ (Ausnahme direkt aus einem Treffer anlegen, IP aus dem Log sperren) → Phase 5 mit der Log-Ansicht
-- weitere DNS-Anbieter neben Cloudflare → Backlog
-- echter Zertifikatsabruf per DNS-01 nur mit Format-Prüfung getestet (braucht echte Zone)
-
 **Fertig, wenn:** Ein SQL-Injection-Versuch wird blockiert, protokolliert und führt nach Schwellwert
 zur automatischen IP-Sperre.
 
-## Phase 3b – Interne Dienste & Zertifikate
+### Phase 3b – Interne Dienste & Zertifikate
 
 **Ziel:** Der Proxy als zentrale Stelle auch für rein interne Dienste (Grafana im Homelab
 & Co.) – mit allen Zertifikaten im Blick.
@@ -115,7 +150,7 @@ zur automatischen IP-Sperre.
 bricht die Verbindung ab, das Zertifikat ist das gemeinsame Wildcard-Zertifikat, und die
 Zertifikatsübersicht zeigt es mit Laufzeit und allen Hosts, die es nutzen.
 
-## Phase 4 – Multi-Node
+### Phase 4 – Multi-Node
 
 **Ziel:** Beliebig viele Caddy-Server zentral verwalten.
 
@@ -131,22 +166,10 @@ Zertifikatsübersicht zeigt es mit Laufzeit und allen Hosts, die es nutzen.
   und zählen für die Auto-Sperre
 - [x] Interne Controller-Domain (z. B. `tesseract.lan`) bekommt ein Zertifikat aus Caddys CA
 
-Offen / bewusst verschoben:
-- Caddy-Version wird nur angezeigt, wenn der Agent das `caddy`-Programm aufrufen kann – im
-  Docker-Betrieb (Agent im eigenen Container) „–“. Caddys Admin-API liefert keine Version.
-- Fehlt einem Node ein Modul, wird ein Host mit WAF/DNS-01 dort beim Speichern abgelehnt →
-  in 1.1 erledigt
-- „Änderung übernehmen“ übernimmt die Abweichung nicht in die Hosts des Controllers, sie
-  gilt nur bis zur nächsten Übertragung
-- Erreichbarkeit des Ziels vom Node aus (Agent ≥ 1.1) → in 1.1 erledigt
-- Zertifikatsübersicht für alle Nodes (Agent ≥ 1.1) → in 1.1 erledigt
-- Zugriffs-Logs der Nodes (nicht nur WAF-Treffer) puffern und sammeln → in Phase 5 erledigt
-- Node-Zertifikat verlängern (gilt 2 Jahre) → in Phase 6 erledigt
-
 **Fertig, wenn:** Ein Raspberry Pi hinter NAT tritt bei, bekommt Hosts zugewiesen, und eine
 lokale Änderung auf dem Pi wird im UI als Abweichung angezeigt.
 
-## Phase 5 – Beobachtbarkeit
+### Phase 5 – Beobachtbarkeit
 
 **Ziel:** Sehen, was passiert.
 
@@ -159,19 +182,10 @@ lokale Änderung auf dem Pi wird im UI als Abweichung angezeigt.
 - [x] Prometheus-Endpunkt inkl. Node- und Caddy-Metriken, Grafana-Dashboard
 - [x] Benachrichtigungen per E-Mail, Webhook, ntfy mit Bündelung und Ruhezeiten
 
-Offen / bewusst verschoben:
-- Abgelehnte TLS-Handshakes (strenges mTLS) stehen nicht im Zugriffs-Log – Caddy schreibt dafür
-  keine Anfrage; sichtbar sind nur 403 der Hinweisseite und der Pfad-Regeln
-- Anomalie-Score: Coraza schreibt ihn bei OWASP CRS 4 nicht ins Log, er wird nur gezeigt, wenn
-  vorhanden
-- Logs liegen in SQLite (Standard 14 Tage); für sehr viel Verkehr wäre ein eigener Speicher
-  (DuckDB, Loki) besser → Backlog
-- Ablauf-Erinnerungen für Zertifikate und Geräte als Benachrichtigung → in Phase 6 erledigt
-
 **Fertig, wenn:** Ein blockierter Angriff erscheint live in den Logs, in der Statistik und als
 ntfy-Meldung.
 
-## Phase 6 – Betrieb & Release
+### Phase 6 – Betrieb & Release
 
 **Ziel:** Stabil genug für den Dauerbetrieb – Version 1.0.
 
@@ -185,13 +199,7 @@ ntfy-Meldung.
   [operations.md](operations.md)), Upgrade-Pfad, CI, veröffentlichte Images (amd64/arm64)
   über GitHub Actions bei einem Versions-Tag, [CHANGELOG](../CHANGELOG.md)
 
-Offen / bewusst verschoben:
-- Git-Spiegel der Configs als Backup-Ziel → Backlog
-- Gäste verlängern ihr Gerät selbst über einen Link (heute verlängert der Admin) → Backlog
-- Import einer bestehenden CA, Wechsel des Root-Zertifikats → Backlog
-- Passkey für die Admin-Anmeldung → Backlog
-
-## Version 1.1 – Lücken geschlossen
+### Version 1.1 – Lücken geschlossen
 
 - [x] https zum Ziel ohne Zertifikatsprüfung (selbst signierte Ziele)
 - [x] Hosts mit WAF/DNS-01 auf Nodes ohne das Caddy-Modul werden beim Speichern abgelehnt
@@ -201,17 +209,3 @@ Offen / bewusst verschoben:
   Internet
 - [x] Behoben: lokale `.env` im Image, Caddy fragte nach dem Einrichten der CA nicht sofort
   nach Client-Zertifikaten, Zertifikatsübersicht bei Agent-Nodes
-
-## Backlog (niedrige Priorität)
-
-Gewünscht, aber ohne festen Platz in einer Phase. Wird erst nach v1.0 oder bei Bedarf eingeplant.
-
-- **SSO für die Admin-Oberfläche** – Anmeldung der Administratoren über OIDC (z. B. Authelia,
-  Keycloak, Authentik). Betrifft nur Admins, nicht die angelegten Personen mit Zugriff auf Hosts.
-  Das Admin-Gerätezertifikat (mTLS) bleibt als erste Hürde bestehen.
-- **LDAP-Sync für Personen** – Personen und Gruppen aus LDAP übernehmen und regelmäßig abgleichen.
-  Freigaben können dann an LDAP-Gruppen hängen; Geräte und Zertifikate verwaltet weiter Tesseract.
-  Wer in LDAP deaktiviert wird, wird in Tesseract samt Geräten gesperrt.
-- **Docker-Labels** – Hosts automatisch aus Container-Labels anlegen (Domain, Ziel-Port,
-  Zugriff …), ähnlich wie bei anderen Reverse Proxys. Erst nach v1.0.
-  Issue: [HiCubeBot/tesseract#14](https://github.com/HiCubeBot/tesseract/issues/14)
