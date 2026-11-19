@@ -90,6 +90,9 @@ Gewünscht, aber ohne festen Platz in einer Phase. Wird bei Bedarf eingeplant.
 - **Heller Modus** – helles Farbschema neben dem dunklen; folgt der Systemeinstellung und
   lässt sich umschalten.
 - **Favicon** – eigenes Icon für Browser-Tab und Lesezeichen (bisher keins).
+- **Proxy-Host deaktivieren** – Host vorübergehend abschalten, ohne ihn zu löschen (Einstellungen
+  und Versionen bleiben). Das Backend kann es schon (`enabled` am Host, deaktivierte Hosts gehen
+  nicht an Caddy); es fehlt der Schalter in der Host-Liste bzw. im Host-Assistenten.
 
 ---
 
