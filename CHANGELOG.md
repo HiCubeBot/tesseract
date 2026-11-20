@@ -4,6 +4,12 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.8.1] – 2026-11-20
+
+### Behoben
+- Übersicht › Letzte Ereignisse: Bei älteren Einträgen lief das Datum in den Titel. Jetzt
+  kurz „19.11. 22:52“ (Jahr nur, wenn es nicht das aktuelle ist) in einer breiteren Spalte
+
 ## [1.8.0] – 2026-11-20
 
 ### Hinzugefügt

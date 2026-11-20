@@ -27,9 +27,11 @@
     font-family: var(--font-sans);
     font-size: 14px;
   }
+  /* breit genug für „19.11. 22:52“ (zweizeilig); längere Angaben brechen um statt überzulaufen */
   .time {
-    width: 52px;
+    width: 60px;
     flex-shrink: 0;
+    overflow-wrap: anywhere;
     padding-top: 2px;
     font-size: 12px;
     color: var(--text-muted);

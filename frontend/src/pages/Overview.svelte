@@ -10,6 +10,7 @@
   import {
     api,
     formatAgo,
+    formatAgoShort,
     ACTION_LABELS,
     type AuditEntry,
     type Host,
@@ -206,7 +207,7 @@
       </div>
       {#each events as e (e.id)}
         <EventItem
-          time={formatAgo(e.created_at)}
+          time={formatAgoShort(e.created_at)}
           title={`${ACTION_LABELS[e.action] ?? e.action}${e.target ? ' · ' + e.target : ''}`}
           detail={e.actor + (e.ip ? ' · ' + e.ip : '')}
           tone={tone(e.action)}

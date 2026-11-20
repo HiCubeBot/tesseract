@@ -450,6 +450,20 @@ export function formatAgo(iso: string | null): string {
   return formatDate(iso);
 }
 
+/** Kurz für schmale Spalten: wie formatAgo, ältere Einträge „19.11. 22:52“ (Jahr nur, wenn anders) */
+export function formatAgoShort(iso: string | null): string {
+  if (!iso) return 'nie';
+  const d = new Date(iso);
+  if (Date.now() - d.getTime() < 86_400_000) return formatAgo(iso);
+  const day = d.toLocaleDateString('de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    ...(d.getFullYear() !== new Date().getFullYear() ? { year: '2-digit' } : {})
+  });
+  const time = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  return `${day} ${time}`;
+}
+
 export const FIELD_LABELS: Record<string, string> = {
   domain: 'Domain',
   node: 'Node',
