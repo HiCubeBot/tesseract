@@ -189,6 +189,31 @@ Controller für Auto-Sperre, Benachrichtigungen und „zuletzt gesehen“ der Ge
   geschrieben hat (`query_ingesters_within`, Standard 3 Stunden); im laufenden Betrieb fällt
   das nicht auf.
 
+## DNS-Einträge automatisch (Cloudflare)
+
+Unter **Einstellungen › Integrationen › DNS-Einträge** pro Domain festlegen, wie neue Hosts
+eingetragen werden:
+
+| Art | Wert | Typischer Fall |
+|---|---|---|
+| CNAME | ein Name, z. B. `home.beispiel.de` | Heimnetz mit DDNS: alle Hosts zeigen auf den DDNS-Namen |
+| A / AAAA | öffentliche IPs des Nodes (Nodes › Bearbeiten) oder eigene | Server mit fester IP; AAAA für IPv6 |
+
+Beim Anlegen oder Bearbeiten eines Hosts dann „DNS-Eintrag bei Cloudflare › Automatisch
+anlegen“. Art, Ziel und Proxy lassen sich pro Host ändern. Tesseract legt den Eintrag an, bevor
+es die Config an Caddy überträgt (damit Let's Encrypt den Namen findet), ändert ihn mit dem Host
+und löscht ihn mit dem Host. Entwürfe bekommen noch keinen Eintrag.
+
+- Nur Einträge, die Tesseract selbst angelegt hat (Kommentar „Tesseract: <domain>“), werden
+  geändert oder gelöscht. Gibt es den Namen schon mit anderem Wert, meldet Tesseract das und
+  lässt ihn stehen; hat er bereits den gewünschten Wert, wird er übernommen.
+- Schlägt etwas fehl, bleibt der Host trotzdem gespeichert; der Fehler steht beim Host, erneutes
+  Speichern versucht es noch einmal.
+- Über den Cloudflare-Proxy (orange Wolke) gehen weder Client-Zertifikate (mTLS) noch „Nur aus
+  internen Netzen“ – Tesseract lehnt die Kombination ab.
+- Der Token braucht „Zone › Zone › Lesen“ und „Zone › DNS › Bearbeiten“ – dieselben Rechte wie
+  für DNS-01. „Zugriff prüfen“ in den Einstellungen testet das.
+
 ## Hosts aus Docker-Labels
 
 Container mit dem Label `tesseract.domain` werden zu Proxy-Hosts:

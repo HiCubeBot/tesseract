@@ -105,6 +105,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     from tesseract.geoip import initial_path
 
     app.state.logs = Collector(Geo(initial_path(settings)))
+    # Cloudflare-API für DNS-Einträge – in Tests ein MockTransport
+    app.state.dns_transport = None
     # GeoIP-Download (nur mit TESSERACT_GEOIP_AUTO) – in Tests ein MockTransport
     app.state.geoip_transport = None
     # In Tests durch einen httpx.MockTransport ersetzt

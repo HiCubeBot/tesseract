@@ -214,6 +214,14 @@ class Host(Base):
     source_hash: Mapped[str | None] = mapped_column(String(64))
     # von der Docker-Anbindung abgeschaltet (Container gestoppt/entfernt)
     source_disabled: Mapped[bool] = mapped_column(default=False, server_default="0")
+    # DNS-Eintrag bei Cloudflare (dnsrecords.py): None = keiner, "cname" oder "address" (A/AAAA)
+    dns_type: Mapped[str | None] = mapped_column(String(16))
+    # leer = Wert der Zone; bei "address" IPs kommagetrennt
+    dns_target: Mapped[str] = mapped_column(String(500), default="", server_default="")
+    dns_proxied: Mapped[bool] = mapped_column(default=False, server_default="0")
+    # von Tesseract angelegte Einträge (IDs bei Cloudflare) und letzter Fehler
+    dns_records: Mapped[list[dict] | None] = mapped_column(JSON)
+    dns_error: Mapped[str | None] = mapped_column(String(1000))
     version: Mapped[int] = mapped_column(default=1)
     created_at: Mapped[datetime] = mapped_column(default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(default=utcnow, onupdate=utcnow)

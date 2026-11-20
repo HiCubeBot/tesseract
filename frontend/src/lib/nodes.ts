@@ -10,7 +10,12 @@ export async function applyNode(node: NodeInfo): Promise<boolean> {
 }
 
 /** Meldung nach „Speichern & übertragen“. */
-export function reportApply(apply: { ok: boolean; error: string | null; skipped: boolean }, what: string) {
+export function reportApply(
+  apply: { ok: boolean; error: string | null; skipped: boolean },
+  what: string,
+  dns?: { ok: boolean; error: string | null; skipped: boolean }
+) {
+  if (dns && !dns.ok) toasts.show('warn', `DNS-Eintrag für ${what}: ${dns.error}`, 15000);
   if (apply.skipped) toasts.show('info', `${what} gespeichert.`);
   else if (apply.ok) toasts.show('ok', `${what} gespeichert und übertragen.`);
   else

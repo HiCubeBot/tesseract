@@ -55,6 +55,9 @@ SNAPSHOT_FIELDS = (
     "areas",
     "enabled",
     "draft",
+    "dns_type",
+    "dns_target",
+    "dns_proxied",
 )
 
 GENERAL_DEFAULTS: dict[str, Any] = {
@@ -96,6 +99,8 @@ GENERAL_DEFAULTS: dict[str, Any] = {
     "loki_kind": "loki",
     # Log-Ansicht und Statistik aus Loki/VictoriaLogs lesen statt aus SQLite
     "logs_external": False,
+    # DNS-Einträge bei Cloudflare: pro Domain (Zone) Standard für neue Hosts, siehe dnsrecords.py
+    "dns_zones": [],
     # Hosts aus Docker-Labels (lokal über TESSERACT_DOCKER_HOST, Agents über ihren Status)
     "docker_enabled": False,
     # neue Hosts aus Labels sofort übertragen statt als Entwurf

@@ -427,3 +427,73 @@ async def docker_sync(request: Request, db: DB, _: CurrentActor, settings: AppSe
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"Docker: {e}") from e
     result = await asyncio.to_thread(dl.run_sync, request.app, db, node, containers)
     return {k: v for k, v in result.items() if k != "changed"}
+
+
+# ---------- DNS-Einträge (Cloudflare) ----------
+
+
+class DnsZoneIn(BaseModel):
+    zone: str = Field(min_length=3, max_length=253)
+    type: Literal["cname", "address"] = "cname"
+    cname_target: str = Field("", max_length=253)
+    ip_source: Literal["node", "custom"] = "node"
+    ips: list[str] = Field(default_factory=list, max_length=20)
+    proxied: bool = False
+
+
+class DnsZonesIn(BaseModel):
+    zones: list[DnsZoneIn] = Field(default_factory=list, max_length=50)
+
+
+@router.get("/dns-zones")
+def get_dns_zones(db: DB, _: CurrentActor) -> dict:
+    g = get_general(db)
+    return {"zones": g.get("dns_zones") or [], "token_set": bool(g["cloudflare_token_enc"])}
+
+
+@router.put("/dns-zones")
+def put_dns_zones(body: DnsZonesIn, request: Request, db: DB, actor: CurrentActor) -> dict:
+    from tesseract.dnsrecords import normalize_zone
+
+    zones = []
+    try:
+        for z in body.zones:
+            zones.append(normalize_zone(z.model_dump()))
+    except ValueError as e:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(e)) from e
+    names = [z["zone"] for z in zones]
+    if len(set(names)) != len(names):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Jede Domain nur einmal")
+    before = get_general(db).get("dns_zones") or []
+    set_general(db, {"dns_zones": zones})
+    if before != zones:
+        audit.record(
+            db,
+            actor=actor.name,
+            action="settings_changed",
+            target="DNS-Einträge",
+            details={"zones": names},
+            ip=actor.ip,
+        )
+    db.commit()
+    return get_dns_zones(db, actor)
+
+
+class DnsCheckIn(BaseModel):
+    zone: str = Field(min_length=3, max_length=253)
+
+
+@router.post("/dns-zones/check")
+def check_dns_zone(
+    body: DnsCheckIn, request: Request, db: DB, _: CurrentActor, settings: AppSettings
+) -> dict:
+    """Kann der Cloudflare-Token diese Zone lesen?"""
+    from tesseract.dnsrecords import check_zone
+    from tesseract.services import cloudflare_token
+
+    err = check_zone(
+        body.zone.strip().lower().rstrip("."),
+        cloudflare_token(db, settings),
+        getattr(request.app.state, "dns_transport", None),
+    )
+    return {"ok": err is None, "error": err}

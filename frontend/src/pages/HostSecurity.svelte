@@ -99,7 +99,7 @@
     saving = true;
     try {
       const r = await api.put<HostSaved>(`/hosts/${host.id}`, { ...form, comment: 'Sicherheit' });
-      reportApply(r.apply, r.host.domain);
+      reportApply(r.apply, r.host.domain, r.dns);
       await load();
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);

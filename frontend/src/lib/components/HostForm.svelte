@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { coveringWildcard, type CustomCert, type HostInput, type NodeInfo } from '../api';
+  import { coveringWildcard, zoneFor, type CustomCert, type DnsZone, type HostInput, type NodeInfo } from '../api';
 
   interface Props {
     value: HostInput;
@@ -12,6 +12,8 @@
     wildcards?: string[];
     /** hochgeladene eigene Zertifikate */
     customCerts?: CustomCert[];
+    /** Domains mit automatischem DNS-Eintrag (Einstellungen › Integrationen) */
+    dnsZones?: DnsZone[];
   }
 
   let {
@@ -20,8 +22,27 @@
     compact = false,
     dnsAvailable = false,
     wildcards = [],
-    customCerts = []
+    customCerts = [],
+    dnsZones = []
   }: Props = $props();
+  const zone = $derived(zoneFor(value.domain, dnsZones));
+  const node = $derived(nodes.find((n) => n.id === value.node_id));
+  /** Was ohne eigene Angabe eingetragen würde */
+  const dnsDefault = $derived(
+    !zone
+      ? ''
+      : value.dns_type === 'cname'
+        ? zone.cname_target
+        : zone.ip_source === 'custom'
+          ? zone.ips.join(', ')
+          : (node?.public_ips ?? []).join(', ')
+  );
+
+  function toggleDns(on: boolean) {
+    value.dns_type = on ? (zone?.type ?? 'cname') : null;
+    value.dns_target = '';
+    value.dns_proxied = on ? (zone?.proxied ?? false) : false;
+  }
   const covered = $derived(dnsAvailable ? coveringWildcard(value.domain, wildcards) : null);
   const wildcard = $derived(value.domain.trim().startsWith('*.'));
   // Wildcard geht nur per DNS-01
@@ -151,6 +172,51 @@
     </label>
   {/if}
 
+  {#if dnsZones.length}
+    <fieldset class="dns">
+      <legend>DNS-Eintrag bei Cloudflare</legend>
+      <label class="check">
+        <input type="checkbox" checked={!!value.dns_type} onchange={(e) => toggleDns(e.currentTarget.checked)} disabled={!zone && !value.dns_type} />
+        Automatisch anlegen{zone ? ` (Domain ${zone.zone})` : ''}
+      </label>
+      {#if !zone && value.domain.includes('.')}
+        <span class="muted small">Für diese Domain ist nichts eingerichtet – Einstellungen › Integrationen › DNS-Einträge.</span>
+      {/if}
+      {#if value.dns_type}
+        <div class="dns-grid">
+          <label class="field">
+            Art
+            <select class="input" bind:value={value.dns_type}>
+              <option value="cname">CNAME – Name zeigt auf einen anderen Namen</option>
+              <option value="address">A / AAAA – Name zeigt auf IP-Adressen</option>
+            </select>
+          </label>
+          <label class="field">
+            {value.dns_type === 'cname' ? 'Ziel' : 'IP-Adressen'}
+            <input
+              class="input mono"
+              bind:value={value.dns_target}
+              placeholder={dnsDefault || (value.dns_type === 'cname' ? 'home.beispiel.de' : '203.0.113.7, 2001:db8::7')}
+              spellcheck="false"
+              autocomplete="off"
+            />
+            <span class="muted small">
+              {#if value.dns_type === 'address' && !value.dns_target && zone?.ip_source !== 'custom'}
+                leer = öffentliche IPs des Nodes{dnsDefault ? '' : ' – am Node noch keine eingetragen (Nodes › Bearbeiten)'}
+              {:else}
+                leer = Standard der Domain
+              {/if}
+            </span>
+          </label>
+        </div>
+        <label class="check">
+          <input type="checkbox" bind:checked={value.dns_proxied} />
+          <span>Über den Cloudflare-Proxy <span class="muted">– nicht mit Zertifikat (mTLS) oder „Nur intern“</span></span>
+        </label>
+      {/if}
+    </fieldset>
+  {/if}
+
   <div class="options">
     <label class="check"><input type="checkbox" bind:checked={value.websockets} />WebSockets erlauben</label>
     <label class="check"><input type="checkbox" bind:checked={value.force_https} />HTTP → HTTPS umleiten</label>
@@ -159,6 +225,25 @@
 </div>
 
 <style>
+  .dns {
+    margin: 0;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .dns legend {
+    padding: 0 6px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .dns-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
   .wild {
     padding: 10px 12px;
     border-radius: var(--radius);

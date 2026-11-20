@@ -9,6 +9,7 @@
   import BansCard from '../lib/components/BansCard.svelte';
   import Toggle from '../lib/components/Toggle.svelte';
   import DockerCard from '../lib/components/DockerCard.svelte';
+  import DnsZonesCard from '../lib/components/DnsZonesCard.svelte';
   import { api, WAF_MODES, type GeneralSettings, type IpList, type WafMode } from '../lib/api';
   import { toasts } from '../lib/toast.svelte';
 
@@ -257,6 +258,8 @@
       </div>
       {/if}
     </form>
+
+    <DnsZonesCard />
 
     <form class="card" onsubmit={save} aria-labelledby="wild-title">
       <h2 id="wild-title">Geteilte Wildcard-Zertifikate</h2>

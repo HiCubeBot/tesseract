@@ -161,6 +161,11 @@ class HostIn(BaseModel):
     areas: list[AreaIn] = Field(default_factory=list, max_length=20)
     enabled: bool = True
     draft: bool = False
+    # DNS-Eintrag bei Cloudflare: None = keiner, "cname" oder "address" (A/AAAA)
+    dns_type: Literal["cname", "address"] | None = None
+    # leer = Wert der Domain-Einstellung; bei "address" IPs kommagetrennt
+    dns_target: str = Field("", max_length=500)
+    dns_proxied: bool = False
     comment: str = Field("", max_length=255)
 
     @field_validator("ip_entries")
@@ -193,6 +198,20 @@ class HostIn(BaseModel):
         return normalize_domain(v, allow_wildcard=True)
 
     @model_validator(mode="after")
+    def _dns_proxy(self) -> "HostIn":
+        if self.dns_type and self.dns_proxied and (self.access == "mtls" or self.paths):
+            raise ValueError(
+                "Hinter dem Cloudflare-Proxy geht kein Client-Zertifikat (mTLS) – Proxy "
+                "ausschalten oder Zugriff ohne Zertifikat"
+            )
+        if self.dns_type and self.dns_proxied and self.internal:
+            raise ValueError(
+                "„Nur aus internen Netzen“ geht nicht hinter dem Cloudflare-Proxy – Caddy sähe "
+                "nur Cloudflare-Adressen"
+            )
+        return self
+
+    @model_validator(mode="after")
     def _wildcard_needs_dns(self) -> "HostIn":
         if self.domain.startswith("*.") and self.tls_challenge != "dns":
             raise ValueError("Wildcard-Domains brauchen die DNS-Prüfung (DNS-01)")
@@ -210,6 +229,9 @@ class CheckIn(BaseModel):
     upstream_host: str = ""
     upstream_port: int | None = Field(None, ge=1, le=65535)
     exclude_id: int | None = None
+    # gewählter DNS-Eintrag – dann zeigt die Prüfung, was angelegt wird
+    dns_type: Literal["cname", "address"] | None = None
+    dns_target: str = Field("", max_length=500)
 
 
 class NodeRef(BaseModel):
@@ -260,6 +282,12 @@ class HostOut(BaseModel):
     source_ref: str | None = None
     # von der Docker-Anbindung abgeschaltet (Container gestoppt/entfernt)
     source_disabled: bool = False
+    dns_type: str | None = None
+    dns_target: str = ""
+    dns_proxied: bool = False
+    # bei Cloudflare von Tesseract angelegte Einträge und letzter Fehler
+    dns_records: list[dict[str, Any]] = Field(default_factory=list)
+    dns_error: str | None = None
     version: int
     created_at: datetime
     updated_at: datetime
@@ -271,9 +299,16 @@ class ApplyResult(BaseModel):
     skipped: bool = False
 
 
+class DnsResult(BaseModel):
+    ok: bool = True
+    skipped: bool = True
+    error: str | None = None
+
+
 class HostSaved(BaseModel):
     host: HostOut
     apply: ApplyResult
+    dns: DnsResult = Field(default_factory=DnsResult)
 
 
 class VersionOut(BaseModel):
@@ -312,6 +347,7 @@ def _out(db: Session, host: Host) -> HostOut:
     ]
     grants.sort(key=lambda g: (g.kind != "group", g.name.lower()))
     data = {c: getattr(host, c) for c in HostOut.model_fields if c not in _COMPUTED}
+    data["dns_records"] = list(host.dns_records or [])
     return HostOut(
         **data,
         node=NodeRef(id=host.node.id, name=host.node.name),
@@ -468,6 +504,15 @@ def _ensure_free(db: Session, domain: str, exclude_id: int | None, controller_do
         raise HTTPException(status.HTTP_409_CONFLICT, c.detail)
 
 
+def _dns(request: Request, db: Session, host: Host, settings: Any) -> DnsResult:
+    """DNS-Einträge des Hosts bei Cloudflare angleichen (vor dem Übertragen an Caddy, damit
+    Let's Encrypt den Namen schon findet). Fehler verhindern das Speichern nicht."""
+    from tesseract.dnsrecords import apply_host
+
+    r = apply_host(db, host, settings, getattr(request.app.state, "dns_transport", None))
+    return DnsResult(ok=r["ok"], skipped=r["skipped"], error=r["error"])
+
+
 def _apply(request: Request, db: Session, nodes: set[int], settings: Any) -> ApplyResult:
     errors = []
     for node_id in sorted(nodes):
@@ -548,8 +593,10 @@ async def run_checks(
         return [checks.Check("domain", "Domain", "bad", str(e)).dict()]
     result = [
         checks.check_domain_free(db, domain, body.exclude_id, settings.controller_domain),
+        _dns_check(db, body, domain)
+        if body.dns_type
         # Bei Wildcards einen Beispielnamen prüfen; verglichen wird mit den IPs des gewählten Nodes
-        checks.check_dns(domain.replace("*.", "test.", 1), *_node_ips(db, body.node_id)),
+        else checks.check_dns(domain.replace("*.", "test.", 1), *_node_ips(db, body.node_id)),
     ]
     if body.upstream_host and body.upstream_port:
         try:
@@ -561,6 +608,28 @@ async def run_checks(
             result.append(checks.Check("upstream", "Ziel erreichbar", "bad", str(e)))
     result.append(checks.check_port80_hint(domain))
     return [c.dict() for c in result]
+
+
+def _dns_check(db: Session, body: CheckIn, domain: str) -> checks.Check:
+    """Statt „zeigt der Name auf den Node?“: was bei Cloudflare angelegt würde."""
+    from types import SimpleNamespace
+
+    from tesseract.dnsrecords import DnsError, desired, zone_for
+
+    g = get_general(db)
+    zone = zone_for(domain, g.get("dns_zones") or [])
+    title = "DNS-Eintrag bei Cloudflare"
+    if not g["cloudflare_token_enc"]:
+        return checks.Check("dns", title, "bad", "Kein Cloudflare-Token hinterlegt")
+    probe = SimpleNamespace(
+        domain=domain, dns_type=body.dns_type, dns_target=body.dns_target, dns_proxied=False
+    )
+    try:
+        recs = desired(probe, zone, _node_ips(db, body.node_id)[0])
+    except DnsError as e:
+        return checks.Check("dns", title, "warn", str(e))
+    text = ", ".join(f"{r.type} → {r.content}" for r in recs)
+    return checks.Check("dns", title, "ok", f"wird angelegt: {domain} {text}")
 
 
 @router.post("/preview")
@@ -590,13 +659,14 @@ def create_host(
         ip=actor.ip,
     )
     db.commit()
+    dns = _dns(request, db, host, settings)
     result = (
         ApplyResult(ok=True, skipped=True)
         if host.draft
         else _apply(request, db, {host.node_id}, settings)
     )
     db.commit()
-    return HostSaved(host=_out(db, host), apply=result)
+    return HostSaved(host=_out(db, host), apply=result, dns=dns)
 
 
 @router.get("/{host_id}")
@@ -630,7 +700,9 @@ def update_host(
     changes = diff(before, snapshot(host))
     if not changes:
         db.rollback()
-        return HostSaved(host=_out(db, host), apply=ApplyResult(ok=True, skipped=True))
+        # letzter DNS-Versuch fehlgeschlagen → beim erneuten Speichern noch einmal versuchen
+        dns = _dns(request, db, host, settings) if host.dns_error else DnsResult()
+        return HostSaved(host=_out(db, host), apply=ApplyResult(ok=True, skipped=True), dns=dns)
     host.version += 1
     add_version(db, host, actor=actor.name, comment=body.comment)
     audit.record(
@@ -642,9 +714,10 @@ def update_host(
         ip=actor.ip,
     )
     db.commit()
+    dns = _dns(request, db, host, settings)
     result = _apply(request, db, {old_node, host.node_id}, settings)
     db.commit()
-    return HostSaved(host=_out(db, host), apply=result)
+    return HostSaved(host=_out(db, host), apply=result, dns=dns)
 
 
 @router.delete("/{host_id}")
@@ -653,11 +726,20 @@ def delete_host(
 ) -> ApplyResult:
     host = _get_host(db, host_id)
     node_id, domain = host.node_id, host.domain
+    records = list(host.dns_records or [])
     db.delete(host)
     audit.record(db, actor=actor.name, action="host_deleted", target=domain, ip=actor.ip)
     db.commit()
     result = _apply(request, db, {node_id}, settings)
     db.commit()
+    if records:
+        from tesseract.dnsrecords import remove_host
+
+        err = remove_host(db, records, settings, getattr(request.app.state, "dns_transport", None))
+        if err:
+            msg = f"DNS-Einträge bei Cloudflare nicht gelöscht: {err}"
+            result.error = f"{result.error}; {msg}" if result.error else msg
+            result.ok = False
     return result
 
 
@@ -742,6 +824,7 @@ def restore_version(
         ip=actor.ip,
     )
     db.commit()
+    dns = _dns(request, db, host, settings)
     result = _apply(request, db, {old_node, host.node_id}, settings)
     db.commit()
-    return HostSaved(host=_out(db, host), apply=result)
+    return HostSaved(host=_out(db, host), apply=result, dns=dns)

@@ -4,6 +4,17 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.9.0] – 2026-11-21
+
+### Hinzugefügt
+- **DNS-Eintrag automatisch bei Cloudflare:** Beim Anlegen oder Bearbeiten eines Hosts wählbar.
+  Pro Domain (Einstellungen › Integrationen › DNS-Einträge) der Standard: CNAME auf einen Namen
+  (z. B. den DDNS-Namen) oder A/AAAA auf die öffentlichen IPs des Nodes bzw. eigene IPs,
+  optional über den Cloudflare-Proxy; pro Host änderbar. Der Eintrag wird vor dem Übertragen an
+  Caddy angelegt, mit dem Host geändert und gelöscht. Fremde Einträge bleiben unangetastet,
+  Fehler stehen beim Host. Die Vorab-Prüfung zeigt, was angelegt wird
+- Migration 0021 (DNS-Felder am Host)
+
 ## [1.8.1] – 2026-11-20
 
 ### Behoben

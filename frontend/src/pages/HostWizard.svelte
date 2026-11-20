@@ -11,6 +11,7 @@
     type CAStatus,
     type CustomCert,
     type Check,
+    type DnsZone,
     type GeneralSettings,
     type Group,
     type HostInput,
@@ -40,6 +41,11 @@
   let wildcards = $state<string[]>([]);
   let customCerts = $state<CustomCert[]>([]);
   api.get<CustomCert[]>('/custom-certs').then((c) => (customCerts = c), () => {});
+  let dnsZones = $state<DnsZone[]>([]);
+  api.get<{ zones: DnsZone[]; token_set: boolean }>('/settings/dns-zones').then(
+    (r) => (dnsZones = r.token_set ? r.zones : []),
+    () => {}
+  );
 
   api.get<NodeInfo[]>('/nodes').then((n) => {
     nodes = n;
@@ -74,7 +80,9 @@
       domain: host.domain,
       node_id: host.node_id,
       upstream_host: host.upstream_host,
-      upstream_port: Number(host.upstream_port) || null
+      upstream_port: Number(host.upstream_port) || null,
+      dns_type: host.dns_type,
+      dns_target: host.dns_target
     };
     clearTimeout(timer);
     if (!body.domain.trim()) {
@@ -134,7 +142,7 @@
         draft,
         upstream_port: Number(host.upstream_port)
       });
-      reportApply(r.apply, r.host.domain);
+      reportApply(r.apply, r.host.domain, r.dns);
       router.go(`hosts/${r.host.id}`);
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
@@ -165,7 +173,7 @@
   {#if step === 1}
     <div class="layout">
       <section class="card main" aria-label="Domain und Ziel">
-        <HostForm bind:value={host} {nodes} {dnsAvailable} {wildcards} {customCerts} />
+        <HostForm bind:value={host} {nodes} {dnsAvailable} {wildcards} {customCerts} {dnsZones} />
       </section>
       <aside class="card side" aria-label="Automatische Prüfungen">
         <h2>Vorab geprüft</h2>
@@ -212,6 +220,14 @@
             <dt>Freigegeben für</dt><dd>{grantNames.join(', ') || 'niemand'}</dd>
             <dt>Ohne Zertifikat</dt><dd>{host.no_cert_action === 'hint' ? 'Hinweisseite' : 'Verbindung ablehnen'}</dd>
           {/if}
+          <dt>DNS-Eintrag</dt>
+          <dd>
+            {#if host.dns_type}
+              {host.dns_type === 'cname' ? 'CNAME' : 'A/AAAA'} bei Cloudflare{host.dns_target ? ` → ${host.dns_target}` : ' (Standard der Domain)'}{host.dns_proxied
+                ? ' · über den Proxy'
+                : ''}
+            {:else}nicht automatisch{/if}
+          </dd>
           <dt>Optionen</dt>
           <dd>
             {[

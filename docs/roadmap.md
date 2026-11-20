@@ -21,10 +21,18 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 | 1.6 | Betrieb | Docker-Labels, Logs und Statistik aus Loki/VictoriaLogs, Restic als Backup-Ziel – **fertig** |
 | 1.7 | Zugang | Oberfläche nur aus bestimmten Netzen (`TESSERACT_ADMIN_NETWORKS`) – **fertig** |
 | 1.8 | GeoIP automatisch | Länder-Datenbank selbst holen und monatlich erneuern (`TESSERACT_GEOIP_AUTO`) – **fertig** |
+| 1.9 | DNS-Einträge | DNS-Eintrag beim Anlegen eines Hosts automatisch bei Cloudflare – CNAME oder A/AAAA, pro Domain einstellbar – **fertig** |
 | – | [Offen / bekannte Grenzen](#offen--bekannte-grenzen) | Einschränkungen des aktuellen Stands |
 | – | [Backlog](#backlog-niedrige-priorität) | Niedrige Priorität, ohne festen Zeitpunkt |
 
 ---
+
+## Version 1.9 – DNS-Einträge (fertig)
+
+- [x] DNS-Eintrag beim Anlegen eines Hosts automatisch bei Cloudflare anlegen, mit dem Host
+  ändern und löschen; pro Domain Standard CNAME (auf einen Namen) oder A/AAAA (IPs des Nodes
+  oder eigene), pro Host änderbar, optional über den Cloudflare-Proxy
+- [x] Vorab-Prüfung zeigt den geplanten Eintrag; fremde Einträge bleiben unangetastet
 
 ## Version 1.8 – GeoIP automatisch (fertig)
 

@@ -125,6 +125,13 @@ export interface Host {
   /** bei Docker: "<Node-ID>:<Container>" */
   source_ref: string | null;
   source_disabled: boolean;
+  /** DNS-Eintrag bei Cloudflare: null = keiner, "cname" oder "address" (A/AAAA) */
+  dns_type: 'cname' | 'address' | null;
+  /** leer = Wert der Domain-Einstellung; bei "address" IPs kommagetrennt */
+  dns_target: string;
+  dns_proxied: boolean;
+  dns_records: DnsRecord[];
+  dns_error: string | null;
   version: number;
   created_at: string;
   updated_at: string;
@@ -254,6 +261,8 @@ export type HostInput = Omit<
   | 'source'
   | 'source_ref'
   | 'source_disabled'
+  | 'dns_records'
+  | 'dns_error'
   | 'waf_mode'
   | 'waf_paranoia'
   | 'areas'
@@ -275,6 +284,40 @@ export interface AccessMatrix {
   grants: { host_id: number; kind: 'group' | 'person'; id: number }[];
 }
 
+export interface DnsRecord {
+  id: string;
+  type: string;
+  name: string;
+  content: string;
+  proxied: boolean;
+}
+
+/** Einstellungen › Integrationen › DNS-Einträge: Standard pro Domain */
+export interface DnsZone {
+  zone: string;
+  type: 'cname' | 'address';
+  cname_target: string;
+  ip_source: 'node' | 'custom';
+  ips: string[];
+  proxied: boolean;
+}
+
+export interface DnsResult {
+  ok: boolean;
+  skipped: boolean;
+  error: string | null;
+}
+
+/** Passende Domain für einen Host (längste Übereinstimmung) */
+export function zoneFor(domain: string, zones: DnsZone[]): DnsZone | null {
+  const name = domain.trim().toLowerCase().replace(/^\*\./, '').replace(/\.$/, '');
+  let best: DnsZone | null = null;
+  for (const z of zones) {
+    if ((name === z.zone || name.endsWith('.' + z.zone)) && (!best || z.zone.length > best.zone.length)) best = z;
+  }
+  return best;
+}
+
 export interface ApplyResult {
   ok: boolean;
   error: string | null;
@@ -284,6 +327,7 @@ export interface ApplyResult {
 export interface HostSaved {
   host: Host;
   apply: ApplyResult;
+  dns?: DnsResult;
 }
 
 export interface Check {

@@ -13,7 +13,7 @@ export async function setEnabled(h: Host, enabled: boolean): Promise<Host | null
       enabled,
       comment: enabled ? 'Aktiviert' : 'Deaktiviert'
     });
-    reportApply(r.apply, `${r.host.domain} (${enabled ? 'aktiviert' : 'deaktiviert'})`);
+    reportApply(r.apply, `${r.host.domain} (${enabled ? 'aktiviert' : 'deaktiviert'})`, r.dns);
     return r.host;
   } catch (e) {
     toasts.show('bad', e instanceof Error ? e.message : String(e));
@@ -49,7 +49,10 @@ export function emptyHost(nodeId = 0): HostInput {
     grant_group_ids: [],
     grant_person_ids: [],
     enabled: true,
-    draft: false
+    draft: false,
+    dns_type: null,
+    dns_target: '',
+    dns_proxied: false
   };
 }
 
@@ -81,7 +84,10 @@ export function toInput(h: Host): HostInput {
     grant_group_ids: h.grants.filter((g) => g.kind === 'group').map((g) => g.id),
     grant_person_ids: h.grants.filter((g) => g.kind === 'person').map((g) => g.id),
     enabled: h.enabled,
-    draft: h.draft
+    draft: h.draft,
+    dns_type: h.dns_type,
+    dns_target: h.dns_target,
+    dns_proxied: h.dns_proxied
   };
 }
 

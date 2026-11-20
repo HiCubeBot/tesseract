@@ -13,6 +13,7 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | Host-Assistent | 3 Schritte: Domain & Ziel → Zugriff → Prüfen & übertragen | 1 |
 | Ziel | Schema (http/https), Ziel-IP/Host und Port, Auswahl des Nodes; bei https optional ohne Prüfung des Zertifikats (selbst signiert) | 1 / 4 / 1.1 |
 | Optionen | HTTP→HTTPS-Umleitung, WebSockets, Kompression (gzip/zstd) | 1 |
+| DNS-Eintrag automatisch | Beim Anlegen wählbar: Tesseract legt den Eintrag bei Cloudflare an und ändert/löscht ihn mit dem Host. Pro Domain ein Standard – CNAME auf einen Namen (z. B. DDNS) oder A/AAAA auf die öffentlichen IPs des Nodes bzw. eigene IPs, optional über den Cloudflare-Proxy; pro Host änderbar. Fremde Einträge bleiben unangetastet | 1.9 |
 | Automatische Vorab-Prüfungen | DNS zeigt auf den gewählten Node (öffentliche IPs pro Node unter Nodes › Bearbeiten), Ziel erreichbar (bei Agent-Nodes vom Node aus geprüft), Domain frei | 1 / 1.1 / 1.4.1 |
 | TLS über Let's Encrypt | HTTP-01; DNS-01 (z. B. Cloudflare) für Wildcards/Hosts ohne Port 80 | 1 / 3 |
 | Oberfläche per DNS-01 | Mit `TESSERACT_CLOUDFLARE_TOKEN` in der `.env` holt auch die Oberfläche ihr Zertifikat per DNS – ohne Portweiterleitung, auch für Namen nur im Heimnetz | 1.4.2 |

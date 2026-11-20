@@ -55,7 +55,7 @@
     restoring = true;
     try {
       const r = await api.post<HostSaved>(`/hosts/${hostId}/versions/${detail.version}/restore`);
-      reportApply(r.apply, `Version ${detail.version} von ${r.host.domain}`);
+      reportApply(r.apply, `Version ${detail.version} von ${r.host.domain}`, r.dns);
       selected = null;
       await load();
     } catch (e) {

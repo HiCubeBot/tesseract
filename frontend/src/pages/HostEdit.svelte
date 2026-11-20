@@ -15,6 +15,7 @@
     type CAStatus,
     type Check,
     type CustomCert,
+    type DnsZone,
     type GeneralSettings,
     type Group,
     type Host,
@@ -70,6 +71,11 @@
   }
   load();
   api.get<CustomCert[]>('/custom-certs').then((c) => (customCerts = c), () => {});
+  let dnsZones = $state<DnsZone[]>([]);
+  api.get<{ zones: DnsZone[]; token_set: boolean }>('/settings/dns-zones').then(
+    (r) => (dnsZones = r.token_set ? r.zones : []),
+    () => {}
+  );
 
   const dirty = $derived(!!host && !!form && JSON.stringify(form) !== JSON.stringify(toInput(host)));
 
@@ -85,7 +91,9 @@
       node_id: form.node_id,
       upstream_host: form.upstream_host,
       upstream_port: Number(form.upstream_port) || null,
-      exclude_id: hostId
+      exclude_id: hostId,
+      dns_type: form.dns_type,
+      dns_target: form.dns_target
     };
     clearTimeout(timer);
     if (!body.domain.trim()) {
@@ -114,7 +122,7 @@
     try {
       const body = { ...form, draft: activate ? false : form.draft, upstream_port: Number(form.upstream_port) };
       const r = await api.put<HostSaved>(`/hosts/${host.id}`, body);
-      reportApply(r.apply, r.host.domain);
+      reportApply(r.apply, r.host.domain, r.dns);
       host = r.host;
       form = toInput(r.host);
     } catch (e) {
@@ -168,7 +176,7 @@
     {#if tab === 'general'}
       <div class="layout">
         <section class="card main" aria-label="Domain und Ziel">
-          <HostForm bind:value={form} {nodes} {dnsAvailable} {wildcards} {customCerts} />
+          <HostForm bind:value={form} {nodes} {dnsAvailable} {wildcards} {customCerts} {dnsZones} />
         </section>
         <aside class="side">
           <section class="card" aria-labelledby="checks-title">
@@ -181,7 +189,16 @@
               <dt>Angelegt</dt><dd>{formatDate(host.created_at)}</dd>
               <dt>Geändert</dt><dd>{formatDate(host.updated_at)}</dd>
               <dt>Version</dt><dd><a href={`#/hosts/${host.id}/history`}>{host.version}</a></dd>
+              {#if host.dns_records.length}
+                <dt>DNS</dt>
+                <dd class="mono">
+                  {#each host.dns_records as r (r.id)}<div>{r.type} → {r.content}{r.proxied ? ' (Proxy)' : ''}</div>{/each}
+                </dd>
+              {/if}
             </dl>
+            {#if host.dns_error}
+              <p class="field-error">DNS-Eintrag: {host.dns_error}. Erneut speichern versucht es noch einmal.</p>
+            {/if}
           </section>
         </aside>
       </div>
