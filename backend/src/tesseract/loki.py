@@ -1,9 +1,9 @@
 """Loki oder VictoriaLogs als zusätzlicher Log-Speicher.
 
-Die zentrale Log-Ansicht und die Statistik arbeiten weiter mit SQLite (Aufbewahrung
-`logs_days`). Ist eine Loki-URL eingestellt, schickt der Controller jeden neuen Eintrag
-zusätzlich an Loki (Push-API). Dort lassen sich die Logs beliebig lange aufbewahren und in
-Grafana mit LogQL auswerten.
+Ist eine Loki-URL eingestellt, schickt der Controller jeden neuen Eintrag zusätzlich an Loki
+(Push-API). Log-Ansicht und Statistik lesen standardmäßig aus SQLite (Aufbewahrung
+`logs_days`), auf Wunsch direkt aus Loki/VictoriaLogs (`logstore.py`). Dort lassen sich die
+Logs beliebig lange aufbewahren und in Grafana mit LogQL auswerten.
 
 Labels (wenige Werte, damit Loki schnell bleibt): `job="tesseract"`, `node`, `host`, `reason`.
 Alles andere steht als JSON in der Zeile – in Grafana z. B.

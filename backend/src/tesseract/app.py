@@ -76,6 +76,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             from tesseract.loki import watch as loki_watch
 
             tasks.append(asyncio.create_task(loki_watch(app)))
+            from tesseract.dockerlabels import watch as docker_watch
+
+            tasks.append(asyncio.create_task(docker_watch(app)))
         yield
         for task in tasks:
             task.cancel()

@@ -8,6 +8,7 @@
   import IpListEditor from '../lib/components/IpListEditor.svelte';
   import BansCard from '../lib/components/BansCard.svelte';
   import Toggle from '../lib/components/Toggle.svelte';
+  import DockerCard from '../lib/components/DockerCard.svelte';
   import { api, WAF_MODES, type GeneralSettings, type IpList, type WafMode } from '../lib/api';
   import { toasts } from '../lib/toast.svelte';
 
@@ -274,6 +275,8 @@
         <p class="muted small">Braucht DNS-01 – erst oben den Cloudflare-Token eintragen.</p>
       {/if}
     </form>
+
+    <DockerCard />
 
     <form class="card" onsubmit={save} aria-labelledby="authelia-title">
       <h2 id="authelia-title">Authelia</h2>

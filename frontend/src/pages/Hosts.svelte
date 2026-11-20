@@ -124,7 +124,10 @@
             {#each visible as h (h.id)}
               {@const st = hostStatus(h)}
               <tr class:off={!h.draft && !h.enabled}>
-                <td><a class="mono domain" href={`#/hosts/${h.id}`}>{h.domain}</a></td>
+                <td>
+                  <a class="mono domain" href={`#/hosts/${h.id}`}>{h.domain}</a>
+                  {#if h.source === 'docker'}<span class="src" title={`aus den Docker-Labels von ${h.source_ref?.split(':').slice(1).join(':')}`}>Docker</span>{/if}
+                </td>
                 <td class="mono muted small">{upstreamLabel(h)}</td>
                 <td class="muted">{h.node.name}</td>
                 <td>
@@ -193,6 +196,16 @@
     color: var(--text);
     font-weight: 500;
     text-decoration: none;
+  }
+  .src {
+    margin-left: 8px;
+    padding: 2px 7px;
+    border-radius: var(--radius-pill);
+    background: var(--surface-raised);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    vertical-align: middle;
   }
   .domain:hover {
     text-decoration: underline;

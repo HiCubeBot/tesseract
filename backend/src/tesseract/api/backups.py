@@ -14,7 +14,7 @@ from tesseract.deps import DB, AppSettings, Box, CurrentActor
 
 router = APIRouter(prefix="/backups", tags=["backups"])
 
-TargetName = Literal["local", "s3"]
+TargetName = Literal["local", "s3", "restic"]
 MAX_UPLOAD = 512 * 1024 * 1024
 
 
@@ -27,6 +27,15 @@ class S3In(BaseModel):
     access_key: str = Field("", max_length=255)
     # None = unverändert, "" = löschen
     secret_key: str | None = Field(None, max_length=255)
+
+
+class ResticIn(BaseModel):
+    enabled: bool = False
+    repository: str = Field("", max_length=500)
+    # None = unverändert, "" = löschen
+    password: str | None = Field(None, max_length=500)
+    # KEY=VALUE je Zeile (z. B. AWS_ACCESS_KEY_ID=…); None = unverändert, "" = löschen
+    env: str | None = Field(None, max_length=10000)
 
 
 class GitIn(BaseModel):
@@ -50,6 +59,7 @@ class ConfigIn(BaseModel):
     passphrase: str | None = Field(None, max_length=500)
     local: bool | None = None
     s3: S3In | None = None
+    restic: ResticIn | None = None
     git: GitIn | None = None
 
 
@@ -72,6 +82,13 @@ def _git_out(db) -> dict[str, Any]:
 def _out(cfg: dict[str, Any], settings, db=None) -> dict[str, Any]:
     s3 = {k: v for k, v in cfg["s3"].items() if k != "secret_key_enc"}
     s3["secret_key_set"] = bool(cfg["s3"].get("secret_key_enc"))
+    rc = cfg.get("restic") or {}
+    restic = {
+        "enabled": bool(rc.get("enabled")),
+        "repository": rc.get("repository", ""),
+        "password_set": bool(rc.get("password_enc")),
+        "env_set": bool(rc.get("env_enc")),
+    }
     nxt = b.next_run(cfg, datetime.now(UTC))
     return {
         "schedule": cfg["schedule"],
@@ -83,6 +100,7 @@ def _out(cfg: dict[str, Any], settings, db=None) -> dict[str, Any]:
         "passphrase_set": bool(cfg["passphrase_enc"]),
         "local": {"enabled": cfg["local"]["enabled"], "path": str(b.local_dir(settings))},
         "s3": s3,
+        "restic": restic,
         "last": cfg.get("last"),
         "last_test": cfg.get("last_test"),
         "next": nxt.isoformat() if nxt and cfg["passphrase_enc"] else None,
@@ -103,7 +121,7 @@ def put_config(
     value: dict[str, Any] = {
         k: v
         for k, v in body.model_dump(
-            exclude_unset=True, exclude={"passphrase", "local", "s3", "git"}
+            exclude_unset=True, exclude={"passphrase", "local", "s3", "restic", "git"}
         ).items()
         if v is not None
     }
@@ -131,6 +149,8 @@ def put_config(
             else (box.encrypt(s3.secret_key.encode(), b.S3_CONTEXT) if s3.secret_key else "")
         )
         value["s3"] = {**s3.model_dump(exclude={"secret_key"}), "secret_key_enc": enc}
+    if body.restic is not None:
+        value["restic"] = _restic_value(cfg.get("restic") or {}, body.restic, box)
     git_changed: list[str] = []
     if body.git is not None:
         git_changed = _put_git(db, box, body.git)
@@ -149,6 +169,52 @@ def put_config(
     )
     db.commit()
     return _out(cfg, settings, db)
+
+
+def _restic_value(old: dict[str, Any], rc: ResticIn, box) -> dict[str, Any]:
+    repo = rc.repository.strip()
+    pw_enc = old.get("password_enc", "")
+    if rc.password is not None:
+        pw_enc = box.encrypt(rc.password.encode(), b.RESTIC_CONTEXT) if rc.password else ""
+    env_enc = old.get("env_enc", "")
+    if rc.env is not None:
+        try:
+            b.parse_env(rc.env)
+        except b.BackupError as e:
+            raise HTTPException(422, str(e)) from e
+        env_enc = box.encrypt(rc.env.encode(), b.RESTIC_ENV_CONTEXT) if rc.env.strip() else ""
+    if rc.enabled and not repo:
+        raise HTTPException(422, "Restic: Repository angeben (z. B. sftp:user@host:/backups)")
+    if rc.enabled and not pw_enc:
+        raise HTTPException(422, "Restic: Passwort des Repositorys angeben")
+    return {"enabled": rc.enabled, "repository": repo, "password_enc": pw_enc, "env_enc": env_enc}
+
+
+@router.post("/restic/check")
+async def restic_check(
+    db: DB, box: Box, actor: CurrentActor, settings: AppSettings
+) -> dict[str, Any]:
+    """Verbindung prüfen; fehlt das Repository, wird es angelegt."""
+    rc = b.get_config(db).get("restic") or {}
+    if not rc.get("repository"):
+        raise HTTPException(status.HTTP_409_CONFLICT, "Kein Restic-Repository eingetragen")
+    target = b.restic_target(rc, settings, box)
+    try:
+        created = await asyncio.to_thread(target.ensure_repo)
+        snaps = await asyncio.to_thread(target.list)
+    except b.BackupError as e:
+        return {"ok": False, "error": str(e), "created": False, "snapshots": 0}
+    if created:
+        audit.record(
+            db,
+            actor=actor.name,
+            action="settings_changed",
+            target="Sicherungen",
+            details={"restic": "Repository angelegt"},
+            ip=actor.ip,
+        )
+        db.commit()
+    return {"ok": True, "error": None, "created": created, "snapshots": len(snaps)}
 
 
 def _put_git(db, box, git: GitIn) -> list[str]:

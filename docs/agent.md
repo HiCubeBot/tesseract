@@ -141,6 +141,7 @@ Beim lokalen Node prüft der Controller selbst alle 30 Sekunden die laufende Con
 | `TESSERACT_AGENT_WAF_LOG` | – | WAF-Log von Caddy (gemeinsames Volume) |
 | `TESSERACT_AGENT_CONTROLLER_CA` | – | CA-Datei, wenn das Zertifikat des Controllers nicht öffentlich vertraut ist (z. B. Caddys lokale CA bei `tesseract.lan`) |
 | `TESSERACT_AGENT_CADDY_TLS_ADDRESS` | Host der Admin-URL, Port 443 | HTTPS-Port des Caddy für die Zertifikatsübersicht |
+| `TESSERACT_AGENT_DOCKER_HOST` | – | Docker-API für Hosts aus Container-Labels, z. B. `tcp://docker-proxy:2375` (Socket-Proxy, nur Lesen) oder `unix:///var/run/docker.sock`. Leer = keine Container melden |
 | `TESSERACT_AGENT_CADDY_BIN` | `caddy` | Caddy-Programm für die Versionsanzeige. Im Docker-Betrieb meist nicht vorhanden, dann zeigt der Controller „–“ |
 | `TESSERACT_AGENT_LOG_LEVEL` | `info` | Log-Level |
 

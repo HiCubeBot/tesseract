@@ -28,6 +28,9 @@ class Settings:
     caddy_bin: str = ""
     # HTTPS-Port des Caddy für die Zertifikatsübersicht; leer = Host der Admin-URL, Port 443
     caddy_tls_address: str = ""
+    # Docker-API für Hosts aus Container-Labels (z. B. tcp://docker-socket-proxy:2375 oder
+    # unix:///var/run/docker.sock); leer = keine Container melden
+    docker_host: str = ""
 
     @classmethod
     def from_env(cls, env: dict[str, str] | None = None) -> "Settings":
@@ -47,6 +50,7 @@ class Settings:
             controller_ca=Path(p) if (p := get("CONTROLLER_CA")) else None,
             caddy_bin=get("CADDY_BIN"),
             caddy_tls_address=get("CADDY_TLS_ADDRESS"),
+            docker_host=get("DOCKER_HOST"),
         )
 
     # Dateien im Datenverzeichnis

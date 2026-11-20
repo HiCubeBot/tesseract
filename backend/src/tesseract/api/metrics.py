@@ -99,6 +99,7 @@ class ObservabilityOut(BaseModel):
     loki_url: str
     loki_tenant: str
     loki_kind: str
+    logs_external: bool
     loki: LokiStatus
     logs_ready: bool
     geoip: bool
@@ -118,6 +119,7 @@ class ObservabilityIn(BaseModel):
     loki_url: str = Field("", max_length=500)
     loki_tenant: str = Field("", max_length=100)
     loki_kind: Literal["loki", "victorialogs"] = "loki"
+    logs_external: bool = False
     metrics_enabled: bool = False
     metrics_auth: Literal["token", "mtls", "ip"] = "token"
     metrics_networks: list[str] = Field(default_factory=list, max_length=200)
@@ -138,6 +140,7 @@ def _out(request: Request, db, settings) -> ObservabilityOut:
         loki_url=g["loki_url"],
         loki_tenant=g["loki_tenant"],
         loki_kind=g["loki_kind"],
+        logs_external=bool(g["logs_external"] and g["loki_url"]),
         loki=LokiStatus(**request.app.state.logs.loki.status()),
         logs_ready=bool(settings.caddy_access_log and settings.access_log_path),
         geoip=request.app.state.logs.geo.ready,
@@ -181,6 +184,11 @@ def put_observability(
         request.app.state.logs.loki.enabled = bool(url)
     before = get_general(db)
     after = {**before, **value}
+    if after["logs_external"] and not after["loki_url"]:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "Zum Lesen aus Loki/VictoriaLogs erst die URL des Log-Speichers eintragen",
+        )
     if (
         after["metrics_enabled"]
         and after["metrics_auth"] == "ip"

@@ -4,6 +4,26 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.6.0] – 2026-11-20
+
+### Hinzugefügt
+- **Hosts aus Docker-Labels:** Container mit `tesseract.domain` werden zu Proxy-Hosts (Port,
+  Ziel, Zugriff, interne Netze, Freigaben, WAF, Prüfart per Label). Lokal liest der Controller
+  über `TESSERACT_DOCKER_HOST` (Socket-Proxy im Compose-Profil `docker`), Agents melden ihre
+  Container mit `TESSERACT_AGENT_DOCKER_HOST`. Neue Hosts sind Entwürfe, Freigaben nur an
+  vorhandene Gruppen/Personen, gestoppte Container schalten ihren Host ab. Einstellungen ›
+  Integrationen › Docker-Labels
+- **Log-Ansicht und Statistik aus Loki oder VictoriaLogs:** auf Wunsch (Einstellungen ›
+  Metriken bzw. `TESSERACT_LOGS_EXTERNAL`) statt aus SQLite – so weit zurück, wie der
+  Log-Speicher aufbewahrt
+- **Restic als Backup-Ziel:** Repository (REST, S3, B2, SFTP, Verzeichnis) mit Passwort und
+  optionalen Zugangsdaten; Repository wird bei Bedarf angelegt, Aufräumen per
+  `restic forget --prune`. restic ist im Controller-Image enthalten
+
+### Upgrade
+- Migration 0020 (Herkunft der Hosts). `compose.yaml` übernehmen, wer den Socket-Proxy nutzen
+  will (Profil `docker`)
+
 ## [1.5.0] – 2026-11-19
 
 ### Hinzugefügt

@@ -155,6 +155,15 @@
     {#if host.draft}
       <Alert tone="warn" title="Entwurf" text="Dieser Host ist gespeichert, aber noch nicht an Caddy übertragen." />
     {/if}
+    {#if host.source === 'docker'}
+      <Alert
+        tone="info"
+        title={`Aus Docker-Labels · Container ${host.source_ref?.split(':').slice(1).join(':')}`}
+        text={host.source_disabled
+          ? 'Der Container läuft nicht – der Host ist deshalb abgeschaltet und wird wieder aktiv, sobald der Container läuft.'
+          : 'Ändern sich die Labels des Containers, gelten sie und überschreiben die betroffenen Felder. Felder ohne Label bleiben, wie du sie hier einstellst.'}
+      />
+    {/if}
 
     {#if tab === 'general'}
       <div class="layout">

@@ -54,6 +54,8 @@ class Settings(BaseSettings):
     loki_url: str | None = None
     # "loki" oder "victorialogs" – Art des Log-Speichers hinter der URL
     loki_kind: str | None = None
+    # Log-Ansicht und Statistik aus Loki/VictoriaLogs lesen (statt SQLite)
+    logs_external: bool | None = None
     # Netze, kommagetrennt (z. B. "192.168.178.0/24,10.8.0.0/24")
     internal_networks: str | None = None
     trusted_proxies: str | None = None
@@ -85,6 +87,11 @@ class Settings(BaseSettings):
     geoip_db: Path | None = None
     # Ordner für lokale Sicherungen; leer = data_dir/backups
     backup_dir: Path | None = None
+    # Docker-API des lokalen Nodes für Hosts aus Container-Labels, z. B.
+    # tcp://docker-socket-proxy:2375 oder unix:///var/run/docker.sock; leer = aus
+    docker_host: str = ""
+    # restic für das Sicherungsziel „Restic“ (im Docker-Image enthalten)
+    restic_bin: str = "restic"
     # Hintergrundaufgaben (Auto-Sperre); in Tests aus
     background_tasks: bool = True
 
@@ -120,6 +127,8 @@ class Settings(BaseSettings):
             out["loki_url"] = self.loki_url.strip()
         if self.loki_kind and self.loki_kind.strip().lower() in ("loki", "victorialogs"):
             out["loki_kind"] = self.loki_kind.strip().lower()
+        if self.logs_external is not None:
+            out["logs_external"] = self.logs_external
         for key in ("internal_networks", "trusted_proxies"):
             raw = getattr(self, key)
             if raw is not None:

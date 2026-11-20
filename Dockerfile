@@ -22,10 +22,14 @@ COPY backend/ ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev
 
-# ---------- 3. Laufzeit ----------
+# ---------- 3. Restic (Sicherungsziel) – statisch gebaute Binärdatei aus dem offiziellen Image ----------
+FROM restic/restic:0.17.3 AS restic
+
+# ---------- 4. Laufzeit ----------
 FROM python:3.13-slim-bookworm
 # git + ssh für den Git-Spiegel der Configs
 RUN apt-get update     && apt-get install -y --no-install-recommends git openssh-client     && rm -rf /var/lib/apt/lists/*
+COPY --from=restic /usr/bin/restic /usr/local/bin/restic
 RUN groupadd --system tesseract && useradd --system --gid tesseract --home /app tesseract
 WORKDIR /app
 COPY --from=backend --chown=tesseract:tesseract /app /app

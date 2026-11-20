@@ -108,6 +108,20 @@ services:
       - victorialogs-data:/vlogs
     networks: [internal]
 
+  # Optional: Hosts aus Docker-Labels. Socket-Proxy mit Nur-Lese-Rechten auf die Container-Liste –
+  # der Controller bekommt so nie den vollen Docker-Socket.
+  # Starten mit: docker compose --profile docker up -d
+  # und in der .env: TESSERACT_DOCKER_HOST=tcp://docker-proxy:2375
+  docker-proxy:
+    image: tecnativa/docker-socket-proxy:${DOCKER_PROXY_VERSION:-0.3.0}
+    profiles: [docker]
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [internal]
+
 networks:
   internal:
 

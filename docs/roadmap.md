@@ -18,10 +18,22 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 | 1.3 | Anmeldung & Verzeichnis | SSO (OIDC) und Passkeys für Admins, LDAP-Abgleich – **fertig** |
 | 1.4 | CA, Logs, Ausfallsicherheit | CA-Import und Root-Wechsel, VictoriaLogs, Node ohne Controller – **fertig** |
 | 1.5 | Oberfläche | Heller Modus, Favicon, Host-Seite mit Tabs, Hosts direkt in der Liste abschalten – **fertig** |
+| 1.6 | Betrieb | Docker-Labels, Logs und Statistik aus Loki/VictoriaLogs, Restic als Backup-Ziel – **fertig** |
 | – | [Offen / bekannte Grenzen](#offen--bekannte-grenzen) | Einschränkungen des aktuellen Stands |
 | – | [Backlog](#backlog-niedrige-priorität) | Niedrige Priorität, ohne festen Zeitpunkt |
 
 ---
+
+## Version 1.6 – Betrieb (fertig)
+
+- [x] Docker-Labels – Hosts aus Container-Labels (`tesseract.domain`, `tesseract.port` …);
+  lokal über einen Socket-Proxy (Compose-Profil `docker`), Agent-Nodes melden ihre Container
+  im Status. Neue Hosts als Entwurf, Freigaben nur an vorhandene Gruppen/Personen, gestoppte
+  Container schalten ihren Host ab ([HiCubeBot/tesseract#14](https://github.com/HiCubeBot/tesseract/issues/14))
+- [x] Log-Ansicht und Statistik direkt aus Loki oder VictoriaLogs (Einstellung bzw.
+  `TESSERACT_LOGS_EXTERNAL`) – gleiche Suche, gleiche Kennzahlen wie aus SQLite
+- [x] Restic als Backup-Ziel (lokal, SFTP, S3, B2, REST-Server …), Aufräumen mit
+  `restic forget --prune`, restic im Controller-Image
 
 ## Version 1.5 – Oberfläche (fertig)
 
@@ -84,17 +96,6 @@ Gewünscht, aber ohne festen Platz in einer Phase. Wird bei Bedarf eingeplant.
 **Zertifikate & CA**
 
 - **Weitere DNS-Anbieter** für DNS-01 neben Cloudflare.
-
-**Betrieb**
-
-- **Docker-Labels** – Hosts automatisch aus Container-Labels anlegen (Domain, Ziel-Port,
-  Zugriff …), ähnlich wie bei anderen Reverse Proxys.
-  Issue: [HiCubeBot/tesseract#14](https://github.com/HiCubeBot/tesseract/issues/14)
-- **Log-Ansicht und Statistik direkt aus Loki** – Loki ist als zusätzlicher Speicher angebunden
-  (1.2); Suche und Statistik in der Oberfläche nutzen weiter SQLite.
-- **Restic als Backup-Ziel** – Sicherungen zusätzlich in ein Restic-Repository schreiben
-  (lokal, SFTP, S3, REST-Server …), mit Deduplizierung und Aufbewahrungsregeln von Restic.
-  Heute gibt es lokale und S3-kompatible Ziele (Phase 6).
 
 ---
 

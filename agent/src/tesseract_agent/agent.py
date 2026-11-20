@@ -117,6 +117,43 @@ class Caddy:
         return found
 
 
+def read_containers(docker_host: str, transport: httpx.BaseTransport | None = None) -> list:
+    """Container mit tesseract.*-Labels über die Docker-API (auch gestoppte)."""
+    if transport is not None:
+        client = httpx.Client(transport=transport, base_url="http://docker", timeout=10.0)
+    elif docker_host.startswith("unix://"):
+        client = httpx.Client(
+            transport=httpx.HTTPTransport(uds=docker_host.removeprefix("unix://")),
+            base_url="http://docker",
+            timeout=10.0,
+        )
+    else:
+        url = docker_host.replace("tcp://", "http://", 1)
+        client = httpx.Client(base_url=url.rstrip("/"), timeout=10.0)
+    with client:
+        r = client.get(
+            "/containers/json",
+            params={"all": "true", "filters": json.dumps({"label": ["tesseract.domain"]})},
+        )
+    r.raise_for_status()
+    out = []
+    for c in r.json():
+        out.append(
+            {
+                "id": str(c.get("Id", ""))[:12],
+                "name": (c.get("Names") or [""])[0].lstrip("/"),
+                "state": c.get("State") or "",
+                "labels": {
+                    k: v for k, v in (c.get("Labels") or {}).items() if k.startswith("tesseract.")
+                },
+                "ports": sorted(
+                    {p["PrivatePort"] for p in c.get("Ports") or [] if p.get("Type") == "tcp"}
+                ),
+            }
+        )
+    return out
+
+
 def caddy_version(binary: str) -> str | None:
     path = shutil.which(binary) if binary else None
     if not path:
@@ -270,8 +307,10 @@ class Agent:
         settings: Settings,
         controller_transport: httpx.BaseTransport | None = None,
         caddy_transport: httpx.BaseTransport | None = None,
+        docker_transport: httpx.BaseTransport | None = None,
     ) -> None:
         self.settings = settings
+        self._docker_transport = docker_transport
         self.state = State.load(settings.state_file)
         self._controller_transport = controller_transport
         self.caddy = Caddy(settings.caddy_admin_url, caddy_transport)
@@ -488,6 +527,13 @@ class Agent:
                 report["caddy_metrics"] = self.caddy.metrics()
         except httpx.HTTPError as e:
             report["load_error"] = self.load_error or f"Caddy nicht erreichbar: {e}"
+        if self.settings.docker_host or self._docker_transport:
+            try:
+                report["containers"] = read_containers(
+                    self.settings.docker_host, self._docker_transport
+                )
+            except (httpx.HTTPError, ValueError) as e:
+                report["docker_error"] = (str(e) or e.__class__.__name__)[:1000]
         return report
 
     def run_task(self, task: dict[str, Any]) -> None:

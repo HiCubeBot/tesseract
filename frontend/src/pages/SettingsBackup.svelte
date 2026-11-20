@@ -29,6 +29,7 @@
     passphrase_set: boolean;
     local: { enabled: boolean; path: string };
     s3: { enabled: boolean; endpoint: string; bucket: string; region: string; prefix: string; access_key: string; secret_key_set: boolean };
+    restic: { enabled: boolean; repository: string; password_set: boolean; env_set: boolean };
     last: Result | null;
     last_test: Result | null;
     next: string | null;
@@ -45,14 +46,14 @@
   }
 
   interface Item {
-    target: 'local' | 's3';
+    target: 'local' | 's3' | 'restic';
     name: string | null;
     size: number;
     error?: string;
   }
 
   const WEEKDAYS = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
-  const TARGETS = { local: 'Lokal', s3: 'S3' };
+  const TARGETS = { local: 'Lokal', s3: 'S3', restic: 'Restic' };
 
   let cfg = $state<BackupConfig | null>(null);
   let items = $state<Item[]>([]);
@@ -63,6 +64,9 @@
   let phrase = $state('');
   let phrase2 = $state('');
   let s3Secret = $state('');
+  let resticPassword = $state('');
+  let resticEnv = $state('');
+  let resticChecking = $state(false);
   let gitToken = $state('');
   let gitKey = $state('');
   let mirroring = $state(false);
@@ -79,6 +83,23 @@
     }
   }
   load();
+
+  async function checkRestic() {
+    resticChecking = true;
+    try {
+      const r = await api.post<{ ok: boolean; error: string | null; created: boolean; snapshots: number }>('/backups/restic/check');
+      if (!r.ok) toasts.show('bad', r.error ?? 'Fehler', 12000);
+      else
+        toasts.show(
+          'ok',
+          r.created ? 'Repository angelegt – bereit für Sicherungen.' : `Verbindung steht · ${r.snapshots} Tesseract-Snapshot(s) im Repository.`
+        );
+    } catch (e) {
+      toasts.show('bad', e instanceof Error ? e.message : String(e), 10000);
+    } finally {
+      resticChecking = false;
+    }
+  }
 
   async function save() {
     if (!cfg) return;
@@ -97,6 +118,12 @@
         include_logs: cfg.include_logs,
         local: cfg.local.enabled,
         s3: { ...cfg.s3, secret_key: s3Secret || null },
+        restic: {
+          enabled: cfg.restic.enabled,
+          repository: cfg.restic.repository,
+          password: resticPassword || null,
+          env: resticEnv || null
+        },
         git: {
           enabled: cfg.git.enabled,
           url: cfg.git.url,
@@ -108,7 +135,7 @@
         },
         ...(phrase ? { passphrase: phrase } : {})
       });
-      phrase = phrase2 = s3Secret = gitToken = gitKey = '';
+      phrase = phrase2 = s3Secret = resticPassword = resticEnv = gitToken = gitKey = '';
       toasts.show('ok', 'Gespeichert.');
       items = await api.get<Item[]>('/backups');
     } catch (e) {
@@ -312,6 +339,55 @@
         </div>
         <div class="target">
           <Toggle
+            label="Restic-Repository"
+            description="lokal, SFTP, S3, B2, REST-Server, rclone … – Restic verschlüsselt das Repository zusätzlich und räumt alte Snapshots selbst auf"
+            bind:checked={cfg.restic.enabled}
+          />
+          {#if cfg.restic.enabled}
+            <div class="grid">
+              <label class="field col wide"
+                ><span class="label">Repository</span><input
+                  class="input mono"
+                  bind:value={cfg.restic.repository}
+                  placeholder="sftp:backup@nas:/restic/tesseract · rest:https://nas:8000/tesseract · s3:https://minio/bucket"
+                /></label
+              >
+              <label class="field col"
+                ><span class="label">Passwort des Repositorys{cfg.restic.password_set ? ' · gesetzt' : ''}</span><input
+                  class="input mono"
+                  type="password"
+                  bind:value={resticPassword}
+                  placeholder={cfg.restic.password_set ? 'unverändert lassen' : ''}
+                  autocomplete="off"
+                /></label
+              >
+              <label class="field col wide"
+                ><span class="label">Zugangsdaten als Umgebung (KEY=VALUE je Zeile, optional){cfg.restic.env_set ? ' · gesetzt' : ''}</span
+                ><textarea
+                  class="input mono area"
+                  rows="3"
+                  bind:value={resticEnv}
+                  placeholder={cfg.restic.env_set ? 'unverändert lassen' : 'AWS_ACCESS_KEY_ID=…\nAWS_SECRET_ACCESS_KEY=…'}
+                  autocomplete="off"
+                  spellcheck="false"
+                ></textarea></label
+              >
+            </div>
+            <div class="row">
+              <Button
+                variant="secondary"
+                size="sm"
+                icon="refresh"
+                label={resticChecking ? 'Prüft …' : 'Verbindung prüfen'}
+                disabled={resticChecking || !cfg.restic.repository}
+                onClick={checkRestic}
+              />
+              <span class="muted small">Erst speichern. Fehlt das Repository, wird es angelegt.</span>
+            </div>
+          {/if}
+        </div>
+        <div class="target">
+          <Toggle
             label="Git-Spiegel"
             description="Hosts, Caddy-Configs und Einstellungen lesbar in einem Git-Repository – jede Änderung ein Commit, ohne Schlüssel und Personen"
             bind:checked={cfg.git.enabled}
@@ -485,5 +561,10 @@
   }
   .bad {
     color: var(--bad-text);
+  }
+  .area {
+    min-height: 80px;
+    padding: 10px 12px;
+    resize: vertical;
   }
 </style>

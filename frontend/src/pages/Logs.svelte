@@ -27,6 +27,7 @@
   let entries = $state<LogEntry[]>([]);
   let sources = $state<LogSource[]>([]);
   let geoip = $state(false);
+  let store = $state<'local' | 'loki' | 'victorialogs'>('local');
   let filter = $state(Math.max(0, FILTERS.indexOf((hashParams.get('filter') ?? 'all') as (typeof FILTERS)[number])));
   const initialQuery = hashParams.get('q') ?? '';
   let query = $state(initialQuery);
@@ -58,6 +59,7 @@
       entries = r.entries;
       sources = r.sources;
       geoip = r.geoip;
+      store = r.store;
       more = r.entries.length === PAGE;
       error = '';
     } catch (e) {
@@ -305,6 +307,7 @@
   <p class="muted small">
     Suche: <span class="mono">host:git status:403 status:5xx ip:198.51.100.7 ip:198.51.100.0/24 reason:waf rule:942100 node:pi method:POST device:iphone country:DE</span>
     und freier Text (Teil der Adresse). {#if !geoip}Länder: GeoIP-Datenbank unter TESSERACT_GEOIP_DB hinterlegen.{/if}
+    {#if store !== 'local'}Quelle: {store === 'loki' ? 'Loki' : 'VictoriaLogs'} (Einstellungen › Metriken).{/if}
     {#if sources.length}Letzter Eintrag: {sources.map((s) => `${s.node} ${formatAgo(s.last_entry_at)}`).join(' · ')}{/if}
   </p>
 </AppShell>

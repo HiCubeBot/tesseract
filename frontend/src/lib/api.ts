@@ -120,6 +120,11 @@ export interface Host {
   allowed_devices: number;
   enabled: boolean;
   draft: boolean;
+  /** "ui" oder "docker" (aus Container-Labels) */
+  source: 'ui' | 'docker';
+  /** bei Docker: "<Node-ID>:<Container>" */
+  source_ref: string | null;
+  source_disabled: boolean;
   version: number;
   created_at: string;
   updated_at: string;
@@ -246,6 +251,9 @@ export type HostInput = Omit<
   | 'granted_persons'
   | 'allowed_devices'
   | 'wildcard_cert'
+  | 'source'
+  | 'source_ref'
+  | 'source_disabled'
   | 'waf_mode'
   | 'waf_paranoia'
   | 'areas'
@@ -378,6 +386,10 @@ export interface GeneralSettings {
   authelia_url: string;
   authelia_headers: string[];
   cloudflare_token_set: boolean;
+  docker_enabled: boolean;
+  docker_auto_activate: boolean;
+  /** TESSERACT_DOCKER_HOST ist gesetzt */
+  docker_local: boolean;
   autoban_enabled: boolean;
   autoban_hits: number;
   autoban_window_minutes: number;
@@ -761,6 +773,8 @@ export interface LogSource {
 export interface LogPage {
   entries: LogEntry[];
   sources: LogSource[];
+  /** "local" (eigene Datenbank) oder "loki" / "victorialogs" */
+  store: 'local' | 'loki' | 'victorialogs';
   geoip: boolean;
 }
 

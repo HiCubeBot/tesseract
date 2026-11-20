@@ -15,6 +15,7 @@
     loki_url: string;
     loki_tenant: string;
     loki_kind: 'loki' | 'victorialogs';
+    logs_external: boolean;
     loki: { queued: number; pushed: number; dropped: number; last_push_at: string | null; last_error: string | null };
     logs_ready: boolean;
     geoip: boolean;
@@ -56,6 +57,7 @@
         loki_url: cfg.loki_url,
         loki_tenant: cfg.loki_tenant,
         loki_kind: cfg.loki_kind,
+        logs_external: cfg.logs_external && !!cfg.loki_url,
         metrics_enabled: cfg.metrics_enabled,
         metrics_auth: AUTH[auth],
         metrics_networks: cfg.metrics_networks,
@@ -255,6 +257,12 @@
           <input class="input" type="text" bind:value={cfg.loki_tenant} />
         </label>
       </div>
+      <Toggle
+        label={`Log-Ansicht und Statistik aus ${storeName} lesen`}
+        description={`Suche, Live-Ansicht und Statistik fragen ${storeName} statt der eigenen Datenbank – so weit zurück, wie ${storeName} aufbewahrt. Die eigene Datenbank sammelt weiter (für Auto-Sperre und Benachrichtigungen).`}
+        bind:checked={cfg.logs_external}
+      />
+      {#if cfg.logs_external && !cfg.loki_url}<p class="field-error">Erst die URL eintragen.</p>{/if}
       <div class="row">
         <Button variant="secondary" size="sm" icon="refresh" label={testing ? 'Prüft …' : 'Verbindung testen'} onClick={testLoki} disabled={!cfg.loki_url || testing} />
         {#if cfg.loki_url}

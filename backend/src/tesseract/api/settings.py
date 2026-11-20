@@ -36,6 +36,8 @@ class GeneralIn(BaseModel):
     authelia_url: str = Field("", max_length=255)
     # None = unverändert lassen, "" = löschen
     cloudflare_token: str | None = Field(None, max_length=255)
+    docker_enabled: bool | None = None
+    docker_auto_activate: bool | None = None
     autoban_enabled: bool = True
     autoban_hits: int = Field(20, ge=1, le=10_000)
     autoban_window_minutes: int = Field(10, ge=1, le=1440)
@@ -130,6 +132,10 @@ class GeneralOut(BaseModel):
     authelia_url: str
     authelia_headers: list[str]
     cloudflare_token_set: bool
+    docker_enabled: bool
+    docker_auto_activate: bool
+    # TESSERACT_DOCKER_HOST gesetzt (lokaler Node)
+    docker_local: bool
     autoban_enabled: bool
     autoban_hits: int
     autoban_window_minutes: int
@@ -163,6 +169,9 @@ def get_settings_general(db: DB, _: CurrentActor, settings: AppSettings) -> Gene
         authelia_url=g["authelia_url"],
         authelia_headers=g["authelia_headers"],
         cloudflare_token_set=bool(g["cloudflare_token_enc"]),
+        docker_enabled=g["docker_enabled"],
+        docker_auto_activate=g["docker_auto_activate"],
+        docker_local=bool(settings.docker_host),
         autoban_enabled=g["autoban_enabled"],
         autoban_hits=g["autoban_hits"],
         autoban_window_minutes=g["autoban_window_minutes"],
@@ -194,6 +203,7 @@ def put_settings_general(
 ) -> GeneralOut:
     before = get_general(db)
     value = body.model_dump(exclude_unset=True, exclude={"cloudflare_token"})
+    value = {k: v for k, v in value.items() if not (k.startswith("docker_") and v is None)}
     if "acme_email" in value:
         value["acme_email"] = value["acme_email"] or ""
     if body.cloudflare_token is not None:
@@ -354,3 +364,61 @@ def test_authelia(db: DB, _: CurrentActor) -> AutheliaTest:
     if r.status_code != 200:
         return AutheliaTest(ok=False, detail=f"antwortet mit {r.status_code}")
     return AutheliaTest(ok=True, detail=f"erreichbar · {ms:.0f} ms")
+
+
+# ---------- Docker-Labels ----------
+
+
+@router.get("/docker")
+def docker_status(request: Request, db: DB, _: CurrentActor, settings: AppSettings) -> dict:
+    """Stand des Abgleichs je Node (letzter Lauf, Container, Fehler) und Hosts aus Labels."""
+    g = get_general(db)
+    status_by_node = getattr(request.app.state, "docker_status", None) or {}
+    hosts = list(db.scalars(select(Host).where(Host.source == "docker").order_by(Host.domain)))
+    return {
+        "enabled": g["docker_enabled"],
+        "auto_activate": g["docker_auto_activate"],
+        "local": bool(settings.docker_host),
+        "nodes": [{"node": name, **st} for name, st in sorted(status_by_node.items())],
+        "hosts": [
+            {
+                "id": h.id,
+                "domain": h.domain,
+                "node": h.node.name,
+                "container": (h.source_ref or "").split(":", 1)[-1],
+                "draft": h.draft,
+                "enabled": h.enabled,
+            }
+            for h in hosts
+        ],
+    }
+
+
+@router.post("/docker/sync")
+async def docker_sync(request: Request, db: DB, _: CurrentActor, settings: AppSettings) -> dict:
+    """Lokalen Docker-Host jetzt abgleichen (Agents melden sich mit ihrem nächsten Status)."""
+    import asyncio
+
+    from tesseract import dockerlabels as dl
+
+    if not get_general(db)["docker_enabled"]:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Docker-Labels sind ausgeschaltet")
+    if not settings.docker_host:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Für den lokalen Node ist TESSERACT_DOCKER_HOST nicht gesetzt",
+        )
+    node = db.scalar(select(Node).where(Node.kind == "local").order_by(Node.id))
+    if node is None:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Kein lokaler Node")
+    try:
+        containers = await asyncio.to_thread(
+            dl.read_containers,
+            settings.docker_host,
+            getattr(request.app.state, "docker_transport", None),
+        )
+    except (httpx.HTTPError, ValueError) as e:
+        dl.report_error(request.app, node, str(e) or e.__class__.__name__)
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"Docker: {e}") from e
+    result = await asyncio.to_thread(dl.run_sync, request.app, db, node, containers)
+    return {k: v for k, v in result.items() if k != "changed"}

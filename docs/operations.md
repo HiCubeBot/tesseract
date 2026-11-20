@@ -49,6 +49,34 @@ danach wieder (ihre Zertifikate stecken in der Sicherung) und bekommen die Confi
 
 Wer `TESSERACT_SECRET_KEY` nutzt, muss auf dem neuen Server denselben Wert setzen.
 
+### Restic als Ziel
+
+Unter **Backup › Ziele › Restic-Repository** Repository und Passwort eintragen, speichern und
+„Verbindung prüfen“ – fehlt das Repository, legt der Controller es an. Jede Sicherung wird ein
+Snapshot mit genau einer Datei (Tag `tesseract`); aufgeräumt wird mit
+`restic forget --keep-last N --prune` (N = „Aufbewahren“). Restic steckt im Controller-Image.
+
+| Repository | Beispiel | Zugangsdaten (Feld „Umgebung“) |
+|---|---|---|
+| REST-Server | `rest:https://nas:8000/tesseract` | Nutzer/Passwort in der URL |
+| S3 / MinIO | `s3:https://minio.beispiel.de/backups/tesseract` | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` |
+| Backblaze B2 | `b2:bucket:tesseract` | `B2_ACCOUNT_ID`, `B2_ACCOUNT_KEY` |
+| SFTP | `sftp:backup@nas:/restic/tesseract` | SSH-Schlüssel im Volume, siehe unten |
+| Verzeichnis | `/data/restic` | – (schützt nicht vor Ausfall des Servers) |
+
+Die Sicherung ist schon mit der Passphrase verschlüsselt, Restic verschlüsselt das Repository
+zusätzlich. Deduplizieren kann Restic verschlüsselte Dateien kaum – der Gewinn liegt bei den
+vielen Speicherorten und der Aufbewahrung. Wiederherstellen geht wie bei den anderen Zielen
+(Liste › Wiederherstellen) oder von Hand:
+
+```bash
+restic -r rest:https://nas:8000/tesseract snapshots --tag tesseract
+restic -r rest:https://nas:8000/tesseract dump <id> /tesseract-20261120-030000.tsbak > restore.tsbak
+```
+
+SFTP braucht einen SSH-Schlüssel ohne Passphrase im Container (`/app/.ssh/id_ed25519` per
+Volume, Besitzer `tesseract`) und den Server in `known_hosts`; einfacher ist der REST-Server.
+
 ### Git-Spiegel
 
 Zusätzlich zu den Sicherungen kann der Controller die Config lesbar in ein Git-Repository
@@ -142,6 +170,63 @@ eintragen; Mandant als `AccountID` oder `AccountID:ProjectID`. In Grafana mit de
 {job="tesseract"} status:>=500 | stats by (host) count()
 {job="tesseract"} ip:="198.51.100.7"
 ```
+
+### Log-Ansicht und Statistik aus Loki/VictoriaLogs
+
+Unter **Einstellungen › Metriken › Log-Speicher** „Log-Ansicht und Statistik aus … lesen“
+einschalten (oder `TESSERACT_LOGS_EXTERNAL=true`). Dann fragen Suche, Live-Ansicht, Details und
+Statistik den Log-Speicher – so weit zurück, wie er aufbewahrt (Loki: `LOKI_RETENTION`,
+VictoriaLogs: `VICTORIALOGS_RETENTION`). Die eigene Datenbank sammelt weiter; sie braucht der
+Controller für Auto-Sperre, Benachrichtigungen und „zuletzt gesehen“ der Geräte.
+
+- Suche: dieselbe Syntax wie sonst, übersetzt nach LogQL bzw. LogsQL. Bei VictoriaLogs gehen
+  IP-Netze nur für IPv4 (`ip:198.51.100.0/24`).
+- Loki begrenzt eine Abfrage auf 30 Tage (`max_query_length`) – länger zurück blättern geht
+  über „Ältere laden“.
+- Kennzahlen sind Aggregat-Abfragen (`sum by … count_over_time` bzw. `| stats by …`); Mediane
+  und p95 rechnet der Log-Speicher, sie können leicht von SQLite abweichen.
+- Nachträglich auf einmal eingespielte alte Logs zeigt Loki erst, wenn der Ingester sie
+  geschrieben hat (`query_ingesters_within`, Standard 3 Stunden); im laufenden Betrieb fällt
+  das nicht auf.
+
+## Hosts aus Docker-Labels
+
+Container mit dem Label `tesseract.domain` werden zu Proxy-Hosts:
+
+```yaml
+services:
+  navidrome:
+    image: deluan/navidrome
+    networks: [tesseract_internal]   # Caddy muss den Container erreichen
+    labels:
+      tesseract.domain: "musik.beispiel.de"
+      tesseract.port: "4533"          # entfällt bei genau einem Port
+      tesseract.access: "mtls"        # public | mtls
+      tesseract.grants: "Familie"     # vorhandene Gruppen/Personen
+      tesseract.waf: "block"          # off | detect | block
+```
+
+Weitere Labels: `tesseract.scheme` (http/https), `tesseract.upstream` (Ziel-Adresse, Standard
+ist der Container-Name), `tesseract.internal` (true/false), `tesseract.tls` (http/dns),
+`tesseract.enable` (false = überspringen).
+
+Einrichten auf dem Controller-Server:
+
+```bash
+# .env
+TESSERACT_DOCKER_HOST=tcp://docker-proxy:2375
+docker compose --profile docker up -d
+```
+
+Der Socket-Proxy gibt nur die Container-Liste frei (Nur-Lese). Danach unter **Einstellungen ›
+Integrationen › Docker-Labels** einschalten. Auf Agent-Nodes `TESSERACT_AGENT_DOCKER_HOST`
+setzen (ebenfalls am besten auf einen Socket-Proxy); der Agent meldet die Container mit jedem
+Status.
+
+Regeln: Neue Hosts sind Entwürfe, bis du sie überträgst (oder „Neue Hosts direkt übertragen“).
+Ändern sich die Labels, gelten sie; andere Felder stellst du in der Oberfläche ein. Gestoppte
+oder entfernte Container schalten ihren Host ab, ein wieder laufender Container schaltet ihn
+wieder an. Domains manuell angelegter Hosts werden nicht übernommen.
 
 ## Notausgänge (nur auf dem Controller)
 

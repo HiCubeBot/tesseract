@@ -255,6 +255,11 @@ class HostOut(BaseModel):
     allowed_devices: int
     enabled: bool
     draft: bool
+    # Herkunft: "ui" oder "docker"; bei Docker der Container (Node-ID:Name)
+    source: str = "ui"
+    source_ref: str | None = None
+    # von der Docker-Anbindung abgeschaltet (Container gestoppt/entfernt)
+    source_disabled: bool = False
     version: int
     created_at: datetime
     updated_at: datetime

@@ -195,11 +195,16 @@ class StatusIn(BaseModel):
     running_config_b64: str | None = Field(default=None, max_length=8_000_000)
     # caddy_*-Metriken des Nodes (Prometheus-Text), wenn der Controller sie haben will
     caddy_metrics: str | None = Field(default=None, max_length=4_000_000)
+    # Container mit tesseract.*-Labels (nur mit TESSERACT_DOCKER_HOST beim Agent)
+    containers: list[dict[str, Any]] | None = Field(default=None, max_length=2000)
+    docker_error: str | None = Field(default=None, max_length=1000)
 
 
 @router.post("/status")
 def post_status(body: StatusIn, request: Request, node: AgentNode, db: DB) -> dict[str, Any]:
-    report = body.model_dump(exclude={"running_config_b64", "caddy_metrics"})
+    report = body.model_dump(
+        exclude={"running_config_b64", "caddy_metrics", "containers", "docker_error"}
+    )
     if body.running_config_b64:
         try:
             report["running_config"] = json.loads(base64.b64decode(body.running_config_b64))
@@ -210,6 +215,14 @@ def post_status(body: StatusIn, request: Request, node: AgentNode, db: DB) -> di
     node_svc.record_status(db, node, report)
     db.commit()
     g = get_general(db)
+    if g["docker_enabled"] and body.containers is not None:
+        from tesseract.dockerlabels import normalize_report, run_sync
+
+        run_sync(request.app, db, node, normalize_report(body.containers))
+    elif g["docker_enabled"] and body.docker_error:
+        from tesseract.dockerlabels import report_error
+
+        report_error(request.app, node, body.docker_error)
     want = bool(g["metrics_enabled"] and g["metrics_caddy"])
     if want and body.caddy_metrics:
         request.app.state.logs.metrics.set_caddy(node.name, body.caddy_metrics)

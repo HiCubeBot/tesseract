@@ -376,3 +376,38 @@ def test_cert_renewed_early_when_controller_asks(env):
     agent.send_status()  # nächste Runde erneuert trotz 300 Tagen Restlaufzeit
     assert ctrl.renewed and settings.cert_file.read_text() == ctrl.new_cert
     assert agent.renew_requested is False
+
+
+def test_status_reports_docker_containers(env):
+    ctrl, _, _, make = env
+    agent = joined(env)
+
+    def docker(request: httpx.Request) -> httpx.Response:
+        assert "tesseract.domain" in request.url.params["filters"]
+        return httpx.Response(
+            200,
+            json=[
+                {
+                    "Id": "0123456789abcdef",
+                    "Names": ["/musik"],
+                    "State": "running",
+                    "Labels": {"tesseract.domain": "musik.example.org", "andere": "x"},
+                    "Ports": [{"PrivatePort": 4533, "Type": "tcp"}],
+                }
+            ],
+        )
+
+    agent._docker_transport = httpx.MockTransport(docker)
+    agent.send_status()
+    assert ctrl.status[-1]["containers"] == [
+        {
+            "id": "0123456789ab",
+            "name": "musik",
+            "state": "running",
+            "labels": {"tesseract.domain": "musik.example.org"},
+            "ports": [4533],
+        }
+    ]
+    agent._docker_transport = httpx.MockTransport(lambda r: httpx.Response(403, text="nein"))
+    agent.send_status()
+    assert "403" in ctrl.status[-1]["docker_error"]

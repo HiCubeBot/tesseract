@@ -8,6 +8,7 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | Feature | Beschreibung | Phase |
 |---|---|---|
 | Host-Liste | Suche nach Domain/Ziel, Filter (Alle / Aktiv / mTLS / Deaktiviert / Entwürfe) und Node; Hosts per Schalter direkt in der Zeile ein- und ausschalten (bleiben gespeichert, gehen nicht an Caddy) | 1 / 1.5 |
+| Hosts aus Docker-Labels | Container mit `tesseract.domain` werden zu Hosts (Port, Ziel, Zugriff, interne Netze, Freigaben, WAF, Prüfart per Label). Lokal über einen Socket-Proxy, Agent-Nodes melden ihre Container. Neue Hosts als Entwurf, Label-Änderungen gelten, gestoppte/entfernte Container schalten den Host ab; gekennzeichnet in Liste und Host-Seite | 1.6 |
 | Host bearbeiten | Eigene Seite mit Tabs Allgemein · Zugriff · Sicherheit · Verlauf; Aktiv-Schalter im Kopf, Vorab-Prüfungen wie beim Anlegen, Nachfrage bei ungespeicherten Änderungen | 1.5 |
 | Host-Assistent | 3 Schritte: Domain & Ziel → Zugriff → Prüfen & übertragen | 1 |
 | Ziel | Schema (http/https), Ziel-IP/Host und Port, Auswahl des Nodes; bei https optional ohne Prüfung des Zertifikats (selbst signiert) | 1 / 4 / 1.1 |
@@ -98,6 +99,7 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | Aktionen aus Logs | IP sperren (24 h, alle Nodes), Ausnahme für Fehlalarm anlegen, alle Einträge einer IP | 5 |
 | Filter | Zeitraum (24 h / 7 / 30 Tage), Node | 5 |
 | Loki | Zusätzlicher Log-Speicher: jeder Eintrag geht auch an Loki (Push-API, Labels `node`, `host`, `reason`, Rest als JSON), gepuffert, falls Loki nicht erreichbar ist. Loki optional im Compose-Stack (Profil `loki`), Auswertung in Grafana per LogQL | 1.2 |
+| Logs und Statistik aus Loki/VictoriaLogs | Auf Wunsch fragen Log-Ansicht (Suche, Live, Details, Ausnahme aus dem Log) und Statistik den externen Speicher statt SQLite – so weit zurück, wie er aufbewahrt. Gleiche Filtersyntax, übersetzt nach LogQL bzw. LogsQL; Kennzahlen als Aggregat-Abfragen | 1.6 |
 | VictoriaLogs | Statt Loki: dieselben Einträge über `/insert/jsonline` (Stream-Felder `job`, `node`, `host`, `reason`, alle anderen Werte als Felder), Mandant `AccountID[:ProjectID]`; optional im Compose-Stack (Profil `victorialogs`), Abfrage mit LogsQL | 1.4 |
 
 ## 8. Audit-Log
@@ -121,7 +123,7 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | Benachrichtigungen | E-Mail, Webhook, ntfy; Ereignis × Kanal × Stufe; Bündeln (max. 1× / 15 Min.), Ruhezeit nachts | 5 |
 | Metriken | Prometheus-Endpunkt für Controller und alle Nodes, Schutz per Bearer-Token / mTLS / IP-Liste, `prometheus.yml`-Snippet, Grafana-Dashboard (JSON) | 5 |
 | Git-Spiegel | Hosts, Caddy-Config pro Node, IP-Listen und Einstellungen lesbar in einem Git-Repository (HTTPS-Token oder SSH-Deploy-Key); jede Änderung ein Commit mit den Einträgen aus dem Audit-Log als Nachricht. Ohne Schlüssel, Tokens, Personen und IP-Sperren | 1.2 |
-| Backup | Zeitplan (stündlich/täglich/wöchentlich), Ziele lokal und S3-kompatibel, verschlüsselt mit Passphrase (AES-256-GCM, scrypt); Root-Schlüssel nie enthalten; Wiederherstellungstest; Wiederherstellen aus Ziel oder Datei, auch per Kommandozeile | 6 |
+| Backup | Zeitplan (stündlich/täglich/wöchentlich), Ziele lokal, S3-kompatibel und Restic-Repository (1.6), verschlüsselt mit Passphrase (AES-256-GCM, scrypt); Root-Schlüssel nie enthalten; Wiederherstellungstest; Wiederherstellen aus Ziel oder Datei, auch per Kommandozeile | 6 |
 
 ## 10. Admin-Zugang
 

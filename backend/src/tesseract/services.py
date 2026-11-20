@@ -94,6 +94,12 @@ GENERAL_DEFAULTS: dict[str, Any] = {
     "loki_tenant": "",
     # "loki" oder "victorialogs" (gleiche Einträge, andere Schnittstelle)
     "loki_kind": "loki",
+    # Log-Ansicht und Statistik aus Loki/VictoriaLogs lesen statt aus SQLite
+    "logs_external": False,
+    # Hosts aus Docker-Labels (lokal über TESSERACT_DOCKER_HOST, Agents über ihren Status)
+    "docker_enabled": False,
+    # neue Hosts aus Labels sofort übertragen statt als Entwurf
+    "docker_auto_activate": False,
     # Prometheus-Endpunkt /metrics: aus, Schutz "token" | "mtls" | "ip"
     "metrics_enabled": False,
     "metrics_auth": "token",

@@ -22,6 +22,7 @@ import logging
 import os
 import re
 import sqlite3
+import subprocess
 import tempfile
 import zipfile
 from dataclasses import dataclass
@@ -340,6 +341,168 @@ def _s3_error(text: str) -> str:
     return m.group(1) if m else text[:300]
 
 
+# Restic: „Repository gibt es nicht“ (ab restic 0.17 Exit-Code 10, vorher nur die Meldung)
+RESTIC_NO_REPO = 10
+_NO_REPO_TEXT = ("Is there a repository at the following location", "unable to open config file")
+RESTIC_TAG = "tesseract"
+
+
+class ResticTarget:
+    """Restic-Repository als Ziel (lokal, SFTP, S3, B2, REST-Server, rclone …).
+
+    Jede Sicherung ist ein Snapshot mit genau einer Datei (`--stdin`), markiert mit dem Tag
+    `tesseract`. Aufräumen übernimmt Restic (`forget --keep-last N --prune`). Die Datei ist
+    schon mit der Passphrase verschlüsselt; Restic verschlüsselt das Repository zusätzlich."""
+
+    name = "restic"
+
+    def __init__(
+        self,
+        repository: str,
+        password: str,
+        env: dict[str, str] | None = None,
+        binary: str = "restic",
+        cache_dir: Path | None = None,
+        runner=None,
+    ) -> None:
+        self.repository = repository
+        self.password = password
+        self.env = env or {}
+        self.binary = binary
+        self.cache_dir = cache_dir
+        self.runner = runner or subprocess.run
+
+    def _run(self, *args: str, stdin: bytes | None = None, check: bool = True):
+        env = {
+            "PATH": os.environ.get("PATH", "/usr/local/bin:/usr/bin:/bin"),
+            "HOME": os.environ.get("HOME", "/tmp"),
+            "RESTIC_REPOSITORY": self.repository,
+            "RESTIC_PASSWORD": self.password,
+            **self.env,
+        }
+        if self.cache_dir:
+            env["RESTIC_CACHE_DIR"] = str(self.cache_dir)
+        try:
+            r = self.runner(
+                [self.binary, *args],
+                input=stdin,
+                capture_output=True,
+                env=env,
+                timeout=900,
+            )
+        except FileNotFoundError as e:
+            raise BackupError(f"restic nicht gefunden ({self.binary})") from e
+        except subprocess.TimeoutExpired as e:
+            raise BackupError("restic antwortet nicht (Zeitüberschreitung)") from e
+        if check and r.returncode != 0:
+            raise BackupError(f"restic: {_restic_error(r.stderr)}")
+        return r
+
+    def ensure_repo(self) -> bool:
+        """Legt das Repository an, wenn es noch nicht existiert. True = neu angelegt."""
+        r = self._run("cat", "config", check=False)
+        if r.returncode == 0:
+            return False
+        err = (r.stderr or b"").decode(errors="replace")
+        if r.returncode == RESTIC_NO_REPO or any(t in err for t in _NO_REPO_TEXT):
+            self._run("init")
+            return True
+        raise BackupError(f"restic: {_restic_error(r.stderr)}")
+
+    def put(self, name: str, data: bytes) -> None:
+        self.ensure_repo()
+        self._run(
+            "backup",
+            "--stdin",
+            "--stdin-filename",
+            _safe(name),
+            "--tag",
+            RESTIC_TAG,
+            "--host",
+            "tesseract",
+            stdin=data,
+        )
+
+    def _snapshots(self) -> list[dict[str, Any]]:
+        r = self._run("snapshots", "--json", "--tag", RESTIC_TAG, check=False)
+        if r.returncode != 0:
+            err = (r.stderr or b"").decode(errors="replace")
+            if r.returncode == RESTIC_NO_REPO or any(t in err for t in _NO_REPO_TEXT):
+                return []
+            raise BackupError(f"restic: {_restic_error(r.stderr)}")
+        try:
+            return json.loads(r.stdout or b"[]") or []
+        except ValueError as e:
+            raise BackupError("restic: unerwartete Antwort auf snapshots") from e
+
+    @staticmethod
+    def _file(snap: dict[str, Any]) -> str:
+        paths = snap.get("paths") or [""]
+        return paths[0].rsplit("/", 1)[-1]
+
+    def list(self) -> list[tuple[str, int]]:
+        out = []
+        for s in self._snapshots():
+            name = self._file(s)
+            if NAME_RE.match(name):
+                size = (s.get("summary") or {}).get("total_bytes_processed") or 0
+                out.append((name, int(size)))
+        return sorted(out)
+
+    def _id(self, name: str) -> str:
+        name = _safe(name)
+        for s in self._snapshots():
+            if self._file(s) == name:
+                return s["id"]
+        raise BackupError(f"Snapshot für {name} nicht gefunden")
+
+    def get(self, name: str) -> bytes:
+        return self._run("dump", self._id(name), "/" + _safe(name)).stdout
+
+    def delete(self, name: str) -> None:
+        self._run("forget", "--prune", self._id(name))
+
+    def prune(self, keep: int) -> "list[str]":  # „list“ ist hier die Methode
+        before = {n for n, _ in self.list()}
+        self._run(
+            "forget",
+            "--tag",
+            RESTIC_TAG,
+            "--host",
+            "tesseract",
+            "--keep-last",
+            str(max(1, keep)),
+            # jede Sicherung hat einen eigenen Dateinamen – nicht nach Pfad gruppieren
+            "--group-by",
+            "host,tags",
+            "--prune",
+        )
+        return sorted(before - {n for n, _ in self.list()})
+
+
+def _restic_error(stderr: bytes | None) -> str:
+    lines = [ln.strip() for ln in (stderr or b"").decode(errors="replace").splitlines()]
+    lines = [ln for ln in lines if ln]
+    return lines[-1][:300] if lines else "unbekannter Fehler"
+
+
+def parse_env(text: str) -> dict[str, str]:
+    """`KEY=VALUE`-Zeilen (Zugangsdaten für das Restic-Backend, z. B. AWS_ACCESS_KEY_ID)."""
+    out: dict[str, str] = {}
+    for raw in (text or "").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        key, sep, value = line.partition("=")
+        key = key.strip()
+        if not sep or not re.fullmatch(r"[A-Z_][A-Z0-9_]*", key):
+            raise BackupError(f"Umgebung: „{line[:40]}“ ist keine Zeile KEY=VALUE")
+        if key in ("RESTIC_REPOSITORY", "RESTIC_PASSWORD", "PATH", "HOME"):
+            raise BackupError(f"Umgebung: {key} wird von Tesseract gesetzt")
+        out[key] = value.strip()
+    return out
+
+
 # ---------- Zeitplan ----------
 
 
@@ -400,11 +563,20 @@ DEFAULTS: dict[str, Any] = {
         "access_key": "",
         "secret_key_enc": "",
     },
+    "restic": {
+        "enabled": False,
+        "repository": "",
+        "password_enc": "",
+        # weitere Umgebungsvariablen (KEY=VALUE je Zeile), verschlüsselt
+        "env_enc": "",
+    },
     "last": None,  # {"at", "ok", "name", "size", "targets", "error"}
     "last_test": None,  # {"at", "ok", "name", "error"}
 }
 PASSPHRASE_CONTEXT = "backup-passphrase"
 S3_CONTEXT = "backup-s3-secret"
+RESTIC_CONTEXT = "backup-restic-password"
+RESTIC_ENV_CONTEXT = "backup-restic-env"
 
 
 def get_config(db) -> dict[str, Any]:
@@ -458,7 +630,29 @@ def targets(cfg: dict[str, Any], settings: Settings, box, transport=None) -> lis
                 transport,
             )
         )
+    rc = cfg.get("restic") or {}
+    if rc.get("enabled") and rc.get("repository"):
+        out.append(restic_target(rc, settings, box))
     return out
+
+
+def restic_target(rc: dict[str, Any], settings: Settings, box, runner=None) -> ResticTarget:
+    password = (
+        box.decrypt(rc["password_enc"], RESTIC_CONTEXT).decode() if rc.get("password_enc") else ""
+    )
+    env = (
+        parse_env(box.decrypt(rc["env_enc"], RESTIC_ENV_CONTEXT).decode())
+        if rc.get("env_enc")
+        else {}
+    )
+    return ResticTarget(
+        rc["repository"],
+        password,
+        env,
+        binary=settings.restic_bin,
+        cache_dir=Path(settings.data_dir) / "restic-cache",
+        runner=runner,
+    )
 
 
 def passphrase(cfg: dict[str, Any], box) -> str:
@@ -514,6 +708,9 @@ def run(db, settings: Settings, box, actor: str = "system", transport=None) -> d
 
 
 def prune(target, keep: int) -> list[str]:
+    if hasattr(target, "prune"):
+        # Restic räumt selbst auf (forget + prune in einem Lauf)
+        return target.prune(keep)
     names = [n for n, _ in target.list()]
     old = names[: max(0, len(names) - max(1, keep))]
     for n in old:

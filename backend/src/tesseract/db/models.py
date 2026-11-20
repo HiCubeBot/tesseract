@@ -206,6 +206,14 @@ class Host(Base):
     # Entwürfe werden gespeichert, aber nicht an Caddy übertragen
     draft: Mapped[bool] = mapped_column(default=False)
     enabled: Mapped[bool] = mapped_column(default=True)
+    # Herkunft: "ui" (Oberfläche/API) oder "docker" (Container-Labels, siehe dockerlabels.py)
+    source: Mapped[str] = mapped_column(String(16), default="ui", server_default="ui")
+    # bei Docker: "<node_id>:<Container-Name>"
+    source_ref: Mapped[str | None] = mapped_column(String(255))
+    # Prüfsumme der zuletzt übernommenen Labels
+    source_hash: Mapped[str | None] = mapped_column(String(64))
+    # von der Docker-Anbindung abgeschaltet (Container gestoppt/entfernt)
+    source_disabled: Mapped[bool] = mapped_column(default=False, server_default="0")
     version: Mapped[int] = mapped_column(default=1)
     created_at: Mapped[datetime] = mapped_column(default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(default=utcnow, onupdate=utcnow)
