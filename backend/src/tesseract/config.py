@@ -49,6 +49,9 @@ class Settings(BaseSettings):
     # bricht Caddy die Verbindung ab. Einladungen, Gerät verlängern und die Agent-Schnittstelle
     # bleiben überall erreichbar. Standard: alle Netze.
     admin_networks: str = "0.0.0.0/0,::/0"
+    # Node-Schnittstelle (/api/agent/…, Installationsskript) von admin_networks ausnehmen, damit
+    # Nodes aus jedem Netz den Controller erreichen. Aus = auch Nodes nur aus admin_networks.
+    agent_api_public: bool = True
     admin_password: str = ""
     admin_password_file: Path | None = None
 

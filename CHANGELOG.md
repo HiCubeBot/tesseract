@@ -4,6 +4,19 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.10.0] – 2026-11-21
+
+### Hinzugefügt
+- **Node-Schnittstelle und Admin-Netze:** `TESSERACT_AGENT_API_PUBLIC` (Standard `true`) nimmt
+  die Schnittstelle für die Nodes (`/api/agent/…`, Installationsskript) von
+  `TESSERACT_ADMIN_NETWORKS` aus – die Oberfläche bleibt aufs Heimnetz beschränkt, Nodes melden
+  sich von überall. `false` beschränkt auch die Nodes. Anzeige unter Einstellungen › Allgemein
+- **DNS-Eintrag für die Tesseract-Domain:** Einstellungen › Integrationen › DNS-Einträge legt
+  bei Cloudflare einen CNAME oder A/AAAA für `TESSERACT_DOMAIN` an (nie über den Proxy), damit
+  Nodes außerhalb des Heimnetzes den Controller finden; beim Start nachgezogen
+- Neue öffentliche IPs eines Nodes ziehen die A/AAAA-Einträge seiner Hosts (und beim lokalen
+  Node die der Tesseract-Domain) nach
+
 ## [1.9.0] – 2026-11-21
 
 ### Hinzugefügt

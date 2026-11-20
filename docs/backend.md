@@ -226,6 +226,7 @@ Alle Einstellungen kommen aus Umgebungsvariablen oder einer `.env` im Arbeitsver
 | `TESSERACT_GEOIP_AUTO` | – | `dbip` = GeoIP-Datenbank (DB-IP Lite) selbst holen und monatlich erneuern, ohne Neustart. Einzige Verbindung nach außen, daher standardmäßig aus |
 | `TESSERACT_BACKGROUND_TASKS` | `true` | Hintergrundaufgaben (Auto-Sperre, Logs, Prüfung lokaler Nodes, Benachrichtigungen) |
 | `TESSERACT_ADMIN_USERNAME` | `admin` | Name des Admins |
+| `TESSERACT_AGENT_API_PUBLIC` | `true` | Node-Schnittstelle (`/api/agent/…`, `/install/…`) von `TESSERACT_ADMIN_NETWORKS` ausnehmen; `false` = Nodes auch nur aus diesen Netzen |
 | `TESSERACT_ADMIN_NETWORKS` | `0.0.0.0/0,::/0` | Netze (kommagetrennt, CIDR), aus denen die Oberfläche erreichbar ist; sonst bricht Caddy die Verbindung ab. Einladungen, Verlängern, Agent-Schnittstelle, `/metrics` und `/install` bleiben überall erreichbar |
 | `TESSERACT_ADMIN_PASSWORD` | – | Admin-Passwort (mind. 12 Zeichen), gilt bei jedem Start; leer = Zufallspasswort im Log |
 | `TESSERACT_ADMIN_PASSWORD_FILE` | – | Passwort aus einer Datei (Docker-Secret), hat Vorrang |

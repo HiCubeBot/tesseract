@@ -242,3 +242,54 @@ def test_check_shows_planned_record(auth_client: TestClient) -> None:
         c for c in auth_client.post("/api/hosts/check", json=body).json() if c["key"] == "dns"
     )
     assert dns["status"] == "warn" and "keine IP" in dns["detail"]
+
+
+def test_controller_domain_record(auth_client: TestClient) -> None:
+    c = auth_client
+    cf = _setup(c)
+    c.app.state.settings.controller_domain = "tesseract.beispiel.de"
+    out = c.get("/api/settings/controller-dns").json()
+    assert out["type"] is None and out["zone"] == "beispiel.de" and out["agent_api_public"] is True
+
+    out = c.put("/api/settings/controller-dns", json={"type": "cname"}).json()
+    assert out["error"] is None
+    assert cf.by_name("tesseract.beispiel.de") == [("CNAME", "home.beispiel.de", False)]
+
+    # A/AAAA mit den IPs des lokalen Nodes – und neue IPs werden nachgezogen
+    node = next(n for n in c.get("/api/nodes").json() if n["kind"] == "local")
+    out = c.put("/api/settings/controller-dns", json={"type": "address"}).json()
+    assert "keine IP" in out["error"]
+    c.put(
+        f"/api/nodes/{node['id']}",
+        json={"name": node["name"], "location": "", "public_ips": ["203.0.113.7"]},
+    )
+    assert cf.by_name("tesseract.beispiel.de") == [("A", "203.0.113.7", False)]
+    c.put(
+        f"/api/nodes/{node['id']}",
+        json={"name": node["name"], "location": "", "public_ips": ["203.0.113.9"]},
+    )
+    assert cf.by_name("tesseract.beispiel.de") == [("A", "203.0.113.9", False)]
+
+    # ausschalten → Eintrag weg
+    out = c.put("/api/settings/controller-dns", json={"type": None}).json()
+    assert out["records"] == [] and cf.by_name("tesseract.beispiel.de") == []
+
+
+def test_host_records_follow_node_ips(auth_client: TestClient) -> None:
+    c = auth_client
+    cf = _setup(c, type="address", ip_source="node")
+    node = c.get("/api/nodes").json()[0]
+    c.put(
+        f"/api/nodes/{node['id']}",
+        json={"name": node["name"], "location": "", "public_ips": ["203.0.113.7"]},
+    )
+    _host(c, dns_type="address")
+    assert cf.by_name("musik.beispiel.de") == [("A", "203.0.113.7", False)]
+    c.put(
+        f"/api/nodes/{node['id']}",
+        json={"name": node["name"], "location": "", "public_ips": ["203.0.113.8", "2001:db8::8"]},
+    )
+    assert cf.by_name("musik.beispiel.de") == [
+        ("A", "203.0.113.8", False),
+        ("AAAA", "2001:db8::8", False),
+    ]

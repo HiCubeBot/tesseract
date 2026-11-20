@@ -157,6 +157,13 @@
             {#if !general || general.admin_networks_open}allen Netzen{:else}<span class="mono">{general.admin_networks.join(', ')}</span>{/if}
             <span class="muted small">· <code>TESSERACT_ADMIN_NETWORKS</code> in der <code>.env</code></span>
           </dd>
+          {#if general && !general.admin_networks_open}
+            <dt>Nodes</dt>
+            <dd>
+              {general.agent_api_public ? 'aus allen Netzen (Schnittstelle ausgenommen)' : 'nur aus diesen Netzen'}
+              <span class="muted small">· <code>TESSERACT_AGENT_API_PUBLIC</code></span>
+            </dd>
+          {/if}
         </dl>
         {#if !access.enabled && access.reason}
           <p class="muted small">Zum Einschalten: {access.reason}.</p>

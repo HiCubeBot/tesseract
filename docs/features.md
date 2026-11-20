@@ -140,7 +140,8 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 
 | Feature | Beschreibung | Phase |
 |---|---|---|
-| Oberfläche nur aus bestimmten Netzen | `TESSERACT_ADMIN_NETWORKS` (Standard alle Netze): aus anderen Netzen bricht Caddy die Verbindung ab, noch vor Anmeldung und Zertifikat. Einladungen, Verlängern und Agent-Schnittstelle bleiben erreichbar. Kombinierbar mit „Nur mit Admin-Zertifikat“ | 1.7 |
+| DNS-Eintrag für die Tesseract-Domain | Damit Nodes den Controller über den Namen finden: CNAME oder A/AAAA (IPs des lokalen Nodes) bei Cloudflare, nie über den Proxy; beim Start und bei neuen Node-IPs nachgezogen | 1.10 |
+| Oberfläche nur aus bestimmten Netzen | `TESSERACT_ADMIN_NETWORKS` (Standard alle Netze): aus anderen Netzen bricht Caddy die Verbindung ab, noch vor Anmeldung und Zertifikat. Einladungen und Verlängern bleiben erreichbar, die Agent-Schnittstelle wahlweise (`TESSERACT_AGENT_API_PUBLIC`, Standard an). Kombinierbar mit „Nur mit Admin-Zertifikat“ | 1.7 / 1.10 |
 | GeoIP automatisch | `TESSERACT_GEOIP_AUTO=dbip`: Controller holt DB-IP Lite selbst, prüft sie, erneuert monatlich und übernimmt sie ohne Neustart; Stand und „Jetzt aktualisieren“ unter Einstellungen › Metriken, Quellenangabe unter der Karte | 1.8 |
 | Heller und dunkler Modus | Folgt der Systemeinstellung; Umschalter in der Seitenleiste (System → Hell → Dunkel), pro Browser gemerkt | 1.5 |
 | Favicon | Logo als SVG-Icon für Tab und Lesezeichen | 1.5 |

@@ -214,6 +214,20 @@ und löscht ihn mit dem Host. Entwürfe bekommen noch keinen Eintrag.
 - Der Token braucht „Zone › Zone › Lesen“ und „Zone › DNS › Bearbeiten“ – dieselben Rechte wie
   für DNS-01. „Zugriff prüfen“ in den Einstellungen testet das.
 
+### Eintrag für die Tesseract-Domain (Nodes)
+
+Nodes außerhalb des Heimnetzes erreichen den Controller nur, wenn `TESSERACT_DOMAIN` öffentlich
+auflöst. Unter **Einstellungen › Integrationen › DNS-Einträge › Tesseract-Domain für die Nodes**
+legt Tesseract dafür einen CNAME (Standard: Ziel der Domain, z. B. der DDNS-Name) oder A/AAAA
+(Standard: öffentliche IPs des lokalen Nodes) an. Nie über den Cloudflare-Proxy – die Nodes
+melden sich mit eigenem Zertifikat. Der Eintrag wird beim Start und bei neuen IPs des lokalen
+Nodes nachgezogen.
+
+Zusammen mit `TESSERACT_ADMIN_NETWORKS` ergibt das: Die Oberfläche ist nur aus dem Heimnetz
+erreichbar, die Nodes melden sich trotzdem von überall (`TESSERACT_AGENT_API_PUBLIC=true`,
+Standard). Ändern sich die öffentlichen IPs eines Nodes (Nodes › Bearbeiten), zieht Tesseract
+auch die A/AAAA-Einträge der Hosts darauf nach.
+
 ## Hosts aus Docker-Labels
 
 Container mit dem Label `tesseract.domain` werden zu Proxy-Hosts:

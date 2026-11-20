@@ -27,6 +27,8 @@ JSON = dict[str, Any]
 FINGERPRINT = "{http.request.tls.client.fingerprint}"
 # Header, mit dem Caddy dem Controller den Fingerabdruck des Client-Zertifikats mitteilt
 FINGERPRINT_HEADER = "X-Tesseract-Client-Fingerprint"
+# Schnittstelle für Nodes (Agents) – bei TESSERACT_ADMIN_NETWORKS wahlweise ausgenommen
+AGENT_PATHS = ("/api/agent/*", "/install/*")
 # Auf der Controller-Domain immer ohne Admin-Zertifikat erreichbar (Einladung, Agents, Dateien)
 # Agents melden sich mit eigenem Node-Zertifikat – das prüft der Controller selbst
 CONTROLLER_PUBLIC_PATHS = (
@@ -144,6 +146,8 @@ class NodeSpec:
     controller_waf_mode: str = "off"
     # Netze, aus denen die Oberfläche erreichbar ist; leer = alle (TESSERACT_ADMIN_NETWORKS)
     controller_networks: tuple[str, ...] = ()
+    # Node-Schnittstelle von controller_networks ausnehmen (TESSERACT_AGENT_API_PUBLIC)
+    controller_agents_open: bool = True
     # Vertrauenswürdige Proxys davor (z. B. Cloudflare) – nur dann zählt X-Forwarded-For
     trusted_proxies: tuple[str, ...] = ()
     # Authelia-Instanz, z. B. "http://authelia:9091" oder "https://auth.example.org"
@@ -608,7 +612,7 @@ def controller_spec(spec: NodeSpec) -> HostSpec:
     )
 
 
-def _admin_networks_route(networks: tuple[str, ...]) -> JSON:
+def _admin_networks_route(networks: tuple[str, ...], agents_open: bool = True) -> JSON:
     """Oberfläche nur aus diesen Netzen: sonst Verbindung abbrechen, keine Antwort. Die
     öffentlichen Pfade (Einladung, Verlängern, Agents …) bleiben überall erreichbar.
     Geprüft wird die echte Verbindungs-IP (remote_ip), nicht X-Forwarded-For."""
@@ -617,7 +621,13 @@ def _admin_networks_route(networks: tuple[str, ...]) -> JSON:
             {
                 "not": [
                     {"remote_ip": {"ranges": list(networks)}},
-                    {"path": list(CONTROLLER_PUBLIC_PATHS)},
+                    {
+                        "path": [
+                            p
+                            for p in CONTROLLER_PUBLIC_PATHS
+                            if agents_open or p not in AGENT_PATHS
+                        ]
+                    },
                 ]
             }
         ],
@@ -632,7 +642,8 @@ def _controller_route(spec: NodeSpec) -> JSON:
     route["@id"] = "controller"
     if spec.controller_networks:
         # vor allem anderen – noch vor Zertifikat und WAF
-        route["handle"][0]["routes"].insert(0, _admin_networks_route(spec.controller_networks))
+        gate = _admin_networks_route(spec.controller_networks, spec.controller_agents_open)
+        route["handle"][0]["routes"].insert(0, gate)
     return route
 
 
@@ -721,7 +732,9 @@ def build_config(spec: NodeSpec) -> JSON:
                 {
                     "handler": "subroute",
                     "routes": [
-                        _admin_networks_route(spec.controller_networks),
+                        _admin_networks_route(
+                            spec.controller_networks, spec.controller_agents_open
+                        ),
                         {"handle": redirect["handle"]},
                     ],
                 }

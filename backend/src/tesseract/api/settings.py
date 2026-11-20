@@ -139,6 +139,8 @@ class GeneralOut(BaseModel):
     # TESSERACT_ADMIN_NETWORKS – Netze, aus denen die Oberfläche erreichbar ist
     admin_networks: list[str]
     admin_networks_open: bool
+    # Node-Schnittstelle von admin_networks ausgenommen (TESSERACT_AGENT_API_PUBLIC)
+    agent_api_public: bool
     autoban_enabled: bool
     autoban_hits: int
     autoban_window_minutes: int
@@ -177,6 +179,7 @@ def get_settings_general(db: DB, _: CurrentActor, settings: AppSettings) -> Gene
         docker_local=bool(settings.docker_host),
         admin_networks=settings.admin_network_list,
         admin_networks_open=settings.admin_networks_open,
+        agent_api_public=settings.agent_api_public,
         autoban_enabled=g["autoban_enabled"],
         autoban_hits=g["autoban_hits"],
         autoban_window_minutes=g["autoban_window_minutes"],
@@ -497,3 +500,55 @@ def check_dns_zone(
         getattr(request.app.state, "dns_transport", None),
     )
     return {"ok": err is None, "error": err}
+
+
+class ControllerDnsIn(BaseModel):
+    # None = kein Eintrag; "cname" oder "address" (A/AAAA)
+    type: Literal["cname", "address"] | None = None
+    # leer = Standard der Domain (bzw. IPs des lokalen Nodes)
+    target: str = Field("", max_length=500)
+
+
+def _controller_dns_out(db, settings) -> dict:
+    from tesseract.dnsrecords import controller_config, zone_for
+
+    g = get_general(db)
+    cfg = controller_config(g)
+    domain = settings.controller_domain or ""
+    zone = zone_for(domain, g.get("dns_zones") or []) if domain else None
+    return {
+        **cfg,
+        "domain": domain,
+        "zone": zone["zone"] if zone else None,
+        "agent_api_public": settings.agent_api_public,
+    }
+
+
+@router.get("/controller-dns")
+def get_controller_dns(db: DB, _: CurrentActor, settings: AppSettings) -> dict:
+    """DNS-Eintrag für die Tesseract-Domain selbst (damit Nodes den Controller finden)."""
+    return _controller_dns_out(db, settings)
+
+
+@router.put("/controller-dns")
+def put_controller_dns(
+    body: ControllerDnsIn, request: Request, db: DB, actor: CurrentActor, settings: AppSettings
+) -> dict:
+    from tesseract.dnsrecords import apply_controller, controller_config
+
+    cfg = controller_config(get_general(db))
+    before = (cfg["type"], cfg["target"])
+    cfg["type"], cfg["target"] = body.type, body.target.strip()
+    set_general(db, {"controller_dns": cfg})
+    if before != (cfg["type"], cfg["target"]):
+        audit.record(
+            db,
+            actor=actor.name,
+            action="settings_changed",
+            target="DNS-Eintrag der Tesseract-Domain",
+            details={"type": body.type, "target": cfg["target"]},
+            ip=actor.ip,
+        )
+    db.commit()
+    apply_controller(db, settings, getattr(request.app.state, "dns_transport", None))
+    return _controller_dns_out(db, settings)

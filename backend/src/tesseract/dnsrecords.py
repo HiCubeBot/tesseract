@@ -367,3 +367,74 @@ def check_zone(zone: str, token: str, transport=None) -> str | None:
     except DnsError as e:
         return str(e)
     return None
+
+
+# ---------- Eintrag für die Tesseract-Domain selbst ----------
+
+
+def controller_config(general: dict[str, Any]) -> dict[str, Any]:
+    cfg = {"type": None, "target": "", "records": [], "error": None, "at": None}
+    cfg.update(general.get("controller_dns") or {})
+    return cfg
+
+
+def apply_controller(db, settings, transport=None) -> dict[str, Any]:
+    """DNS-Eintrag für TESSERACT_DOMAIN bei Cloudflare angleichen – damit Nodes außerhalb des
+    Heimnetzes den Controller über den Namen finden. Nie über den Cloudflare-Proxy: Agents
+    melden sich mit eigenem Zertifikat (mTLS), das ginge hinter dem Proxy verloren."""
+    from datetime import UTC, datetime
+    from types import SimpleNamespace
+
+    from sqlalchemy import select
+
+    from tesseract.db.models import Node
+    from tesseract.services import cloudflare_token, get_general, set_general
+
+    general = get_general(db)
+    cfg = controller_config(general)
+    domain = (settings.controller_domain or "").lower()
+    if not cfg["type"] and not cfg["records"]:
+        return cfg
+    local = db.scalar(select(Node).where(Node.kind == "local").order_by(Node.id))
+    probe = SimpleNamespace(
+        domain=domain,
+        dns_type=cfg["type"] if domain else None,
+        dns_target=cfg["target"],
+        dns_proxied=False,
+        draft=False,
+        dns_records=cfg["records"],
+    )
+    try:
+        if cfg["type"] and not domain:
+            raise DnsError("TESSERACT_DOMAIN ist nicht gesetzt")
+        cf = Cloudflare(cloudflare_token(db, settings), transport)
+        zone = zone_for(domain, general.get("dns_zones") or [])
+        cfg["records"] = sync(cf, probe, zone, list(local.public_ips or []) if local else [])
+        cfg["error"] = None
+    except DnsError as e:
+        cfg["error"] = str(e)
+        log.warning("DNS für die Tesseract-Domain %s: %s", domain, e)
+    cfg["at"] = datetime.now(UTC).isoformat(timespec="seconds")
+    set_general(db, {"controller_dns": cfg})
+    db.commit()
+    return cfg
+
+
+async def controller_on_start(app) -> None:
+    """Beim Start einmal angleichen – etwa nach geänderter TESSERACT_DOMAIN."""
+    import asyncio
+
+    from tesseract.services import get_general
+
+    try:
+        with app.state.db.sessionmaker() as db:
+            cfg = controller_config(get_general(db))
+            if cfg["type"] or cfg["records"]:
+                await asyncio.to_thread(
+                    apply_controller,
+                    db,
+                    app.state.settings,
+                    getattr(app.state, "dns_transport", None),
+                )
+    except Exception:  # pragma: no cover – Start nie verhindern
+        log.exception("DNS für die Tesseract-Domain: Fehler beim Start")

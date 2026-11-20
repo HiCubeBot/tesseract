@@ -101,6 +101,8 @@ GENERAL_DEFAULTS: dict[str, Any] = {
     "logs_external": False,
     # DNS-Einträge bei Cloudflare: pro Domain (Zone) Standard für neue Hosts, siehe dnsrecords.py
     "dns_zones": [],
+    # Eintrag für TESSERACT_DOMAIN selbst: {"type", "target", "records", "error", "at"}
+    "controller_dns": {},
     # Hosts aus Docker-Labels (lokal über TESSERACT_DOCKER_HOST, Agents über ihren Status)
     "docker_enabled": False,
     # neue Hosts aus Labels sofort übertragen statt als Entwurf
@@ -525,6 +527,7 @@ def node_config(db: Session, node: Node, settings: Settings, bans: bool = True) 
         controller_networks=()
         if settings.admin_networks_open
         else tuple(settings.admin_network_list),
+        controller_agents_open=settings.agent_api_public,
         trusted_proxies=tuple(
             resolve_ranges(db, general["trusted_proxies"], general["trusted_proxy_list_ids"])
         ),

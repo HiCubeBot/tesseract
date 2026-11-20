@@ -12,7 +12,7 @@ from tesseract.caddy.config import redact
 from tesseract.db.models import Host, Node
 from tesseract.deps import DB, AppSettings, Box, CurrentActor
 from tesseract.identity import CAError, ca_configured
-from tesseract.services import apply_node, node_config, node_in_sync
+from tesseract.services import apply_node, get_general, node_config, node_in_sync
 
 router = APIRouter(prefix="/nodes", tags=["nodes"])
 
@@ -190,7 +190,12 @@ def create_node(
 
 @router.put("/{node_id}")
 def update_node(
-    node_id: int, body: NodeIn, db: DB, actor: CurrentActor, settings: AppSettings
+    node_id: int,
+    body: NodeIn,
+    request: Request,
+    db: DB,
+    actor: CurrentActor,
+    settings: AppSettings,
 ) -> NodeOut:
     node = _get(db, node_id)
     try:
@@ -213,7 +218,24 @@ def update_node(
             db, actor=actor.name, action="node_updated", target=name, details=changes, ip=actor.ip
         )
     db.commit()
+    if "public_ips" in changes:
+        _follow_ips(request, db, node, settings)
     return _out(db, node, settings)
+
+
+def _follow_ips(request: Request, db, node: Node, settings) -> None:
+    """Neue öffentliche IPs → A/AAAA-Einträge, die darauf zeigen, nachziehen."""
+    from tesseract import dnsrecords as dr
+    from tesseract.db.models import Host
+
+    transport = getattr(request.app.state, "dns_transport", None)
+    for h in db.scalars(select(Host).where(Host.node_id == node.id, Host.dns_type == "address")):
+        if not (h.dns_target or "").strip():
+            dr.apply_host(db, h, settings, transport)
+    if not node.is_agent:
+        cfg = dr.controller_config(get_general(db))
+        if cfg["type"] == "address" and not cfg["target"]:
+            dr.apply_controller(db, settings, transport)
 
 
 @router.delete("/{node_id}", status_code=status.HTTP_204_NO_CONTENT)

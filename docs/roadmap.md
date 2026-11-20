@@ -22,10 +22,18 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 | 1.7 | Zugang | Oberfläche nur aus bestimmten Netzen (`TESSERACT_ADMIN_NETWORKS`) – **fertig** |
 | 1.8 | GeoIP automatisch | Länder-Datenbank selbst holen und monatlich erneuern (`TESSERACT_GEOIP_AUTO`) – **fertig** |
 | 1.9 | DNS-Einträge | DNS-Eintrag beim Anlegen eines Hosts automatisch bei Cloudflare – CNAME oder A/AAAA, pro Domain einstellbar – **fertig** |
+| 1.10 | Nodes über DNS | Node-Schnittstelle wahlweise von den Admin-Netzen ausgenommen, DNS-Eintrag für die Tesseract-Domain – **fertig** |
 | – | [Offen / bekannte Grenzen](#offen--bekannte-grenzen) | Einschränkungen des aktuellen Stands |
 | – | [Backlog](#backlog-niedrige-priorität) | Niedrige Priorität, ohne festen Zeitpunkt |
 
 ---
+
+## Version 1.10 – Nodes über DNS (fertig)
+
+- [x] `TESSERACT_AGENT_API_PUBLIC` – Node-Schnittstelle von `TESSERACT_ADMIN_NETWORKS`
+  ausnehmen (Standard) oder mit einschränken
+- [x] DNS-Eintrag für die Tesseract-Domain bei Cloudflare, damit Nodes den Controller finden;
+  A/AAAA-Einträge folgen neuen öffentlichen IPs eines Nodes
 
 ## Version 1.9 – DNS-Einträge (fertig)
 

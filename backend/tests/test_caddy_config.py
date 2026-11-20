@@ -125,3 +125,25 @@ def test_admin_networks_setting() -> None:
     assert not Settings(admin_networks="0.0.0.0/0").admin_networks_open  # IPv6 dann gesperrt
     with pytest.raises(ValueError, match="kein Netz"):
         Settings(admin_networks="192.168.178.0/24, intern")
+
+
+def test_agent_api_can_be_restricted_too() -> None:
+    from dataclasses import replace
+
+    spec = NodeSpec(
+        admin_listen="x",
+        controller_domain="tesseract.example.org",
+        controller_upstream="tesseract:8000",
+        controller_networks=("192.168.178.0/24",),
+    )
+    paths = _servers(build_config(spec))["https"]["routes"][0]["handle"][0]["routes"][0]["match"][
+        0
+    ]["not"][1]["path"]
+    assert "/api/agent/*" in paths and "/install/*" in paths and "/e/*" in paths
+    spec = replace(spec, controller_agents_open=False)
+    paths = _servers(build_config(spec))["https"]["routes"][0]["handle"][0]["routes"][0]["match"][
+        0
+    ]["not"][1]["path"]
+    assert "/api/agent/*" not in paths and "/install/*" not in paths
+    # Gäste (Einladung, Verlängern) bleiben erreichbar
+    assert "/e/*" in paths and "/v" in paths

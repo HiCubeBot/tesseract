@@ -2,7 +2,7 @@
   // Einstellungen › Integrationen: pro Domain festlegen, wie DNS-Einträge für Hosts angelegt werden
   import Button from './Button.svelte';
   import Icon from './Icon.svelte';
-  import { api, type DnsZone } from '../api';
+  import { api, formatAgo, type DnsRecord, type DnsZone } from '../api';
   import { toasts } from '../toast.svelte';
 
   let zones = $state<(DnsZone & { ipsText: string })[]>([]);
@@ -23,6 +23,35 @@
     }
   }
   load();
+
+  // Eintrag für die Tesseract-Domain selbst – damit Nodes den Controller finden
+  interface ControllerDns {
+    type: 'cname' | 'address' | null;
+    target: string;
+    records: DnsRecord[];
+    error: string | null;
+    at: string | null;
+    domain: string;
+    zone: string | null;
+    agent_api_public: boolean;
+  }
+  let ctl = $state<ControllerDns | null>(null);
+  let ctlSaving = $state(false);
+  api.get<ControllerDns>('/settings/controller-dns').then((r) => (ctl = r), () => {});
+
+  async function saveCtl() {
+    if (!ctl) return;
+    ctlSaving = true;
+    try {
+      ctl = await api.put<ControllerDns>('/settings/controller-dns', { type: ctl.type, target: ctl.target });
+      if (ctl.error) toasts.show('warn', `DNS-Eintrag für ${ctl.domain}: ${ctl.error}`, 12000);
+      else toasts.show('ok', ctl.type ? `DNS-Eintrag für ${ctl.domain} steht.` : 'Kein Eintrag mehr für die Tesseract-Domain.');
+    } catch (e) {
+      toasts.show('bad', e instanceof Error ? e.message : String(e), 10000);
+    } finally {
+      ctlSaving = false;
+    }
+  }
 
   function add() {
     zones = [...zones, { zone: '', type: 'cname', cname_target: '', ip_source: 'node', ips: [], proxied: false, ipsText: '' }];
@@ -125,6 +154,53 @@
       <Button variant="secondary" size="sm" icon="plus" label="Domain hinzufügen" onClick={add} />
       <Button label={saving ? 'Speichert …' : 'Speichern'} disabled={saving} onClick={save} />
     </div>
+
+    {#if ctl}
+      <div class="zone">
+        <h3>Tesseract-Domain für die Nodes</h3>
+        <p class="muted small">
+          Nodes außerhalb deines Netzes finden den Controller nur, wenn <span class="mono">{ctl.domain || 'TESSERACT_DOMAIN'}</span> öffentlich auflöst.
+          Tesseract kann den Eintrag dafür anlegen – nie über den Cloudflare-Proxy, weil sich die Nodes mit eigenem Zertifikat anmelden.
+          {#if ctl.agent_api_public}Ist die Oberfläche auf bestimmte Netze beschränkt, bleibt die Schnittstelle für die Nodes trotzdem erreichbar.{/if}
+        </p>
+        {#if !ctl.domain}
+          <p class="field-error">TESSERACT_DOMAIN ist nicht gesetzt.</p>
+        {:else if !ctl.zone}
+          <p class="muted small">Für {ctl.domain} ist oben noch keine Domain eingetragen.</p>
+        {:else}
+          <div class="grid">
+            <label class="field"
+              >Eintrag
+              <select class="input" bind:value={ctl.type}>
+                <option value={null}>keiner (selbst verwalten)</option>
+                <option value="cname">CNAME</option>
+                <option value="address">A / AAAA</option>
+              </select>
+            </label>
+            {#if ctl.type}
+              <label class="field"
+                >{ctl.type === 'cname' ? 'Ziel' : 'IP-Adressen'}
+                <input
+                  class="input mono"
+                  bind:value={ctl.target}
+                  placeholder={ctl.type === 'cname' ? 'leer = Standard der Domain' : 'leer = öffentliche IPs des lokalen Nodes'}
+                  spellcheck="false"
+                  autocomplete="off"
+                />
+              </label>
+            {/if}
+          </div>
+          <div class="row">
+            <Button size="sm" label={ctlSaving ? 'Überträgt …' : 'Übernehmen'} disabled={ctlSaving} onClick={saveCtl} />
+            {#if ctl.records.length}
+              <span class="mono small">{ctl.records.map((r) => `${r.type} → ${r.content}`).join(' · ')}</span>
+            {/if}
+            {#if ctl.at}<span class="muted small">geprüft {formatAgo(ctl.at)}</span>{/if}
+          </div>
+          {#if ctl.error}<p class="field-error">{ctl.error}</p>{/if}
+        {/if}
+      </div>
+    {/if}
   {/if}
 </section>
 
@@ -140,6 +216,10 @@
     padding: 12px 14px;
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
+  }
+  h3 {
+    margin: 0;
+    font-size: 14px;
   }
   .grid {
     display: grid;

@@ -76,6 +76,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             from tesseract.loki import watch as loki_watch
 
             tasks.append(asyncio.create_task(loki_watch(app)))
+            from tesseract.dnsrecords import controller_on_start
+
+            tasks.append(asyncio.create_task(controller_on_start(app)))
             from tesseract.geoip import watch as geoip_watch
 
             tasks.append(asyncio.create_task(geoip_watch(app)))

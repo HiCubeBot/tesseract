@@ -437,6 +437,8 @@ export interface GeneralSettings {
   /** TESSERACT_ADMIN_NETWORKS – Netze, aus denen die Oberfläche erreichbar ist */
   admin_networks: string[];
   admin_networks_open: boolean;
+  /** Node-Schnittstelle von admin_networks ausgenommen */
+  agent_api_public: boolean;
   autoban_enabled: boolean;
   autoban_hits: number;
   autoban_window_minutes: number;
