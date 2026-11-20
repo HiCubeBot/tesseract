@@ -1,3 +1,5 @@
+import json
+
 from tesseract.caddy.config import HostSpec, NodeSpec, build_config, is_public_name
 
 
@@ -79,3 +81,47 @@ def test_public_name() -> None:
     assert is_public_name("a.example.org")
     assert not is_public_name("localhost")
     assert not is_public_name("10.0.0.1")
+
+
+def test_controller_only_from_admin_networks() -> None:
+    spec = NodeSpec(
+        admin_listen="x",
+        controller_domain="tesseract.example.org",
+        controller_upstream="tesseract:8000",
+    )
+    # Standard: keine Prüfung
+    first = _servers(build_config(spec))["https"]["routes"][0]["handle"][0]["routes"][0]
+    assert "abort" not in json.dumps(first)
+
+    from dataclasses import replace
+
+    spec = replace(spec, controller_networks=("192.168.178.0/24", "fd00::/8"))
+    cfg = build_config(spec)
+    gate = _servers(cfg)["https"]["routes"][0]["handle"][0]["routes"][0]
+    nots = gate["match"][0]["not"]
+    assert nots[0] == {"remote_ip": {"ranges": ["192.168.178.0/24", "fd00::/8"]}}
+    # Einladungen und Agents bleiben von überall erreichbar
+    assert "/e/*" in nots[1]["path"] and "/api/agent/*" in nots[1]["path"]
+    assert any(h.get("abort") for h in gate["handle"])
+    # auch die HTTP-Umleitung bricht von außen ab
+    http = next(
+        r
+        for r in _servers(cfg)["http"]["routes"]
+        if r["match"][0]["host"] == ["tesseract.example.org"]
+    )
+    assert http["handle"][0]["routes"][0]["match"] == gate["match"]
+
+
+def test_admin_networks_setting() -> None:
+    import pytest
+
+    from tesseract.config import Settings
+
+    s = Settings(admin_networks="0.0.0.0/0, ::/0")
+    assert s.admin_networks_open
+    s = Settings(admin_networks="192.168.178.5/24;10.8.0.0/24")
+    assert s.admin_network_list == ["192.168.178.0/24", "10.8.0.0/24"]
+    assert not s.admin_networks_open
+    assert not Settings(admin_networks="0.0.0.0/0").admin_networks_open  # IPv6 dann gesperrt
+    with pytest.raises(ValueError, match="kein Netz"):
+        Settings(admin_networks="192.168.178.0/24, intern")

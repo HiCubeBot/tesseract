@@ -517,6 +517,9 @@ def node_config(db: Session, node: Node, settings: Settings, bans: bool = True) 
         controller_protected=bool(general["admin_mtls"]),
         controller_allowed=tuple((d.fingerprint, d.cert_pem) for d in admin_devices(db)),
         controller_waf_mode=general["controller_waf_mode"],
+        controller_networks=()
+        if settings.admin_networks_open
+        else tuple(settings.admin_network_list),
         trusted_proxies=tuple(
             resolve_ranges(db, general["trusted_proxies"], general["trusted_proxy_list_ids"])
         ),

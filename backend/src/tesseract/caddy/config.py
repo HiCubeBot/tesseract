@@ -39,6 +39,7 @@ CONTROLLER_PUBLIC_PATHS = (
     "/assets/*",
     "/api/health",
     "/favicon.ico",
+    "/favicon.svg",
     # Prometheus: Schutz (Token, Admin-Zertifikat oder IP-Liste) prüft der Controller
     "/metrics",
     # Installationsskript für Nodes – enthält keine Geheimnisse
@@ -141,6 +142,8 @@ class NodeSpec:
     controller_protected: bool = False
     controller_allowed: tuple[tuple[str, str], ...] = ()
     controller_waf_mode: str = "off"
+    # Netze, aus denen die Oberfläche erreichbar ist; leer = alle (TESSERACT_ADMIN_NETWORKS)
+    controller_networks: tuple[str, ...] = ()
     # Vertrauenswürdige Proxys davor (z. B. Cloudflare) – nur dann zählt X-Forwarded-For
     trusted_proxies: tuple[str, ...] = ()
     # Authelia-Instanz, z. B. "http://authelia:9091" oder "https://auth.example.org"
@@ -605,9 +608,31 @@ def controller_spec(spec: NodeSpec) -> HostSpec:
     )
 
 
+def _admin_networks_route(networks: tuple[str, ...]) -> JSON:
+    """Oberfläche nur aus diesen Netzen: sonst Verbindung abbrechen, keine Antwort. Die
+    öffentlichen Pfade (Einladung, Verlängern, Agents …) bleiben überall erreichbar.
+    Geprüft wird die echte Verbindungs-IP (remote_ip), nicht X-Forwarded-For."""
+    return {
+        "match": [
+            {
+                "not": [
+                    {"remote_ip": {"ranges": list(networks)}},
+                    {"path": list(CONTROLLER_PUBLIC_PATHS)},
+                ]
+            }
+        ],
+        # im Log wie „nur intern“ (gleiche Wirkung: von außen keine Antwort)
+        "handle": [_tagged({"handler": "static_response", "abort": True}, "internal")],
+        "terminal": True,
+    }
+
+
 def _controller_route(spec: NodeSpec) -> JSON:
     route = host_route(controller_spec(spec))
     route["@id"] = "controller"
+    if spec.controller_networks:
+        # vor allem anderen – noch vor Zertifikat und WAF
+        route["handle"][0]["routes"].insert(0, _admin_networks_route(spec.controller_networks))
     return route
 
 
@@ -689,7 +714,19 @@ def build_config(spec: NodeSpec) -> JSON:
 
     if spec.controller_domain and spec.controller_upstream:
         https_routes.append(_controller_route(spec))
-        http_routes.append(_redirect_route(spec.controller_domain))
+        redirect = _redirect_route(spec.controller_domain)
+        if spec.controller_networks:
+            # auch die Umleitung verrät von außen nichts
+            redirect["handle"] = [
+                {
+                    "handler": "subroute",
+                    "routes": [
+                        _admin_networks_route(spec.controller_networks),
+                        {"handle": redirect["handle"]},
+                    ],
+                }
+            ]
+        http_routes.append(redirect)
         policy_hosts.append(controller_spec(spec))
 
     # Gesperrte IPs: nach der Controller-Route (die Oberfläche bleibt erreichbar), vor allen Hosts

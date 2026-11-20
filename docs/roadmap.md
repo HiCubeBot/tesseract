@@ -19,10 +19,17 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 | 1.4 | CA, Logs, Ausfallsicherheit | CA-Import und Root-Wechsel, VictoriaLogs, Node ohne Controller – **fertig** |
 | 1.5 | Oberfläche | Heller Modus, Favicon, Host-Seite mit Tabs, Hosts direkt in der Liste abschalten – **fertig** |
 | 1.6 | Betrieb | Docker-Labels, Logs und Statistik aus Loki/VictoriaLogs, Restic als Backup-Ziel – **fertig** |
+| 1.7 | Zugang | Oberfläche nur aus bestimmten Netzen (`TESSERACT_ADMIN_NETWORKS`) – **fertig** |
 | – | [Offen / bekannte Grenzen](#offen--bekannte-grenzen) | Einschränkungen des aktuellen Stands |
 | – | [Backlog](#backlog-niedrige-priorität) | Niedrige Priorität, ohne festen Zeitpunkt |
 
 ---
+
+## Version 1.7 – Zugang (fertig)
+
+- [x] Oberfläche nur aus bestimmten Netzen – `TESSERACT_ADMIN_NETWORKS` in der `.env`
+  (Standard `0.0.0.0/0,::/0`); Caddy bricht Verbindungen aus anderen Netzen ab, die
+  öffentlichen Pfade für Gäste und Agents bleiben erreichbar
 
 ## Version 1.6 – Betrieb (fertig)
 

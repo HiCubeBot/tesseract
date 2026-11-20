@@ -4,6 +4,15 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.7.0] – 2026-11-20
+
+### Hinzugefügt
+- **Oberfläche nur aus bestimmten Netzen:** `TESSERACT_ADMIN_NETWORKS` in der `.env`
+  (kommagetrennt, Standard `0.0.0.0/0,::/0` = alle Netze). Aus anderen Netzen bricht Caddy die
+  Verbindung ohne Antwort ab – auch die HTTP-Umleitung. Einladungen, Gerät verlängern, die
+  Agent-Schnittstelle, `/metrics` und `/install` bleiben überall erreichbar. Geprüft wird die
+  echte Verbindungs-IP. Anzeige unter Einstellungen › Allgemein › Zugang zur Oberfläche
+
 ## [1.6.0] – 2026-11-20
 
 ### Hinzugefügt

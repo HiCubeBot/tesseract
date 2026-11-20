@@ -225,6 +225,7 @@ Alle Einstellungen kommen aus Umgebungsvariablen oder einer `.env` im Arbeitsver
 | `TESSERACT_GEOIP_DB` | – | Optionale GeoIP-Datenbank (`.mmdb`, z. B. GeoLite2-Country, DB-IP Lite) |
 | `TESSERACT_BACKGROUND_TASKS` | `true` | Hintergrundaufgaben (Auto-Sperre, Logs, Prüfung lokaler Nodes, Benachrichtigungen) |
 | `TESSERACT_ADMIN_USERNAME` | `admin` | Name des Admins |
+| `TESSERACT_ADMIN_NETWORKS` | `0.0.0.0/0,::/0` | Netze (kommagetrennt, CIDR), aus denen die Oberfläche erreichbar ist; sonst bricht Caddy die Verbindung ab. Einladungen, Verlängern, Agent-Schnittstelle, `/metrics` und `/install` bleiben überall erreichbar |
 | `TESSERACT_ADMIN_PASSWORD` | – | Admin-Passwort (mind. 12 Zeichen), gilt bei jedem Start; leer = Zufallspasswort im Log |
 | `TESSERACT_ADMIN_PASSWORD_FILE` | – | Passwort aus einer Datei (Docker-Secret), hat Vorrang |
 | `TESSERACT_DOCKER_HOST` | – | Docker-API des lokalen Nodes für Hosts aus Container-Labels (`tcp://docker-proxy:2375`, `unix:///var/run/docker.sock`) |

@@ -390,6 +390,9 @@ export interface GeneralSettings {
   docker_auto_activate: boolean;
   /** TESSERACT_DOCKER_HOST ist gesetzt */
   docker_local: boolean;
+  /** TESSERACT_ADMIN_NETWORKS – Netze, aus denen die Oberfläche erreichbar ist */
+  admin_networks: string[];
+  admin_networks_open: boolean;
   autoban_enabled: boolean;
   autoban_hits: number;
   autoban_window_minutes: number;

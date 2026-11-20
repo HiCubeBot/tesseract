@@ -152,6 +152,11 @@
           <dd>{access.current_device ?? 'kein Admin-Zertifikat erkannt'}</dd>
           <dt>Admin-Geräte</dt>
           <dd>{access.admin_devices} · <a href="#/users">verwalten</a></dd>
+          <dt>Erreichbar aus</dt>
+          <dd>
+            {#if !general || general.admin_networks_open}allen Netzen{:else}<span class="mono">{general.admin_networks.join(', ')}</span>{/if}
+            <span class="muted small">· <code>TESSERACT_ADMIN_NETWORKS</code> in der <code>.env</code></span>
+          </dd>
         </dl>
         {#if !access.enabled && access.reason}
           <p class="muted small">Zum Einschalten: {access.reason}.</p>

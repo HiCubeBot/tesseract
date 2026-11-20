@@ -1,8 +1,10 @@
 """Konfiguration über Umgebungsvariablen (Präfix `TESSERACT_`)."""
 
+import ipaddress
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -43,6 +45,10 @@ class Settings(BaseSettings):
     # (in der Oberfläche lässt es sich dann nicht ändern). Leer = Zufallspasswort beim ersten
     # Start, steht einmalig im Log. *_FILE liest es aus einer Datei (Docker-Secrets).
     admin_username: str = "admin"
+    # Aus welchen Netzen die Oberfläche erreichbar ist (kommagetrennt, CIDR). Aus anderen Netzen
+    # bricht Caddy die Verbindung ab. Einladungen, Gerät verlängern und die Agent-Schnittstelle
+    # bleiben überall erreichbar. Standard: alle Netze.
+    admin_networks: str = "0.0.0.0/0,::/0"
     admin_password: str = ""
     admin_password_file: Path | None = None
 
@@ -102,6 +108,32 @@ class Settings(BaseSettings):
         if self.admin_password_file:
             return self.admin_password_file.read_text(encoding="utf-8").strip()
         return self.admin_password
+
+    @field_validator("admin_networks")
+    @classmethod
+    def _admin_networks(cls, v: str) -> str:
+        nets = [x.strip() for x in v.replace(";", ",").split(",") if x.strip()]
+        if not nets:
+            raise ValueError("TESSERACT_ADMIN_NETWORKS: mindestens ein Netz angeben")
+        for n in nets:
+            try:
+                ipaddress.ip_network(n, strict=False)
+            except ValueError as e:
+                raise ValueError(f"TESSERACT_ADMIN_NETWORKS: „{n}“ ist kein Netz") from e
+        return ",".join(nets)
+
+    @property
+    def admin_network_list(self) -> list[str]:
+        """Netze normalisiert (z. B. 192.168.1.5/24 → 192.168.1.0/24)."""
+        return [
+            str(ipaddress.ip_network(n, strict=False)) for n in self.admin_networks.split(",") if n
+        ]
+
+    @property
+    def admin_networks_open(self) -> bool:
+        """Alle Netze erlaubt (IPv4 und IPv6) – dann braucht Caddy keine Prüfung."""
+        nets = set(self.admin_network_list)
+        return "0.0.0.0/0" in nets and "::/0" in nets
 
     @property
     def resolved_cloudflare_token(self) -> str:

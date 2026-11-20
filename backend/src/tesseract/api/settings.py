@@ -136,6 +136,9 @@ class GeneralOut(BaseModel):
     docker_auto_activate: bool
     # TESSERACT_DOCKER_HOST gesetzt (lokaler Node)
     docker_local: bool
+    # TESSERACT_ADMIN_NETWORKS – Netze, aus denen die Oberfläche erreichbar ist
+    admin_networks: list[str]
+    admin_networks_open: bool
     autoban_enabled: bool
     autoban_hits: int
     autoban_window_minutes: int
@@ -172,6 +175,8 @@ def get_settings_general(db: DB, _: CurrentActor, settings: AppSettings) -> Gene
         docker_enabled=g["docker_enabled"],
         docker_auto_activate=g["docker_auto_activate"],
         docker_local=bool(settings.docker_host),
+        admin_networks=settings.admin_network_list,
+        admin_networks_open=settings.admin_networks_open,
         autoban_enabled=g["autoban_enabled"],
         autoban_hits=g["autoban_hits"],
         autoban_window_minutes=g["autoban_window_minutes"],

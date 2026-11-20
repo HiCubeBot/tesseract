@@ -77,6 +77,7 @@ Der Controller bekommt alle `TESSERACT_*`-Variablen aus der `.env` (`env_file` i
 |---|---|
 | `TESSERACT_DOMAIN` | Domain des Controller-UIs (Standard `localhost`) |
 | `TESSERACT_LOG_LEVEL` | Log-Level des Controllers |
+| `TESSERACT_ADMIN_NETWORKS` | Netze, aus denen die Oberfläche erreichbar ist (Standard alle). Öffentliche Seiten für Gäste und Agents bleiben erreichbar |
 | `TESSERACT_ADMIN_USERNAME` · `TESSERACT_ADMIN_PASSWORD` (oder `…_FILE`) | Admin-Zugang. Mit Passwort gilt es bei jedem Start und ist in der Oberfläche gesperrt |
 | `TESSERACT_CLOUDFLARE_TOKEN` (oder `…_FILE`) | Cloudflare-Token für DNS-01 – auch die Oberfläche holt ihr Zertifikat dann per DNS (ohne Portweiterleitung). In der Oberfläche gesperrt |
 | `TESSERACT_ACME_EMAIL` · `TESSERACT_LOGS_DAYS` · `TESSERACT_INTERNAL_NETWORKS` · `TESSERACT_TRUSTED_PROXIES` | Einstellungen der Oberfläche festlegen – werden bei jedem Start gesetzt, die Oberfläche weist darauf hin |
