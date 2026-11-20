@@ -105,8 +105,26 @@ docker build -t tesseract-agent:dev agent
 
 ## GeoIP (optional)
 
-Für Länder in Logs, Statistik und auf der Herkunftskarte eine lokale Datenbank im Format
-`.mmdb` einbinden. Tesseract liest sie nur – es geht keine Anfrage nach außen.
+Für Länder in Logs, Statistik und auf der Herkunftskarte braucht der Controller eine
+Datenbank im Format `.mmdb`. Abgefragt wird nur lokal – keine IP verlässt den Server.
+
+**Am einfachsten – automatisch:** in der `.env`
+
+```
+TESSERACT_GEOIP_AUTO=dbip
+```
+
+Der Controller holt dann „IP to Country Lite“ von DB-IP (ohne Konto), prüft die Datei, legt
+sie unter `/data/geoip/` ab und übernimmt sie ohne Neustart. Er schaut alle 6 Stunden nach und
+lädt einmal im Monat die neue Ausgabe; ein Fehlschlag lässt die vorhandene Datenbank in
+Gebrauch. Stand und „Jetzt aktualisieren“ unter Einstellungen › Metriken › Logs. Das ist die
+einzige Verbindung nach außen und deshalb standardmäßig aus.
+
+Läuft im Netz ein DNS-Filter (Pi-hole, AdGuard Home), muss `download.db-ip.com` dort erlaubt
+sein – manche Sperrlisten führen die Domain. Sonst steht in den Einstellungen „DB-IP nicht
+erreichbar … DNS-Filter?“.
+
+Oder von Hand als Datei:
 
 **Variante 1 – DB-IP „IP to Country Lite“ (ohne Konto):** monatlich neu, Lizenz CC BY 4.0
 (Quellenangabe „IP Geolocation by DB-IP“, wenn man Auswertungen weitergibt).
@@ -133,5 +151,7 @@ services:
       - ./geoip:/geoip:ro
 ```
 
-Die Datenbank alle paar Wochen erneuern (gleicher Dateiname, Controller neu starten). Länder
-gibt es nur für öffentliche Adressen; private und lokale IPs bleiben ohne Land.
+Die Datenbank alle paar Wochen erneuern (gleicher Dateiname, Controller neu starten). Mit
+`TESSERACT_GEOIP_AUTO` hat die automatisch geholte Datei Vorrang; `TESSERACT_GEOIP_DB` gilt nur,
+bis sie das erste Mal geladen ist. Länder gibt es nur für öffentliche Adressen; private und
+lokale IPs bleiben ohne Land.

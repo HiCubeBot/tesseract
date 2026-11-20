@@ -140,5 +140,6 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | Feature | Beschreibung | Phase |
 |---|---|---|
 | Oberfläche nur aus bestimmten Netzen | `TESSERACT_ADMIN_NETWORKS` (Standard alle Netze): aus anderen Netzen bricht Caddy die Verbindung ab, noch vor Anmeldung und Zertifikat. Einladungen, Verlängern und Agent-Schnittstelle bleiben erreichbar. Kombinierbar mit „Nur mit Admin-Zertifikat“ | 1.7 |
+| GeoIP automatisch | `TESSERACT_GEOIP_AUTO=dbip`: Controller holt DB-IP Lite selbst, prüft sie, erneuert monatlich und übernimmt sie ohne Neustart; Stand und „Jetzt aktualisieren“ unter Einstellungen › Metriken, Quellenangabe unter der Karte | 1.8 |
 | Heller und dunkler Modus | Folgt der Systemeinstellung; Umschalter in der Seitenleiste (System → Hell → Dunkel), pro Browser gemerkt | 1.5 |
 | Favicon | Logo als SVG-Icon für Tab und Lesezeichen | 1.5 |

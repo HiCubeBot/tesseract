@@ -76,6 +76,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             from tesseract.loki import watch as loki_watch
 
             tasks.append(asyncio.create_task(loki_watch(app)))
+            from tesseract.geoip import watch as geoip_watch
+
+            tasks.append(asyncio.create_task(geoip_watch(app)))
             from tesseract.dockerlabels import watch as docker_watch
 
             tasks.append(asyncio.create_task(docker_watch(app)))
@@ -99,7 +102,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # Auto-Sperre: Treffer des lokalen Caddy und der Agents zählen gemeinsam
     app.state.autoban = AutoBan()
     # Zentrale Logs: WAF-Zwischenstand pro Node, GeoIP (Phase 5)
-    app.state.logs = Collector(Geo(settings.geoip_db))
+    from tesseract.geoip import initial_path
+
+    app.state.logs = Collector(Geo(initial_path(settings)))
+    # GeoIP-Download (nur mit TESSERACT_GEOIP_AUTO) – in Tests ein MockTransport
+    app.state.geoip_transport = None
     # In Tests durch einen httpx.MockTransport ersetzt
     app.state.caddy_transport = None
     # Benachrichtigungen (ntfy, Webhook) – in Tests ein MockTransport

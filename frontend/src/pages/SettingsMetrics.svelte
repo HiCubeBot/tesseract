@@ -19,6 +19,13 @@
     loki: { queued: number; pushed: number; dropped: number; last_push_at: string | null; last_error: string | null };
     logs_ready: boolean;
     geoip: boolean;
+    geoip_auto: {
+      auto: string | null;
+      updated_at: string | null;
+      file_month: string | null;
+      error: string | null;
+      attribution: string | null;
+    };
     metrics_enabled: boolean;
     metrics_auth: 'token' | 'mtls' | 'ip';
     metrics_token_set: boolean;
@@ -73,6 +80,20 @@
   }
 
   let testing = $state(false);
+  let geoUpdating = $state(false);
+
+  async function updateGeo() {
+    geoUpdating = true;
+    try {
+      await api.post('/settings/observability/geoip-update');
+      toasts.show('ok', 'GeoIP-Datenbank aktualisiert.');
+      await load();
+    } catch (e) {
+      toasts.show('bad', e instanceof Error ? e.message : String(e), 10000);
+    } finally {
+      geoUpdating = false;
+    }
+  }
   const storeName = $derived(cfg?.loki_kind === 'victorialogs' ? 'VictoriaLogs' : 'Loki');
   async function testLoki() {
     if (!cfg?.loki_url) return;
@@ -208,8 +229,26 @@
       </label>
       <p class="muted small">
         Zugriffs-Log vom lokalen Caddy: {cfg.logs_ready ? 'wird gelesen' : 'nicht eingerichtet (TESSERACT_CADDY_ACCESS_LOG und TESSERACT_ACCESS_LOG_PATH)'} ·
-        GeoIP: {cfg.geoip ? 'Datenbank geladen' : 'keine Datenbank (TESSERACT_GEOIP_DB)'}. Statistik reicht so weit zurück wie die Logs.
+        Statistik reicht so weit zurück wie die Logs.
       </p>
+      <div class="row">
+        <span class="muted small">
+          GeoIP:
+          {#if cfg.geoip_auto.auto}
+            automatisch von DB-IP{cfg.geoip_auto.file_month ? ` · Stand ${cfg.geoip_auto.file_month}` : ''}{cfg.geoip_auto.updated_at
+              ? ` · geholt ${formatAgo(cfg.geoip_auto.updated_at)}`
+              : ' · noch nicht geholt'}
+          {:else if cfg.geoip}
+            Datenbank aus TESSERACT_GEOIP_DB geladen
+          {:else}
+            keine Datenbank – TESSERACT_GEOIP_AUTO=dbip (automatisch) oder TESSERACT_GEOIP_DB (Datei) setzen
+          {/if}
+        </span>
+        {#if cfg.geoip_auto.auto}
+          <Button variant="secondary" size="sm" icon="refresh" label={geoUpdating ? 'Lädt …' : 'Jetzt aktualisieren'} disabled={geoUpdating} onClick={updateGeo} />
+        {/if}
+      </div>
+      {#if cfg.geoip_auto.error}<p class="field-error">Letzter Download fehlgeschlagen: {cfg.geoip_auto.error}</p>{/if}
     </section>
 
     <section class="card" aria-labelledby="loki-title">

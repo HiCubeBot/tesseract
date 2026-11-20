@@ -35,7 +35,14 @@ def security(
         if store
         else stats.security(db, range, node or None)
     )
-    return {**data, "geoip": request.app.state.logs.geo.ready}
+    from tesseract.geoip import status as geoip_status
+
+    return {
+        **data,
+        "geoip": request.app.state.logs.geo.ready,
+        # Quellenangabe (DB-IP verlangt sie bei Weitergabe von Auswertungen)
+        "geoip_attribution": geoip_status(request.app)["attribution"],
+    }
 
 
 @router.get("/traffic")

@@ -16,6 +16,7 @@ from tesseract.api.iplists import normalize_networks
 from tesseract.caddy.client import CaddyClient, CaddyError
 from tesseract.db.models import Node, utcnow
 from tesseract.deps import DB, AppSettings, CurrentActor, admin_device_for
+from tesseract.geoip import status as geoip_status
 from tesseract.metrics import CATALOG, caddy_only, render
 from tesseract.services import get_general, resolve_ranges, set_general
 
@@ -103,6 +104,8 @@ class ObservabilityOut(BaseModel):
     loki: LokiStatus
     logs_ready: bool
     geoip: bool
+    # automatischer Download (TESSERACT_GEOIP_AUTO): Quelle, Stand, Fehler, Quellenangabe
+    geoip_auto: dict[str, Any]
     metrics_enabled: bool
     metrics_auth: str
     metrics_token_set: bool
@@ -144,6 +147,7 @@ def _out(request: Request, db, settings) -> ObservabilityOut:
         loki=LokiStatus(**request.app.state.logs.loki.status()),
         logs_ready=bool(settings.caddy_access_log and settings.access_log_path),
         geoip=request.app.state.logs.geo.ready,
+        geoip_auto=geoip_status(request.app),
         metrics_enabled=g["metrics_enabled"],
         metrics_auth=g["metrics_auth"],
         metrics_token_set=bool(g["metrics_token_hash"]),
@@ -216,6 +220,28 @@ class LokiTestIn(BaseModel):
     loki_url: str = Field(min_length=1, max_length=500)
     loki_tenant: str = Field("", max_length=100)
     loki_kind: Literal["loki", "victorialogs"] = "loki"
+
+
+@router.post("/observability/geoip-update")
+async def geoip_update(request: Request, actor: CurrentActor) -> dict[str, Any]:
+    """GeoIP-Datenbank jetzt neu holen (nur mit TESSERACT_GEOIP_AUTO)."""
+    import asyncio
+
+    from tesseract import geoip
+
+    settings = request.app.state.settings
+    if not settings.geoip_auto:
+        raise HTTPException(status.HTTP_409_CONFLICT, "TESSERACT_GEOIP_AUTO ist nicht gesetzt")
+    try:
+        info = await asyncio.to_thread(
+            geoip.download, settings, getattr(request.app.state, "geoip_transport", None)
+        )
+    except geoip.GeoIPError as e:
+        request.app.state.geoip_status = {"error": str(e)}
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(e)) from e
+    request.app.state.geoip_status = {"error": None}
+    geoip._swap(request.app, geoip.path(settings))
+    return {"ok": True, **info, **geoip_status(request.app)}
 
 
 @router.post("/observability/loki-test")

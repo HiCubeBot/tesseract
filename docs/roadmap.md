@@ -20,10 +20,16 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 | 1.5 | Oberfläche | Heller Modus, Favicon, Host-Seite mit Tabs, Hosts direkt in der Liste abschalten – **fertig** |
 | 1.6 | Betrieb | Docker-Labels, Logs und Statistik aus Loki/VictoriaLogs, Restic als Backup-Ziel – **fertig** |
 | 1.7 | Zugang | Oberfläche nur aus bestimmten Netzen (`TESSERACT_ADMIN_NETWORKS`) – **fertig** |
+| 1.8 | GeoIP automatisch | Länder-Datenbank selbst holen und monatlich erneuern (`TESSERACT_GEOIP_AUTO`) – **fertig** |
 | – | [Offen / bekannte Grenzen](#offen--bekannte-grenzen) | Einschränkungen des aktuellen Stands |
 | – | [Backlog](#backlog-niedrige-priorität) | Niedrige Priorität, ohne festen Zeitpunkt |
 
 ---
+
+## Version 1.8 – GeoIP automatisch (fertig)
+
+- [x] `TESSERACT_GEOIP_AUTO=dbip`: DB-IP Lite selbst holen, prüfen, monatlich erneuern und ohne
+  Neustart übernehmen; Hinweis, wenn ein DNS-Filter die Domain sperrt
 
 ## Version 1.7 – Zugang (fertig)
 

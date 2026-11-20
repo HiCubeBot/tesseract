@@ -306,7 +306,7 @@
 
   <p class="muted small">
     Suche: <span class="mono">host:git status:403 status:5xx ip:198.51.100.7 ip:198.51.100.0/24 reason:waf rule:942100 node:pi method:POST device:iphone country:DE</span>
-    und freier Text (Teil der Adresse). {#if !geoip}Länder: GeoIP-Datenbank unter TESSERACT_GEOIP_DB hinterlegen.{/if}
+    und freier Text (Teil der Adresse). {#if !geoip}Länder: TESSERACT_GEOIP_AUTO=dbip (automatisch) oder TESSERACT_GEOIP_DB setzen.{/if}
     {#if store !== 'local'}Quelle: {store === 'loki' ? 'Loki' : 'VictoriaLogs'} (Einstellungen › Metriken).{/if}
     {#if sources.length}Letzter Eintrag: {sources.map((s) => `${s.node} ${formatAgo(s.last_entry_at)}`).join(' · ')}{/if}
   </p>

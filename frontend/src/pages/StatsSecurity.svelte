@@ -22,6 +22,7 @@
     top_rules: { rule: number; count: number }[];
     by_host: { host: string; total: number; mtls: number; waf: number; ip: number; other: number }[];
     geoip: boolean;
+    geoip_attribution: string | null;
   }
 
   const RANGES: Range[] = ['24h', '7d', '30d'];
@@ -92,10 +93,13 @@
             empty="Noch keine abgelehnten Anfragen mit bekanntem Land im Zeitraum. Private und lokale Adressen (z. B. 127.0.0.1, 192.168.…) haben kein Land."
           />
         </div>
+        {#if data.geoip_attribution}
+          <p class="muted tiny"><a href="https://db-ip.com" rel="noopener noreferrer" target="_blank">{data.geoip_attribution}</a></p>
+        {/if}
       {:else}
         <p class="muted small">
-          Für die Karte eine lokale GeoIP-Datenbank (.mmdb) hinterlegen: <span class="mono">TESSERACT_GEOIP_DB</span> –
-          Bezug siehe docs/deployment.md › GeoIP. Es geht keine Anfrage nach außen.
+          Für die Karte eine GeoIP-Datenbank hinterlegen: automatisch mit <span class="mono">TESSERACT_GEOIP_AUTO=dbip</span> (holt DB-IP Lite
+          monatlich selbst) oder als Datei mit <span class="mono">TESSERACT_GEOIP_DB</span> – siehe docs/deployment.md › GeoIP.
         </p>
       {/if}
     </section>
@@ -223,5 +227,9 @@
   }
   .stack span:last-child {
     border-radius: 0 4px 4px 0;
+  }
+  .tiny {
+    margin: 0;
+    font-size: 11px;
   }
 </style>

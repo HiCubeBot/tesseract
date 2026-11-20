@@ -91,6 +91,9 @@ class Settings(BaseSettings):
     access_log_path: Path | None = None
     # Optionale GeoIP-Datenbank (MaxMind GeoLite2-Country o. ä., .mmdb) für Länder in Logs/Statistik
     geoip_db: Path | None = None
+    # GeoIP-Datenbank automatisch holen und monatlich erneuern: "dbip" (DB-IP Lite, ohne Konto).
+    # Leer = aus (keine Anfrage nach außen, Datei kommt aus geoip_db)
+    geoip_auto: str = ""
     # Ordner für lokale Sicherungen; leer = data_dir/backups
     backup_dir: Path | None = None
     # Docker-API des lokalen Nodes für Hosts aus Container-Labels, z. B.
@@ -108,6 +111,16 @@ class Settings(BaseSettings):
         if self.admin_password_file:
             return self.admin_password_file.read_text(encoding="utf-8").strip()
         return self.admin_password
+
+    @field_validator("geoip_auto")
+    @classmethod
+    def _geoip_auto(cls, v: str) -> str:
+        v = v.strip().lower()
+        if v in ("", "off", "aus", "false", "0"):
+            return ""
+        if v not in ("dbip",):
+            raise ValueError("TESSERACT_GEOIP_AUTO: „dbip“ oder leer")
+        return v
 
     @field_validator("admin_networks")
     @classmethod

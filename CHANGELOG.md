@@ -4,6 +4,15 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.8.0] – 2026-11-20
+
+### Hinzugefügt
+- **GeoIP-Datenbank automatisch:** Mit `TESSERACT_GEOIP_AUTO=dbip` holt der Controller
+  „IP to Country Lite“ von DB-IP (ohne Konto), prüft die Datei, erneuert sie monatlich und
+  übernimmt sie ohne Neustart. Stand und „Jetzt aktualisieren“ unter Einstellungen › Metriken,
+  Quellenangabe unter der Karte. Standardmäßig aus (einzige Verbindung nach außen). Sperrt ein
+  DNS-Filter wie Pi-hole oder AdGuard die Domain, sagt die Fehlermeldung das
+
 ## [1.7.0] – 2026-11-20
 
 ### Hinzugefügt
