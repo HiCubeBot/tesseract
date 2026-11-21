@@ -105,3 +105,31 @@ def test_usage(auth_client: TestClient) -> None:
     assert d["name"] == "iPhone" and d["requests"] == 3 and d["top_host"] == "fotos.example.org"
     assert d["countries"] == ["DE"] and d["bytes"] == 1200
     assert sum(h["n"] for h in u["hourly"]) == 3
+
+
+def test_countries_filter(auth_client: TestClient) -> None:
+    _add(
+        auth_client,
+        [
+            {"country": "DE"},
+            {"country": "DE"},
+            {"country": "US", "status": 404},
+            {"country": "RU", "status": 403, "reason": "waf"},
+            {"country": "RU", "status": 403, "reason": "ip"},
+            {"status": 403, "reason": "mtls"},  # ohne Land (z. B. privat)
+        ],
+    )
+    get = auth_client.get
+    all_ = get("/api/stats/countries").json()
+    assert all_["countries"] == [
+        {"country": "DE", "count": 2},
+        {"country": "RU", "count": 2},
+        {"country": "US", "count": 1},
+    ]
+    assert all_["unknown"] == 1
+    denied = get("/api/stats/countries", params={"which": "denied"}).json()
+    assert denied["countries"] == [{"country": "RU", "count": 2}] and denied["unknown"] == 1
+    allowed = get("/api/stats/countries", params={"which": "allowed"}).json()
+    assert allowed["countries"] == [{"country": "DE", "count": 2}, {"country": "US", "count": 1}]
+    assert allowed["unknown"] == 0
+    assert get("/api/stats/countries", params={"which": "egal"}).status_code == 422

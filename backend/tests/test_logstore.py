@@ -176,3 +176,23 @@ def test_api_reads_external(auth_client: TestClient) -> None:
     sec = auth_client.get("/api/stats/security").json()
     assert sec["source"] == "external" and sec["total"] == 0
     assert auth_client.get("/api/logs", params={"q": 'host:"x'}).status_code == 422
+
+
+def test_external_countries_filter() -> None:
+    from tesseract import stats_external
+
+    seen = []
+
+    class Store:
+        def count(self, sel, start, end, by=(), step=None):
+            seen.append([(c.field, c.op, c.value) for c in sel.conds])
+            return [(("DE",), None, 5.0), (("",), None, 2.0), (("RU",), None, 5.0)]
+
+    out = stats_external.countries(Store(), "24h", None, "allowed")
+    assert out["countries"] == [{"country": "DE", "count": 5}, {"country": "RU", "count": 5}]
+    assert out["unknown"] == 2
+    assert ("reason", "eq", "ok") in seen[-1]
+    stats_external.countries(Store(), "24h", "pi", "denied")
+    assert ("node", "eq", "pi") in seen[-1] and any(
+        f == "reason" and op == "in" for f, op, _ in seen[-1]
+    )

@@ -262,3 +262,26 @@ def usage(db: Session, store, range_: str) -> dict[str, Any]:
         "hourly": [{"t": t, "n": n} for t, n in sorted(hourly.items())],
         "devices": devices,
     }
+
+
+def countries(store, range_: str, node: str | None, which: str = "all") -> dict[str, Any]:
+    start, end = _window(range_)
+    sel = _base(node)
+    if which == "denied":
+        sel = _with(sel, denied())
+    elif which == "allowed":
+        sel = _with(sel, Cond("reason", "eq", "ok"))
+    counts: Counter[str] = Counter()
+    unknown = 0
+    for (c,), _, n in store.count(sel, start, end, ["country"]):
+        if c:
+            counts[c] += int(n)
+        else:
+            unknown += int(n)
+    ranked = sorted(counts.items(), key=lambda x: (-x[1], x[0]))
+    return {
+        "since": start,
+        "which": which,
+        "countries": [{"country": c, "count": n} for c, n in ranked[:60]],
+        "unknown": unknown + sum(n for _, n in ranked[60:]),
+    }

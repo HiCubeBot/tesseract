@@ -32,6 +32,23 @@
   let data = $state<Security | null>(null);
   let error = $state('');
 
+  // Karte: alle Anfragen, nur abgelehnte oder nur angenommene
+  const WHICH = ['all', 'denied', 'allowed'] as const;
+  const WHICH_LABELS = ['Alle', 'Abgelehnt', 'Angenommen'];
+  const WHICH_COLORS = ['#3987E5', '#D95926', '#199E70'];
+  let which = $state(0);
+  let geo = $state<{ countries: { country: string; count: number }[]; unknown: number } | null>(null);
+
+  async function loadGeo() {
+    try {
+      geo = await api.get(
+        `/stats/countries?range=${RANGES[range]}&node=${encodeURIComponent(node)}&which=${WHICH[which]}`
+      );
+    } catch {
+      geo = null;
+    }
+  }
+
   async function load() {
     try {
       data = await api.get<Security>(`/stats/security?range=${RANGES[range]}&node=${encodeURIComponent(node)}`);
@@ -39,6 +56,7 @@
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
     }
+    loadGeo();
   }
   load();
   api.get<NodeInfo[]>('/nodes').then((n) => (nodes = n.filter((x) => x.state !== 'pending')));
@@ -82,17 +100,31 @@
     </section>
 
     <section class="card" aria-labelledby="geo-title">
-      <h2 id="geo-title">Herkunft abgelehnter Anfragen</h2>
+      <div class="row geo-head">
+        <h2 id="geo-title">Herkunft der Anfragen</h2>
+        <span class="spacer"></span>
+        {#if data.geoip}
+          <SegmentedControl groupLabel="Welche Anfragen" options={WHICH_LABELS} bind:selected={which} onChange={loadGeo} />
+        {/if}
+      </div>
       {#if data.geoip}
         <!-- Karte immer zeigen, sobald GeoIP da ist – auch leer, damit klar ist, dass alles bereit ist -->
+        {@const items = geo?.countries ?? []}
         <div class="geo">
-          <WorldMap items={data.countries} label="Weltkarte: abgelehnte Anfragen nach Herkunftsland" />
+          <WorldMap
+            {items}
+            color={WHICH_COLORS[which]}
+            label={`Weltkarte: ${WHICH_LABELS[which].toLowerCase()} Anfragen nach Herkunftsland`}
+          />
           <BarList
-            color="#9085E9"
-            items={data.countries.slice(0, 8).map((c) => ({ label: countryName(c.country), value: c.count }))}
-            empty="Noch keine abgelehnten Anfragen mit bekanntem Land im Zeitraum. Private und lokale Adressen (z. B. 127.0.0.1, 192.168.…) haben kein Land."
+            color={WHICH_COLORS[which]}
+            items={items.slice(0, 8).map((c) => ({ label: countryName(c.country), value: c.count }))}
+            empty={`Keine ${which === 1 ? 'abgelehnten' : which === 2 ? 'angenommenen' : ''} Anfragen mit bekanntem Land im Zeitraum. Private und lokale Adressen (z. B. 127.0.0.1, 192.168.…) haben kein Land.`}
           />
         </div>
+        {#if geo?.unknown}
+          <p class="muted tiny">{fmt(geo.unknown)} weitere ohne Land (private oder lokale Adressen)</p>
+        {/if}
         {#if data.geoip_attribution}
           <p class="muted tiny"><a href="https://db-ip.com" rel="noopener noreferrer" target="_blank">{data.geoip_attribution}</a></p>
         {/if}
@@ -231,5 +263,8 @@
   .tiny {
     margin: 0;
     font-size: 11px;
+  }
+  .geo-head h2 {
+    margin: 0;
   }
 </style>

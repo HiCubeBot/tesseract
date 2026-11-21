@@ -4,6 +4,14 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.11.0] – 2026-11-22
+
+### Geändert
+- **Herkunftskarte für alle Anfragen:** Statistik › Sicherheit zeigt jetzt, woher Anfragen
+  insgesamt kommen, mit Filter „Alle“, „Abgelehnt“ (orange) und „Angenommen“ (grün). Anfragen
+  ohne Land (private oder lokale Adressen) werden darunter gezählt. Geht auch mit Loki und
+  VictoriaLogs (`GET /api/stats/countries?which=all|denied|allowed`)
+
 ## [1.10.0] – 2026-11-21
 
 ### Hinzugefügt

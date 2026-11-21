@@ -61,3 +61,22 @@ def usage(request: Request, db: DB, _: CurrentActor, range: Range = "7d") -> dic
     if store:
         return _external(stats_external.usage, db, store, range)
     return stats.usage(db, range)
+
+
+@router.get("/countries")
+def countries(
+    request: Request,
+    db: DB,
+    _: CurrentActor,
+    range: Range = "24h",
+    node: str = "",
+    which: Literal["all", "denied", "allowed"] = "all",
+) -> dict[str, Any]:
+    """Herkunft der Anfragen für die Karte: alle, nur abgelehnte oder nur angenommene."""
+    store = _store(request, db)
+    data = (
+        _external(stats_external.countries, store, range, node or None, which)
+        if store
+        else stats.countries(db, range, node or None, which)
+    )
+    return {**data, "geoip": request.app.state.logs.geo.ready}

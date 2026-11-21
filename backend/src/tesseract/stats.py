@@ -312,3 +312,36 @@ def usage(db: Session, range_: str) -> dict[str, Any]:
         "hourly": sorted(hourly, key=lambda x: x["t"]),
         "devices": devices,
     }
+
+
+# Karte: woher Anfragen kommen – alle, nur abgelehnte oder nur angenommene (Grund „ok“)
+COUNTRY_FILTERS = ("all", "denied", "allowed")
+
+
+def countries(db: Session, range_: str, node: str | None, which: str = "all") -> dict[str, Any]:
+    base, since = _base(range_, node)
+    sel = base.where(LogEntry.country.is_not(None))
+    if which == "denied":
+        sel = sel.where(_denied())
+    elif which == "allowed":
+        sel = sel.where(LogEntry.reason == "ok")
+    rows = db.execute(
+        _with(sel, LogEntry.country, func.count())
+        .group_by(LogEntry.country)
+        .order_by(func.count().desc(), LogEntry.country)
+        .limit(60)
+    )
+    # ohne Land: private/lokale Adressen oder keine GeoIP-Datenbank
+    total = base
+    if which == "denied":
+        total = total.where(_denied())
+    elif which == "allowed":
+        total = total.where(LogEntry.reason == "ok")
+    out = [{"country": c, "count": n} for c, n in rows]
+    all_n = db.scalar(_with(total, func.count())) or 0
+    return {
+        "since": since,
+        "which": which,
+        "countries": out,
+        "unknown": all_n - sum(x["count"] for x in out),
+    }
