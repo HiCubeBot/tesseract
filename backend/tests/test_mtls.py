@@ -213,3 +213,39 @@ def test_path_patterns() -> None:
         "/",
         "/*",
     ]
+
+
+def test_internal_networks_without_certificate(auth_client: TestClient, caddy: FakeCaddy) -> None:
+    ids = _setup(auth_client)
+    body = {
+        **HOST,
+        "access": "mtls",
+        "grant_person_ids": [ids["ben"]["id"]],
+        "internal_no_cert": True,
+    }
+    # ohne interne Netze nicht möglich
+    r = auth_client.post("/api/hosts", json=body)
+    assert r.status_code == 409 and "internen Netze" in r.json()["detail"]
+    auth_client.put("/api/settings/general", json={"internal_networks": ["192.168.178.0/24"]})
+    r = auth_client.post("/api/hosts", json=body)
+    assert r.status_code == 201, r.text
+    assert r.json()["host"]["internal_no_cert"] is True
+
+    # Handshake ohne Zertifikat muss gehen, die Sperre lässt das interne Netz durch
+    assert _policy(caddy, "fotos.example.org")["mode"] == "verify_if_given"
+    nots = _gate(caddy, "fotos.example.org")["match"][0]["not"]
+    assert {"remote_ip": {"ranges": ["192.168.178.0/24"]}} in nots
+
+    # ausschalten → wieder streng
+    h = r.json()["host"]
+    put = {
+        **body,
+        "internal_no_cert": False,
+        "grant_group_ids": [],
+    }
+    assert auth_client.put(f"/api/hosts/{h['id']}", json=put).status_code == 200
+    assert _policy(caddy, "fotos.example.org")["mode"] == "require_and_verify"
+    nots = _gate(caddy, "fotos.example.org")["match"][0]["not"]
+    assert not any("remote_ip" in n for n in nots)
+    versions = auth_client.get(f"/api/hosts/{h['id']}/versions").json()
+    assert versions[0]["changes"][0]["field"] == "internal_no_cert"

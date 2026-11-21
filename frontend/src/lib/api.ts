@@ -111,6 +111,8 @@ export interface Host {
   authelia: boolean;
   tls_challenge: 'http' | 'dns';
   internal: boolean;
+  /** mTLS: aus den internen Netzen auch ohne Zertifikat */
+  internal_no_cert: boolean;
   custom_cert_id: number | null;
   wildcard_cert: string | null;
   areas: (AreaInput & { id: number })[];
@@ -533,6 +535,7 @@ export const FIELD_LABELS: Record<string, string> = {
   authelia: 'Login über Authelia',
   tls_challenge: 'Zertifikats-Prüfung',
   internal: 'Nur intern',
+  internal_no_cert: 'Intern ohne Zertifikat',
   custom_cert: 'Eigenes Zertifikat',
   areas: 'Bereiche',
   enabled: 'Aktiv',

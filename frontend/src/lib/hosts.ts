@@ -43,6 +43,7 @@ export function emptyHost(nodeId = 0): HostInput {
     authelia: false,
     tls_challenge: 'http',
     internal: false,
+    internal_no_cert: false,
     custom_cert_id: null,
     areas: [],
     paths: [],
@@ -78,6 +79,7 @@ export function toInput(h: Host): HostInput {
     authelia: h.authelia,
     tls_challenge: h.tls_challenge,
     internal: h.internal,
+    internal_no_cert: h.internal_no_cert,
     custom_cert_id: h.custom_cert_id,
     areas: h.areas.map(({ id: _id, ...a }) => structuredClone(a)),
     paths: [...h.paths],
@@ -115,9 +117,10 @@ export function protectionLabel(h: Host): string {
 
 /** Kurzbeschreibung des Zugriffs für Listen */
 export function accessLabel(h: Host): string {
+  const lan = h.internal_no_cert ? ' · intern ohne Zertifikat' : '';
   if (h.access === 'mtls') {
     const base = `${h.granted_persons} Personen · ${h.allowed_devices} Geräte`;
-    return h.paths.length ? `${base} · ${h.paths.length} Pfad(e) öffentlich` : base;
+    return (h.paths.length ? `${base} · ${h.paths.length} Pfad(e) öffentlich` : base) + lan;
   }
-  return h.paths.length ? `${h.paths.length} Pfad(e) nur mit Zertifikat` : 'Öffentlich';
+  return h.paths.length ? `${h.paths.length} Pfad(e) nur mit Zertifikat${lan}` : 'Öffentlich';
 }

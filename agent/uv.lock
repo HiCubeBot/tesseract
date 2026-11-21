@@ -303,7 +303,7 @@ wheels = [
 
 [[package]]
 name = "tesseract-agent"
-version = "1.11.0"
+version = "1.12.0"
 source = { editable = "." }
 dependencies = [
     { name = "cryptography" },

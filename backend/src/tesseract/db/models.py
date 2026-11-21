@@ -199,6 +199,8 @@ class Host(Base):
     tls_challenge: Mapped[str] = mapped_column(String(8), default="http")
     # Nur aus internen Netzen (LAN/VPN) erreichbar – alle anderen: Verbindung abbrechen
     internal: Mapped[bool] = mapped_column(default=False)
+    # Zertifikatspflicht (mTLS) gilt nicht für Anfragen aus den internen Netzen
+    internal_no_cert: Mapped[bool] = mapped_column(default=False, server_default="0")
     # Eigenes Zertifikat statt automatisch (Let's Encrypt/Caddy-CA)
     custom_cert_id: Mapped[int | None] = mapped_column(
         ForeignKey("custom_certs.id", ondelete="SET NULL")

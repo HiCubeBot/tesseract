@@ -55,6 +55,7 @@ SNAPSHOT_FIELDS = (
     "areas",
     "enabled",
     "draft",
+    "internal_no_cert",
     "dns_type",
     "dns_target",
     "dns_proxied",
@@ -396,6 +397,7 @@ def host_spec(
     paths: list[str] | None = None,
     ip_ranges: list[str] | None = None,
     areas: list[AreaSpec] | None = None,
+    internal_networks: list[str] | tuple[str, ...] | None = None,
 ) -> HostSpec:
     if paths is None:
         paths = [p.path for p in host.paths] if isinstance(host, Host) else []
@@ -423,6 +425,9 @@ def host_spec(
         areas=tuple(areas or ()),
         internal=bool(getattr(host, "internal", False)),
         custom_cert=getattr(host, "custom_cert_id", None),
+        cert_free_networks=tuple(internal_networks or ())
+        if getattr(host, "internal_no_cert", False)
+        else (),
     )
 
 
@@ -506,6 +511,7 @@ def node_config(db: Session, node: Node, settings: Settings, bans: bool = True) 
     general = get_general(db)
     # Die Route für die Oberfläche gibt es nur auf dem lokalen Node (Controller im selben Netz)
     local = not node.is_agent
+    internal_nets = resolve_ranges(db, general["internal_networks"], general["internal_list_ids"])
     spec = NodeSpec(
         admin_listen=node.admin_listen or settings.caddy_admin_listen,
         hosts=[
@@ -514,6 +520,7 @@ def node_config(db: Session, node: Node, settings: Settings, bans: bool = True) 
                 allowed=allowed_devices(db, h),
                 ip_ranges=resolve_ranges(db, h.ip_entries or [], h.ip_list_ids or []),
                 areas=area_specs(db, h),
+                internal_networks=internal_nets,
             )
             for h in hosts
         ],

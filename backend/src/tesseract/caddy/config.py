@@ -101,6 +101,9 @@ class HostSpec:
     areas: tuple[AreaSpec, ...] = ()
     # Nur aus internen Netzen – alle anderen: Verbindung ohne Antwort abbrechen
     internal: bool = False
+    # Netze, aus denen geschützte Bereiche auch ohne Client-Zertifikat erreichbar sind
+    # (Option „aus internen Netzen ohne Zertifikat“)
+    cert_free_networks: tuple[str, ...] = ()
     # Eigenes Zertifikat (ID aus custom_certs) statt automatisch
     custom_cert: int | None = None
 
@@ -131,6 +134,8 @@ class HostSpec:
             and not self.paths
             and self.no_cert_action == "reject"
             and not any(a.access == "public" for a in self.areas)
+            # aus internen Netzen ohne Zertifikat → Handshake muss ohne gehen
+            and not self.cert_free_networks
         )
 
 
@@ -317,6 +322,9 @@ def gate_route(host: HostSpec) -> JSON | None:
         return None
     fingerprints = [fp for fp, _ in host.allowed] or ["-"]
     negations: list[JSON] = [{"vars": {FINGERPRINT: fingerprints}}]
+    if host.cert_free_networks:
+        # aus den internen Netzen auch ohne Zertifikat (echte Verbindungs-IP, nicht XFF)
+        negations.append({"remote_ip": {"ranges": list(host.cert_free_networks)}})
     patterns = path_patterns(host.paths)
     matcher: JSON
     if host.access == "mtls":

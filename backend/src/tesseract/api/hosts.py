@@ -157,6 +157,8 @@ class HostIn(BaseModel):
     authelia: bool = False
     tls_challenge: Literal["http", "dns"] = "http"
     internal: bool = False
+    # mTLS: aus den internen Netzen auch ohne Zertifikat
+    internal_no_cert: bool = False
     custom_cert_id: int | None = None
     areas: list[AreaIn] = Field(default_factory=list, max_length=20)
     enabled: bool = True
@@ -204,7 +206,7 @@ class HostIn(BaseModel):
                 "Hinter dem Cloudflare-Proxy geht kein Client-Zertifikat (mTLS) – Proxy "
                 "ausschalten oder Zugriff ohne Zertifikat"
             )
-        if self.dns_type and self.dns_proxied and self.internal:
+        if self.dns_type and self.dns_proxied and (self.internal or self.internal_no_cert):
             raise ValueError(
                 "„Nur aus internen Netzen“ geht nicht hinter dem Cloudflare-Proxy – Caddy sähe "
                 "nur Cloudflare-Adressen"
@@ -267,6 +269,7 @@ class HostOut(BaseModel):
     authelia: bool
     tls_challenge: str
     internal: bool
+    internal_no_cert: bool = False
     custom_cert_id: int | None
     # Geteiltes Wildcard-Zertifikat, das diesen Host abdeckt (sonst None)
     wildcard_cert: str | None
@@ -402,7 +405,9 @@ def _check_ip_lists(db: Session, body: HostIn) -> None:
 def _check_grants(db: Session, body: HostIn) -> None:
     _check_ip_lists(db, body)
     general = get_general(db)
-    if body.internal and not (general["internal_networks"] or general["internal_list_ids"]):
+    if (body.internal or body.internal_no_cert) and not (
+        general["internal_networks"] or general["internal_list_ids"]
+    ):
         raise HTTPException(
             status.HTTP_409_CONFLICT,
             "Erst unter Einstellungen › Integrationen die internen Netze festlegen",

@@ -4,6 +4,16 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.12.0] – 2026-11-22
+
+### Hinzugefügt
+- **Aus internen Netzen ohne Zertifikat:** Bei Hosts mit „Nur mit Zertifikat“ (oder geschützten
+  Pfaden) pro Host wählbar (Zugriff › „Aus internen Netzen ohne Zertifikat“). Geräte im LAN/VPN
+  kommen dann ohne Client-Zertifikat durch, von außen gilt die Zertifikatspflicht weiter.
+  Geprüft wird die echte Verbindungs-IP gegen die internen Netze aus Einstellungen ›
+  Integrationen. Weil die IP erst nach dem Handshake bekannt ist, bekommen Fremde ohne
+  Zertifikat „403 Kein Zugang“ statt eines Handshake-Abbruchs. Migration 0022
+
 ## [1.11.0] – 2026-11-22
 
 ### Geändert

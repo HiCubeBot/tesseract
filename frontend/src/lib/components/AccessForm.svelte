@@ -158,6 +158,21 @@
         <span class="muted small">Mit Pfad-Regeln wird statt eines Abbruchs „403 Kein Zugang“ gesendet – der Pfad ist beim Handshake noch unbekannt.</span>
       {/if}
     </label>
+
+    <label class="internal" class:on={value.internal_no_cert} class:disabled={!internalAvailable && !value.internal_no_cert}>
+      <input type="checkbox" bind:checked={value.internal_no_cert} disabled={!internalAvailable && !value.internal_no_cert} />
+      <span class="stack">
+        <strong>Aus internen Netzen ohne Zertifikat</strong>
+        <span class="muted small">
+          {#if internalAvailable}
+            Geräte im LAN/VPN kommen ohne Zertifikat durch, von außen gilt die Zertifikatspflicht weiter. Praktisch für Fernseher, Drucker oder
+            Apps ohne mTLS. Ohne Zertifikat wird dann statt eines Handshake-Abbruchs „403 Kein Zugang“ gesendet.
+          {:else}
+            Erst unter <a href="#/settings-integrations">Einstellungen › Integrationen</a> die internen Netze festlegen.
+          {/if}
+        </span>
+      </span>
+    </label>
   {/if}
 </div>
 
