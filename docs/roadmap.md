@@ -25,10 +25,30 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 | 1.10 | Nodes über DNS | Node-Schnittstelle wahlweise von den Admin-Netzen ausgenommen, DNS-Eintrag für die Tesseract-Domain – **fertig** |
 | 1.11 | Herkunftskarte | Karte zeigt alle Anfragen, Filter Abgelehnt / Angenommen – **fertig** |
 | 1.12 | Intern ohne Zertifikat | mTLS-Hosts wahlweise aus den internen Netzen ohne Zertifikat – **fertig** |
+| – | [Geplant](#geplant) | Oberfläche, Statistik, Status Page (Versionen 1.13–1.18) |
 | – | [Offen / bekannte Grenzen](#offen--bekannte-grenzen) | Einschränkungen des aktuellen Stands |
 | – | [Backlog](#backlog-niedrige-priorität) | Niedrige Priorität, ohne festen Zeitpunkt |
 
 ---
+
+## Geplant
+
+- [x] Kein-Zugang-Seite überarbeitet: Grund als Kennzeichen, Hinweis zur Einladung, Dienst,
+  IP, Zeit, Verarbeitungszeit und Anfrage-ID (1.13)
+- [x] README auf Englisch, Repo-Beschreibung (1.13)
+- [ ] Sidebar mit Zahlen (Hosts, Personen, Geräte, Nodes) (1.14)
+- [ ] Node-Übersicht als Karten: Caddy-Version, Hosts (davon öffentlich), letzter Kontakt,
+  Config-Stand, Verbindung zum Controller (1.14)
+- [ ] Proxy-Hosts: Anfragen der letzten 24 h mit Verlaufslinie je Host; eigener Tab
+  „Statistik“ pro Host (Anfragen, Besucher, Daten, Antwortzeit, Fehler, Kompression,
+  Pfade, Herkunft, Abgelehnt, Top abgelehnte IPs) (1.15)
+- [ ] Statistik überarbeitet: Kennzahlen mit Verlauf und Vergleich zum Vorzeitraum,
+  gesamter Zeitraum, Statuscodes, Protokolle, Clients (Browser/Apps/Bots), Pfade mit
+  Fehlern, Netzbetreiber, Betrieb (Erreichbarkeit der Nodes und Hosts, Zertifikate,
+  Rekorde); eigener Tab mit zoombarer Karte (1.16)
+- [ ] Status Page: Erreichbarkeit der Dienste prüfen (Uptime Monitor), öffentliche Statusseite
+  (1.17)
+- [ ] Übersicht überarbeitet (1.18)
 
 ## Version 1.12 – Intern ohne Zertifikat (fertig)
 

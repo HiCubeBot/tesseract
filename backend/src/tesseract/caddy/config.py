@@ -184,21 +184,52 @@ class NodeSpec:
     client_ca_der_b64: str | tuple[str, ...] = ""
 
 
+# Hinweisseite für Anfragen ohne freigegebenes Gerätezertifikat. Caddy setzt die Platzhalter
+# beim Ausliefern ein (Dienst, echte Client-IP, Zeit, Verarbeitungszeit, Anfrage-ID).
 HINT_PAGE = """<!doctype html>
 <html lang="de"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
 <title>Kein Zugang</title>
 <style>
+:root{--bg:#f4f5f8;--card:#fff;--line:#e4e6ec;--fg:#14161b;--muted:#5b6170;--key:#5b6170;
+--accent:#7c6cf0;--accent-bg:#f1effe}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1014;--card:#161920;--line:#262b36;--fg:#eceef3;
+--muted:#a0a7b4;--key:#8a91a0;--accent:#a99cff;--accent-bg:#221f3a}}
+*{box-sizing:border-box}
 body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
-background:#0e1014;color:#e7e9ee;font:15px/1.6 Inter,system-ui,sans-serif;padding:24px}
-main{max-width:440px;padding:28px;border:1px solid #232833;border-radius:12px;background:#161920}
-h1{margin:0 0 8px;font-size:22px}p{margin:0 0 10px;color:#a0a7b4}code{color:#c9ced8}
+background:var(--bg);color:var(--fg);font:16px/1.6 Inter,system-ui,-apple-system,sans-serif;
+padding:24px}
+main{width:100%;max-width:500px;padding:28px 32px;border:1px solid var(--line);border-radius:16px;
+background:var(--card)}
+.badge{display:inline-block;padding:2px 12px;border:1px solid var(--accent);border-radius:999px;
+background:var(--accent-bg);color:var(--accent);font:12px/1.7 ui-monospace,SFMono-Regular,Menlo,
+Consolas,monospace}
+h1{margin:16px 0 8px;font-size:24px;line-height:1.25}
+p{margin:0 0 12px;color:var(--muted)}
+dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 24px;margin:20px 0 0;
+padding-top:18px;border-top:1px solid var(--line);font-size:13px}
+dt{color:var(--key)}
+dd{margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;word-break:break-all}
 </style></head>
-<body><main><h1>Kein Zugang</h1>
-<p>Dieser Dienst ist nur von freigegebenen Geräten aus erreichbar.</p>
-<p>Dein Gerät hat kein passendes Zertifikat. Wende dich an die Person,
-die dich eingeladen hat.</p>
-<p><code>{http.request.host}</code></p>
+<body><main>
+<span class="badge">403 · Gerätezertifikat</span>
+<h1>Kein Zugang</h1>
+<p>Dieser Dienst ist nur mit einem freigegebenen Gerätezertifikat erreichbar.</p>
+<p>Hast du eine Einladung bekommen? Installiere das Zertifikat über den Link und öffne die Seite
+danach neu. Fragt der Browser nach einem Zertifikat, wähle das Zertifikat deines Geräts.</p>
+<dl>
+<dt>Dienst</dt><dd>{http.request.host}</dd>
+<dt>Deine IP</dt><dd>{http.vars.client_ip}</dd>
+<dt>Zeit</dt><dd>{time.now.http}</dd>
+<dt>Verarbeitung</dt><dd id="ms">{http.request.duration_ms} ms</dd>
+<dt>Anfrage-ID</dt><dd>{http.request.uuid}</dd>
+</dl>
+<script>
+// Verarbeitungszeit lesbar runden (Caddy liefert alle Nachkommastellen)
+var e = document.getElementById("ms"), n = parseFloat(e.textContent);
+if (!isNaN(n)) e.textContent = n.toFixed(1).replace(".", ",") + " ms";
+</script>
 </main></body></html>
 """
 

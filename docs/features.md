@@ -32,7 +32,7 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | Zugriffsart pro Host | **Öffentlich** (nur Let's Encrypt) oder **Nur freigegebene Geräte (mTLS)** | 2 |
 | Zugriffsart „Intern“ | Nur aus internen Netzen (LAN, VPN), zentral unter Einstellungen festgelegt; geprüft wird die echte Verbindungs-IP, kein `X-Forwarded-For`. Fremde sehen nichts – die Verbindung wird ohne Antwort abgebrochen. Zertifikat standardmäßig per DNS-01/Wildcard (kein öffentlicher DNS-Eintrag nötig). Optional zusätzlich „nur Admin-Geräte“ per mTLS. Doku zu Split-DNS und NAT-Loopback | 3b |
 | Intern ohne Zertifikat | Pro Host mit „Nur mit Zertifikat“ wählbar: Anfragen aus den internen Netzen kommen ohne Client-Zertifikat durch, von außen gilt die Pflicht weiter (z. B. für Fernseher, Drucker, Apps ohne mTLS). Geprüft wird die echte Verbindungs-IP; ohne Zertifikat gibt es dann „403“ statt Handshake-Abbruch | 1.12 |
-| Verhalten ohne Zertifikat | Verbindung ablehnen (TLS-Handshake schlägt fehl) **oder** Hinweisseite „Kein Zugang“ | 2 |
+| Verhalten ohne Zertifikat | Verbindung ablehnen (TLS-Handshake schlägt fehl) **oder** Hinweisseite „Kein Zugang“ (mit Dienst, eigener IP, Zeit und Anfrage-ID für Rückfragen) | 2 |
 | Freigaben | An Gruppen und Personen; gelten automatisch für alle Geräte der Person | 2 |
 | Zugriffsmatrix | Gruppe/Person × Dienst, unterscheidet „direkt erlaubt“ und „über Gruppe“; Änderungen gesammelt übertragen oder verwerfen | 2 |
 | Automatische Aktualisierung | Neues Gerät einer Person → Freigabelisten werden ergänzt und neu übertragen | 2 |

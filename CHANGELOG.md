@@ -4,6 +4,15 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.13.0] – 2026-11-23
+
+### Geändert
+- **Kein-Zugang-Seite überarbeitet:** Grund als Kennzeichen („403 · Gerätezertifikat“), Hinweis
+  zur Einladung und zur Zertifikatsauswahl im Browser, dazu Dienst, eigene IP, Zeit,
+  Verarbeitungszeit und Anfrage-ID für Rückfragen. Heller und dunkler Modus nach
+  Systemeinstellung
+- **README auf Englisch** (die Doku unter `docs/` bleibt deutsch)
+
 ## [1.12.0] – 2026-11-22
 
 ### Hinzugefügt
