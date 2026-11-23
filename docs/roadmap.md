@@ -36,8 +36,8 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 - [x] Kein-Zugang-Seite überarbeitet: Grund als Kennzeichen, Hinweis zur Einladung, Dienst,
   IP, Zeit, Verarbeitungszeit und Anfrage-ID (1.13)
 - [x] README auf Englisch, Repo-Beschreibung (1.13)
-- [ ] Sidebar mit Zahlen (Hosts, Personen, Geräte, Nodes) (1.14)
-- [ ] Node-Übersicht als Karten: Caddy-Version, Hosts (davon öffentlich), letzter Kontakt,
+- [x] Sidebar mit Zahlen (Hosts, Personen, Geräte, Nodes) (1.14)
+- [x] Node-Übersicht als Karten: Caddy-Version, Hosts (davon öffentlich), letzter Kontakt,
   Config-Stand, Verbindung zum Controller (1.14)
 - [ ] Proxy-Hosts: Anfragen der letzten 24 h mit Verlaufslinie je Host; eigener Tab
   „Statistik“ pro Host (Anfragen, Besucher, Daten, Antwortzeit, Fehler, Kompression,

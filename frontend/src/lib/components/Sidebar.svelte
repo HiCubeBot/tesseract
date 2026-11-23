@@ -3,6 +3,7 @@
   import { icons } from '../icons';
   import { session } from '../session.svelte';
   import { theme, THEME_LABELS } from '../theme.svelte';
+  import { counts } from '../counts.svelte';
 
   // Symbole: Monitor (System), Sonne (hell), Mond (dunkel)
   const THEME_ICONS = {
@@ -29,7 +30,26 @@
 
   let { active = 'main' }: Props = $props();
 
-  const nav: { id: NavId; label: string; href: string; count?: string; d: string }[] = [
+  // Zahlen bei jedem Seitenwechsel auffrischen (z. B. nach dem Anlegen eines Hosts)
+  $effect(() => {
+    void active;
+    if (session.user) counts.refresh();
+  });
+
+  const COUNT_OF: Partial<Record<NavId, keyof NonNullable<typeof counts.value>>> = {
+    hosts: 'hosts',
+    users: 'persons',
+    devices: 'devices',
+    nodes: 'nodes'
+  };
+
+  function countFor(id: NavId): string | undefined {
+    const key = COUNT_OF[id];
+    const v = key && counts.value ? counts.value[key] : undefined;
+    return v === undefined ? undefined : v.toLocaleString('de-DE');
+  }
+
+  const nav: { id: NavId; label: string; href: string; d: string }[] = [
     { id: 'main', label: 'Übersicht', href: '#/', d: icons.grid },
     { id: 'hosts', label: 'Proxy-Hosts', href: '#/hosts', d: icons.globe },
     { id: 'certificates', label: 'Zertifikate', href: '#/certificates', d: icons.okCircle },
@@ -59,7 +79,7 @@
       <a href={item.href} class="item" class:current={item.id === active} aria-current={item.id === active ? 'page' : undefined}>
         <Icon d={item.d} />
         <span class="label">{item.label}</span>
-        {#if item.count}<span class="count">{item.count}</span>{/if}
+        {#if countFor(item.id) !== undefined}<span class="count">{countFor(item.id)}</span>{/if}
       </a>
     {/each}
   </div>

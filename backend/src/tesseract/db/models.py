@@ -131,6 +131,9 @@ class Node(Base):
     last_seen_at: Mapped[datetime | None]
     agent_version: Mapped[str | None] = mapped_column(String(32))
     caddy_version: Mapped[str | None] = mapped_column(String(64))
+    # Adresse, unter der der Agent den Controller erreicht, und IP, von der er kommt
+    controller_url: Mapped[str | None] = mapped_column(String(255))
+    agent_ip: Mapped[str | None] = mapped_column(String(64))
     # Erkannte Caddy-Module (None = noch nicht geprüft)
     modules: Mapped[list[str] | None] = mapped_column(JSON)
     # Config, die der Controller für den Node vorsieht (Agent holt sie ab)

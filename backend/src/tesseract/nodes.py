@@ -241,6 +241,8 @@ def record_status(db: Session, node: Node, report: dict[str, Any]) -> None:
         node.caddy_version = str(report["caddy_version"])[:64] or None
     if report.get("modules") is not None:
         node.modules = sorted({str(m) for m in report["modules"]})
+    if report.get("controller"):
+        node.controller_url = str(report["controller"])[:255]
     listen = report.get("admin_listen")
     if listen and listen != node.admin_listen:
         node.admin_listen = str(listen)[:255]

@@ -26,6 +26,7 @@ from tesseract.api import (
     renew,
     settings,
     stats,
+    summary,
 )
 
 api_router = APIRouter()
@@ -51,6 +52,7 @@ api_router.include_router(customcerts.router)
 api_router.include_router(agent.router)
 api_router.include_router(logs.router)
 api_router.include_router(stats.router)
+api_router.include_router(summary.router)
 api_router.include_router(metrics.router)
 api_router.include_router(notify.router)
 api_router.include_router(backups.router)

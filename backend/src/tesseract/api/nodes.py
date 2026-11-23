@@ -12,7 +12,13 @@ from tesseract.caddy.config import redact
 from tesseract.db.models import Host, Node
 from tesseract.deps import DB, AppSettings, Box, CurrentActor
 from tesseract.identity import CAError, ca_configured
-from tesseract.services import apply_node, get_general, node_config, node_in_sync
+from tesseract.services import (
+    apply_node,
+    get_general,
+    node_config,
+    node_in_sync,
+    resolve_ranges,
+)
 
 router = APIRouter(prefix="/nodes", tags=["nodes"])
 
@@ -44,6 +50,13 @@ class NodeOut(BaseModel):
     join_key_fingerprint: str | None
     join_requested_at: datetime | None
     cert_not_after: datetime | None
+    # davon öffentlich (ohne Zertifikat, nicht nur intern)
+    hosts_public: int = 0
+    # Verbindung zum Controller: Adresse aus Sicht des Agents, IP der Verbindung und deren Art
+    # (intern = eines der internen Netze, privat = privater Adressbereich, internet)
+    controller_url: str | None = None
+    agent_ip: str | None = None
+    network: str | None = None
 
 
 class JoinToken(BaseModel):
@@ -99,9 +112,48 @@ def _agent(db, node_id: int) -> Node:
     return node
 
 
-def _out(db, node: Node, settings, hosts: int | None = None) -> NodeOut:
+def _public_hosts(db) -> dict[int, int]:
+    rows = db.execute(
+        select(Host.node_id, func.count())
+        .where(Host.access == "public", Host.internal.is_(False))
+        .group_by(Host.node_id)
+    ).all()
+    return dict(rows)
+
+
+def _network(ip: str | None, internal: list[str]) -> str | None:
+    if not ip:
+        return None
+    try:
+        addr = ipaddress.ip_address(ip)
+    except ValueError:
+        return None
+    for net in internal:
+        try:
+            if addr in ipaddress.ip_network(net, strict=False):
+                return "intern"
+        except ValueError:
+            continue
+    if addr.is_private or addr in ipaddress.ip_network("100.64.0.0/10"):
+        return "privat"
+    return "internet"
+
+
+def _out(
+    db,
+    node: Node,
+    settings,
+    hosts: int | None = None,
+    public: dict[int, int] | None = None,
+    internal: list[str] | None = None,
+) -> NodeOut:
     if hosts is None:
         hosts = db.scalar(select(func.count()).where(Host.node_id == node.id)) or 0
+    if public is None:
+        public = _public_hosts(db)
+    if internal is None:
+        g = get_general(db)
+        internal = resolve_ranges(db, g["internal_networks"], g["internal_list_ids"])
     now = node_svc.utcnow()
     return NodeOut(
         id=node.id,
@@ -130,6 +182,10 @@ def _out(db, node: Node, settings, hosts: int | None = None) -> NodeOut:
         join_key_fingerprint=node.join_key_fp,
         join_requested_at=node.join_requested_at,
         cert_not_after=node.cert_not_after,
+        hosts_public=public.get(node.id, 0),
+        controller_url=node.controller_url if node.is_agent else None,
+        agent_ip=node.agent_ip if node.is_agent else None,
+        network=_network(node.agent_ip, internal) if node.is_agent else None,
     )
 
 
@@ -156,8 +212,11 @@ def _join(request: Request, db, settings, token: str, node: Node) -> JoinToken:
 @router.get("")
 def list_nodes(db: DB, _: CurrentActor, settings: AppSettings) -> list[NodeOut]:
     counts = dict(db.execute(select(Host.node_id, func.count()).group_by(Host.node_id)).all())
+    public = _public_hosts(db)
+    g = get_general(db)
+    internal = resolve_ranges(db, g["internal_networks"], g["internal_list_ids"])
     return [
-        _out(db, n, settings, counts.get(n.id, 0))
+        _out(db, n, settings, counts.get(n.id, 0), public, internal)
         for n in db.scalars(select(Node).order_by(Node.name))
     ]
 

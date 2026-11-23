@@ -187,6 +187,8 @@ class StatusIn(BaseModel):
     caddy_version: str | None = Field(default=None, max_length=64)
     modules: list[str] | None = Field(default=None, max_length=200)
     admin_listen: str | None = Field(default=None, max_length=255)
+    # Adresse, unter der der Agent den Controller erreicht (Anzeige in der Node-Übersicht)
+    controller: str | None = Field(default=None, max_length=255)
     loaded_hash: str | None = Field(default=None, max_length=64)
     load_error: str | None = Field(default=None, max_length=4000)
     running_hash: str | None = Field(default=None, max_length=64)
@@ -213,6 +215,7 @@ def post_status(body: StatusIn, request: Request, node: AgentNode, db: DB) -> di
                 status.HTTP_422_UNPROCESSABLE_CONTENT, "running_config_b64 ungültig"
             ) from e
     node_svc.record_status(db, node, report)
+    node.agent_ip = client_ip(request)
     db.commit()
     g = get_general(db)
     if g["docker_enabled"] and body.containers is not None:

@@ -4,6 +4,20 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.14.0] – 2026-11-23
+
+### Hinzugefügt
+- **Zahlen in der Seitenleiste:** Proxy-Hosts (ohne Entwürfe), Nutzer, gültige Geräte und
+  beigetretene Nodes, aufgefrischt bei jedem Seitenwechsel (`GET /api/counts`)
+
+### Geändert
+- **Node-Übersicht als kompakte Karten:** Caddy-Version, Hosts mit Anteil öffentlicher Hosts,
+  letzter Kontakt, Konfigurationsstand und die Verbindung zum Controller – Adresse aus Sicht des
+  Agents und Art der Verbindung (intern, privat, Internet). „Config ansehen“, „Neu
+  synchronisieren“ und ein Menü für Bearbeiten, Details, neues Token und Löschen. Darunter eine
+  Kurzanleitung „Neuen Node verbinden“. Agents ab 1.14 melden ihre Controller-Adresse mit;
+  Migration 0023
+
 ## [1.13.0] – 2026-11-23
 
 ### Geändert

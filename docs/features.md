@@ -82,7 +82,7 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 
 | Feature | Beschreibung | Phase |
 |---|---|---|
-| Node-Übersicht | Standort, Caddy-Version, Anzahl Hosts, letzter Kontakt, Status (online, offline, lokal geändert, Fehler), Agent-Version, Zertifikat | 4 |
+| Node-Übersicht | Kompakte Karten: Standort, Caddy-Version, Hosts (davon öffentlich), letzter Kontakt, Konfigurationsstand, Status (online, offline, lokal geändert, Fehler), Verbindung zum Controller (Adresse aus Sicht des Agents, intern/privat/Internet); Details mit Modulen, Agent-Version, Zertifikat, IPs | 4 / 1.14 |
 | Node hinzufügen | Beitritts-Token (30 Min., einmalig) und Installationsbefehl (`curl … /install/node.sh | sudo sh`) – richtet Caddy und Agent auf dem Server ein → Schlüssel-Fingerabdruck vergleichen und im Controller bestätigen | 4 / 1.1 |
 | Agent | Erzeugt eigene Schlüssel, baut mTLS-Verbindung zum Controller auf (Long-Polling über HTTPS); kein offener Admin-Port, funktioniert hinter NAT | 4 |
 | Config-Abweichung | Erkennt lokale Änderungen (Diff pro Host) – „Mit Controller überschreiben“ oder „Änderung übernehmen“ (gilt bis zur nächsten Übertragung) | 4 |
@@ -144,5 +144,6 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | DNS-Eintrag für die Tesseract-Domain | Damit Nodes den Controller über den Namen finden: CNAME oder A/AAAA (IPs des lokalen Nodes) bei Cloudflare, nie über den Proxy; beim Start und bei neuen Node-IPs nachgezogen | 1.10 |
 | Oberfläche nur aus bestimmten Netzen | `TESSERACT_ADMIN_NETWORKS` (Standard alle Netze): aus anderen Netzen bricht Caddy die Verbindung ab, noch vor Anmeldung und Zertifikat. Einladungen und Verlängern bleiben erreichbar, die Agent-Schnittstelle wahlweise (`TESSERACT_AGENT_API_PUBLIC`, Standard an). Kombinierbar mit „Nur mit Admin-Zertifikat“ | 1.7 / 1.10 |
 | GeoIP automatisch | `TESSERACT_GEOIP_AUTO=dbip`: Controller holt DB-IP Lite selbst, prüft sie, erneuert monatlich und übernimmt sie ohne Neustart; Stand und „Jetzt aktualisieren“ unter Einstellungen › Metriken, Quellenangabe unter der Karte | 1.8 |
+| Zahlen in der Seitenleiste | Anzahl Proxy-Hosts, Nutzer, Geräte und Nodes neben den Menüpunkten | 1.14 |
 | Heller und dunkler Modus | Folgt der Systemeinstellung; Umschalter in der Seitenleiste (System → Hell → Dunkel), pro Browser gemerkt | 1.5 |
 | Favicon | Logo als SVG-Icon für Tab und Lesezeichen | 1.5 |

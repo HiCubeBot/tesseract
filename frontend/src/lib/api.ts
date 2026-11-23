@@ -389,6 +389,13 @@ export interface NodeInfo {
   join_key_fingerprint: string | null;
   join_requested_at: string | null;
   cert_not_after: string | null;
+  /** davon öffentlich (ohne Zertifikat, nicht nur intern) */
+  hosts_public: number;
+  /** Adresse, unter der der Agent den Controller erreicht */
+  controller_url: string | null;
+  /** IP, von der der Agent kommt, und ihre Art */
+  agent_ip: string | null;
+  network: 'intern' | 'privat' | 'internet' | null;
 }
 
 export interface JoinToken {

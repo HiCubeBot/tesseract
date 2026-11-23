@@ -38,6 +38,9 @@
   let configText = $state('');
   let drifts = $state<Record<number, NodeDrift>>({});
   let remove = $state<NodeInfo | null>(null);
+  /** offenes „…“-Menü und aufgeklappte Details je Node */
+  let menu = $state<number | null>(null);
+  let details = $state<Record<number, boolean>>({});
 
   // Bearbeiten: Name (nur Agent-Nodes), Standort, öffentliche IPs
   let editing = $state<{ id: number; name: string; location: string; ips: string } | null>(null);
@@ -203,6 +206,38 @@
     return n.modules.map((m) => MODULES[m] ?? m).join(', ') || 'keine';
   }
 
+  function hostsLabel(n: NodeInfo): string {
+    if (n.hosts === 0) return '0';
+    if (n.hosts_public === n.hosts) return `${n.hosts} (alle öffentlich)`;
+    if (n.hosts_public === 0) return `${n.hosts} (keiner öffentlich)`;
+    return `${n.hosts} (${n.hosts_public} öffentlich)`;
+  }
+
+  /** https://tesseract.example.org:8443/ → tesseract.example.org:8443 */
+  const shortUrl = (u: string) => u.replace(/^https?:\/\//, '').replace(/\/$/, '');
+
+  const NETWORK: Record<string, { label: string; title: string }> = {
+    intern: { label: 'intern', title: 'Verbindung aus einem der internen Netze' },
+    privat: { label: 'privat', title: 'Verbindung aus einem privaten Adressbereich (LAN, VPN, CGNAT)' },
+    internet: { label: 'Internet', title: 'Verbindung über das Internet' }
+  };
+
+  // Beispielbefehl: Adresse, die schon ein Agent nutzt, sonst die der Oberfläche
+  const controllerHint = $derived(
+    nodes.find((x) => x.controller_url)?.controller_url ?? location.origin
+  );
+
+  function startAdd() {
+    adding = true;
+    formError = '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function menuAction(fn: () => void) {
+    menu = null;
+    fn();
+  }
+
   const missing = (n: NodeInfo) => (n.modules ? Object.keys(MODULES).filter((m) => !n.modules!.includes(m)) : []);
 
   const requests = $derived(nodes.filter((n) => n.join_state === 'pending'));
@@ -225,6 +260,8 @@
       : ''
   );
 </script>
+
+<svelte:window onclick={() => (menu = null)} />
 
 <AppShell active="nodes">
   <PageHeader
@@ -331,12 +368,12 @@
     {#each nodes as n (n.id)}
       {@const st = STATE[n.state]}
       {@const sync = syncLabel(n)}
+      {@const net = n.network ? NETWORK[n.network] : null}
       <article class="card node {n.state}">
         <div class="node-head">
           <div class="titles">
             <h2 class="mono">{n.name}</h2>
-            <span class="muted small">{n.location || '–'} · {n.kind === 'local' ? 'lokal (direkt)' : 'Agent'}</span>
-            {#if n.public_ips.length}<span class="muted small mono">{n.public_ips.join(', ')}</span>{/if}
+            <span class="muted small">{n.location || (n.kind === 'local' ? 'lokal' : '–')}</span>
           </div>
           <StatusPill tone={st.tone} label={st.label} />
         </div>
@@ -349,14 +386,29 @@
           </p>
         {:else}
           <dl class="stats">
-            <div><dt>Caddy</dt><dd>{n.caddy_version ?? '–'}</dd></div>
-            <div><dt>Hosts</dt><dd>{n.hosts}</dd></div>
+            <div><dt>Caddy</dt><dd>{n.caddy_version?.split(' ')[0] ?? '–'}</dd></div>
+            <div><dt>Hosts</dt><dd>{hostsLabel(n)}</dd></div>
             <div><dt>Letzter Kontakt</dt><dd class:bad={n.state === 'offline'}>{formatAgo(n.last_seen_at)}</dd></div>
             <div><dt>Konfiguration</dt><dd class={sync.tone}>{sync.text}</dd></div>
-            <div class="wide"><dt>Module</dt><dd>{modules(n)}</dd></div>
-            {#if n.kind === 'agent'}
-              <div><dt>Agent</dt><dd>{n.agent_version ?? '–'}</dd></div>
-              <div><dt>Zertifikat bis</dt><dd>{formatDay(n.cert_not_after)}</dd></div>
+            <div class="wide">
+              <dt>Verbindung zum Controller</dt>
+              {#if n.kind === 'local'}
+                <dd>lokal (direkt)</dd>
+              {:else}
+                <dd class="mono conn">{n.controller_url ? shortUrl(n.controller_url) : '–'}</dd>
+                {#if net}
+                  <dd><span class="chip {n.network}" title={`${net.title}${n.agent_ip ? ` · ${n.agent_ip}` : ''}`}>{net.label}</span></dd>
+                {/if}
+              {/if}
+            </div>
+            {#if details[n.id]}
+              <div class="wide"><dt>Module</dt><dd>{modules(n)}</dd></div>
+              {#if n.kind === 'agent'}
+                <div><dt>Agent</dt><dd>{n.agent_version ?? '–'}</dd></div>
+                <div><dt>Zertifikat bis</dt><dd>{formatDay(n.cert_not_after)}</dd></div>
+                <div class="wide"><dt>IP der Verbindung</dt><dd class="mono">{n.agent_ip ?? '–'}</dd></div>
+              {/if}
+              <div class="wide"><dt>Öffentliche IPs</dt><dd class="mono">{n.public_ips.join(', ') || '–'}</dd></div>
             {/if}
           </dl>
           {#if missing(n).length}
@@ -384,20 +436,88 @@
             </div>
           </form>
         {/if}
-        <div class="row actions">
-          <Button variant="ghost" size="sm" label="Bearbeiten" disabled={busy !== null || editing?.id === n.id} onClick={() => startEdit(n)} />
+        <div class="actions">
           {#if n.state !== 'pending'}
-            <Button variant="secondary" size="sm" label={configOpen === n.id ? 'Config schließen' : 'Config ansehen'} onClick={() => toggleConfig(n)} />
-            <Button variant="secondary" size="sm" icon="refresh" label={busy === `apply-${n.id}` ? 'Überträgt …' : 'Neu übertragen'} disabled={busy !== null} onClick={() => apply(n)} />
+            <div class="full">
+              <Button variant="secondary" size="sm" label={configOpen === n.id ? 'Config schließen' : 'Config ansehen'} onClick={() => toggleConfig(n)} />
+            </div>
           {/if}
-          {#if n.kind === 'agent'}
-            <Button variant="ghost" size="sm" label="Neues Token" disabled={busy !== null} onClick={() => newToken(n)} />
-            <Button variant="ghost" size="sm" icon="trash" label="Löschen" disabled={busy !== null || n.hosts > 0} onClick={() => (remove = n)} />
-          {/if}
+          <div class="row-actions">
+            <div class="full">
+              {#if n.state !== 'pending'}
+                <Button variant="secondary" size="sm" label={busy === `apply-${n.id}` ? 'Überträgt …' : 'Neu synchronisieren'} disabled={busy !== null} onClick={() => apply(n)} />
+              {:else}
+                <Button variant="secondary" size="sm" label="Neues Token" disabled={busy !== null} onClick={() => newToken(n)} />
+              {/if}
+            </div>
+            <div class="menu-wrap">
+              <button
+                type="button"
+                class="more"
+                aria-label={`Weitere Aktionen für ${n.name}`}
+                aria-haspopup="menu"
+                aria-expanded={menu === n.id}
+                onclick={(e) => {
+                  e.stopPropagation();
+                  menu = menu === n.id ? null : n.id;
+                }}>···</button
+              >
+              {#if menu === n.id}
+                <div class="menu" role="menu">
+                  <button type="button" role="menuitem" onclick={() => menuAction(() => startEdit(n))}>Bearbeiten</button>
+                  {#if n.state !== 'pending'}
+                    <button type="button" role="menuitem" onclick={() => menuAction(() => (details[n.id] = !details[n.id]))}>
+                      {details[n.id] ? 'Details ausblenden' : 'Details anzeigen'}
+                    </button>
+                    {#if n.kind === 'agent'}
+                      <button type="button" role="menuitem" disabled={busy !== null} onclick={() => menuAction(() => newToken(n))}>Neues Token</button>
+                    {/if}
+                  {/if}
+                  {#if n.kind === 'agent'}
+                    <button
+                      type="button"
+                      role="menuitem"
+                      class="danger"
+                      disabled={busy !== null || n.hosts > 0}
+                      title={n.hosts > 0 ? 'Erst die Hosts auf andere Nodes verschieben' : undefined}
+                      onclick={() => menuAction(() => (remove = n))}>Löschen</button
+                    >
+                  {/if}
+                </div>
+              {/if}
+            </div>
+          </div>
         </div>
-        {#if configOpen === n.id}<pre class="code config">{configText}</pre>{/if}
       </article>
     {/each}
+  </section>
+
+  {#if configOpen !== null}
+    <section class="card" aria-labelledby="config-title">
+      <div class="row">
+        <h2 id="config-title">Config von <span class="mono">{nodes.find((x) => x.id === configOpen)?.name ?? ''}</span></h2>
+        <span class="spacer"></span>
+        <Button variant="ghost" size="sm" icon="close" label="Schließen" onClick={() => (configOpen = null)} />
+      </div>
+      <pre class="code config">{configText}</pre>
+    </section>
+  {/if}
+
+  <section class="card connect" aria-labelledby="connect-title">
+    <h2 id="connect-title">Neuen Node verbinden</h2>
+    <ol>
+      <li>Node anlegen – dabei entsteht ein Beitritts-Token.</li>
+      <li>
+        Auf dem Server den Installationsbefehl ausführen. Er richtet Caddy mit den nötigen Modulen und den Agent ein – der
+        Agent erzeugt eigene Schlüssel und baut eine mTLS-Verbindung zum Controller auf.
+      </li>
+      <li>Node hier bestätigen. Danach überträgt der Controller die Config.</li>
+    </ol>
+    <pre class="code">{`tesseract-agent join \\\n  --controller ${controllerHint} \\\n  --token [BEITRITTS-TOKEN]`}</pre>
+    <div class="row">
+      <Button label="Node hinzufügen" icon="plus" onClick={startAdd} />
+      <span class="muted small">Token ist 30 Minuten gültig und nur einmal verwendbar.</span>
+    </div>
   </section>
 
   {#if loaded && nodes.length === 1}
@@ -439,8 +559,106 @@
   }
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     gap: 14px;
+  }
+  .conn {
+    font-size: 13px;
+    overflow-wrap: anywhere;
+  }
+  .chip {
+    display: inline-block;
+    margin-top: 4px;
+    padding: 0 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    line-height: 20px;
+    font-weight: 500;
+    background: var(--surface-raised);
+    color: var(--text-muted);
+  }
+  .chip.intern,
+  .chip.privat {
+    background: rgba(76, 195, 138, 0.14);
+    color: var(--ok-text);
+  }
+  .chip.internet {
+    background: rgba(229, 164, 67, 0.14);
+    color: var(--warn-text);
+  }
+  .actions {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .row-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .full {
+    flex: 1;
+    display: flex;
+    min-width: 0;
+  }
+  .full :global(.btn) {
+    flex: 1;
+    justify-content: center;
+  }
+  .menu-wrap {
+    position: relative;
+    display: flex;
+  }
+  .more {
+    min-height: 32px;
+    padding: 0 12px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-input);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    letter-spacing: 1px;
+  }
+  .more:hover {
+    color: var(--text);
+  }
+  .menu {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 6px);
+    z-index: 5;
+    min-width: 170px;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  }
+  .menu button {
+    text-align: left;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .menu button:hover:not(:disabled) {
+    background: var(--surface-hover);
+  }
+  .menu button:disabled {
+    color: var(--text-muted);
+    cursor: not-allowed;
+  }
+  .menu .danger {
+    color: var(--bad-text);
+  }
+  .connect {
+    max-width: 560px;
   }
   h2 {
     margin: 0;
@@ -515,10 +733,6 @@
     gap: 10px;
     padding-top: 4px;
     border-top: 1px solid var(--border);
-  }
-  .actions {
-    margin-top: auto;
-    gap: 8px;
   }
   .small {
     font-size: 13px;

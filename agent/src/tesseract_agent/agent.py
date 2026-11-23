@@ -509,6 +509,7 @@ class Agent:
             "agent_version": __version__,
             "caddy_version": self._version,
             "admin_listen": self.settings.caddy_admin_listen,
+            "controller": self.state.controller or self.settings.controller or None,
             "loaded_hash": self.state.loaded_hash or None,
             "load_error": self.load_error,
         }
