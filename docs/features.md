@@ -9,7 +9,9 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 |---|---|---|
 | Host-Liste | Suche nach Domain/Ziel, Filter (Alle / Aktiv / mTLS / Deaktiviert / Entwürfe) und Node; Hosts per Schalter direkt in der Zeile ein- und ausschalten (bleiben gespeichert, gehen nicht an Caddy) | 1 / 1.5 |
 | Hosts aus Docker-Labels | Container mit `tesseract.domain` werden zu Hosts (Port, Ziel, Zugriff, interne Netze, Freigaben, WAF, Prüfart per Label). Lokal über einen Socket-Proxy, Agent-Nodes melden ihre Container. Neue Hosts als Entwurf, Label-Änderungen gelten, gestoppte/entfernte Container schalten den Host ab; gekennzeichnet in Liste und Host-Seite | 1.6 |
-| Host bearbeiten | Eigene Seite mit Tabs Allgemein · Zugriff · Sicherheit · Verlauf; Aktiv-Schalter im Kopf, Vorab-Prüfungen wie beim Anlegen, Nachfrage bei ungespeicherten Änderungen | 1.5 |
+| Uptime-Monitor | Jede Minute: Node verbunden? Ziel des Hosts erreichbar (vom Node aus)? Ausfall ab dem zweiten Fehlschlag, Vorfälle, Benachrichtigung „Dienst nicht erreichbar“; je Host abschaltbar | 1.17 |
+| Öffentliche Statusseite | `/status` ohne Anmeldung: ausgewählte Dienste mit eigenem Namen, Stand und Erreichbarkeit der letzten 90 Tage – ohne Domains und Adressen | 1.17 |
+| Host bearbeiten | Eigene Seite mit Tabs Allgemein · Zugriff · Sicherheit · Statistik · Verlauf; Aktiv-Schalter im Kopf, Vorab-Prüfungen wie beim Anlegen, Nachfrage bei ungespeicherten Änderungen | 1.5 |
 | Host-Assistent | 3 Schritte: Domain & Ziel → Zugriff → Prüfen & übertragen | 1 |
 | Ziel | Schema (http/https), Ziel-IP/Host und Port, Auswahl des Nodes; bei https optional ohne Prüfung des Zertifikats (selbst signiert) | 1 / 4 / 1.1 |
 | Optionen | HTTP→HTTPS-Umleitung, WebSockets, Kompression (gzip/zstd) | 1 |
@@ -96,6 +98,7 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 |---|---|---|
 | Sicherheit | Kennzahlen mit Verlauf und Vorzeitraum (Anfragen, Abgelehnt, ohne Zertifikat, Coraza blockiert/nur erkannt, IP-Filter, Fehlanmeldungen), Top-IPs mit Kennzeichen eigene/intern und Sperren, abgelehnte Anfragen pro Stunde, Coraza-Angriffsarten, Top-IPs, Herkunftskarte aller Anfragen mit Filter Alle / Abgelehnt / Angenommen (Kreisfläche = Anzahl, lokale GeoIP-DB, Kartendaten Natural Earth im Build) | 5 / 1.11 |
 | Traffic & Leistung | Anfragen, Besucher, Daten (aus/ein), Antwortzeiten (Median/p95), 5xx-Fehler, Kompression – mit Vorzeitraum; Zusammensetzung (Statuscodes, HTTP-Version, Browser/Apps/Bots), Pfade mit Fehlern, Clients mit Namen, Statuscodes, Hosts im Vergleich; gesamter Zeitraum aus dauerhaft aufbewahrten Tageswerten | 5 / 1.16 |
+| Betrieb | Summen seit Beginn, Erreichbarkeit der Nodes und Hosts (30 Tage, Tagesbalken), Zertifikate (Erneuerungen, nächste Abläufe), Rekorde, letzte Ausfälle | 1.17 |
 | Karte | Zoombare Weltkarte (Städte mit Stadt-Datenbank), Punkte je nach Zoom zusammengefasst; Ranglisten Länder / Städte / Netzbetreiber (ASN); Filter Alle / Abgelehnt / Angenommen | 1.16 |
 | Nutzung | Wer nutzt was (Person × Dienst), Geräte-Aktivität, Heatmap Wochentag × Uhrzeit | 5 |
 | Statistik pro Host | Tab „Statistik“ je Host: Anfragen, Besucher ohne Bots, Daten (aus/ein), Antwortzeit, 5xx, Kompression – mit Vergleich zum Vorzeitraum und Verlaufslinie; Verlauf mit Vorzeitraum, Abgelehnt nach Grund, Herkunft, Pfade mit Fehlern, abgelehnte IPs mit „Sperren“. In der Hostliste: Anfragen der letzten 24 h mit Verlaufslinie | 1.15 |
@@ -124,7 +127,7 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | CA importieren | Bestehende PKI übernehmen: Root-Zertifikat mit Root-Schlüssel (Tesseract erzeugt das Zwischenzertifikat) oder mit fertigem Zwischenzertifikat samt Schlüssel; ECDSA oder RSA ab 2048 Bit; Prüfung von CA-Merkmalen, Aussteller, Schlüssel und Laufzeit | 1.4 |
 | Root-Wechsel | Neue Root erzeugen oder importieren; das alte Zwischenzertifikat bleibt vertraut, solange Geräte oder Nodes daran hängen; Agents erneuern ihr Node-Zertifikat danach von selbst | 1.4 |
 | Integrationen | Authelia-Instanz für die Host-Middleware (URL, weitergereichte Header), IP-Listen, vertrauenswürdige Proxys (X-Forwarded-For), Coraza-Standards, Caddy-Module pro Node | 3 |
-| Benachrichtigungen | E-Mail, Webhook, ntfy; Ereignis × Kanal × Stufe; Bündeln (max. 1× / 15 Min.), Ruhezeit nachts | 5 |
+| Benachrichtigungen | E-Mail, Webhook, ntfy; Ereignis × Kanal × Stufe (u. a. Node offline, Dienst nicht erreichbar); Bündeln (max. 1× / 15 Min.), Ruhezeit nachts | 5 |
 | Metriken | Prometheus-Endpunkt für Controller und alle Nodes, Schutz per Bearer-Token / mTLS / IP-Liste, `prometheus.yml`-Snippet, Grafana-Dashboard (JSON) | 5 |
 | Git-Spiegel | Hosts, Caddy-Config pro Node, IP-Listen und Einstellungen lesbar in einem Git-Repository (HTTPS-Token oder SSH-Deploy-Key); jede Änderung ein Commit mit den Einträgen aus dem Audit-Log als Nachricht. Ohne Schlüssel, Tokens, Personen und IP-Sperren | 1.2 |
 | Backup | Zeitplan (stündlich/täglich/wöchentlich), Ziele lokal, S3-kompatibel und Restic-Repository (1.6), verschlüsselt mit Passphrase (AES-256-GCM, scrypt); Root-Schlüssel nie enthalten; Wiederherstellungstest; Wiederherstellen aus Ziel oder Datei, auch per Kommandozeile | 6 |

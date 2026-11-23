@@ -82,6 +82,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             from tesseract.geoip import watch as geoip_watch
 
             tasks.append(asyncio.create_task(geoip_watch(app)))
+            from tesseract.monitor import watch as monitor_watch
+
+            tasks.append(asyncio.create_task(monitor_watch(app)))
             from tesseract.dockerlabels import watch as docker_watch
 
             tasks.append(asyncio.create_task(docker_watch(app)))
@@ -178,6 +181,11 @@ def _mount_frontend(app: FastAPI, static_dir: Path) -> None:
     # Gäste verlängern ihr Gerät selbst: /v liefert dieselbe SPA aus
     @app.get("/v", include_in_schema=False)
     async def renew_page() -> FileResponse:
+        return FileResponse(index, headers={"Referrer-Policy": "no-referrer"})
+
+    # Öffentliche Statusseite des Uptime-Monitors
+    @app.get("/status", include_in_schema=False)
+    async def status_html() -> FileResponse:
         return FileResponse(index, headers={"Referrer-Policy": "no-referrer"})
 
     # Öffentliche Einladungsseite: /e/<token> liefert dieselbe SPA aus

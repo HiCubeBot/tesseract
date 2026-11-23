@@ -7,6 +7,7 @@
   import Toasts from './lib/components/Toasts.svelte';
   import EnrollPage from './pages/Enroll.svelte';
   import RenewPage from './pages/Renew.svelte';
+  import StatusPage from './pages/StatusPublic.svelte';
 
   // Öffentliche Einladungsseite /e/<token> – ohne Anmeldung, ohne Hash-Router
   const enrollToken = window.location.pathname.match(/^\/e\/([A-Za-z0-9_-]{8,64})\/?$/)?.[1] ?? null;
@@ -14,7 +15,10 @@
   // Gäste verlängern ihr Gerät selbst: /v – ebenfalls ohne Anmeldung
   const renewPage = /^\/v\/?$/.test(window.location.pathname);
 
-  if (!enrollToken && !renewPage) session.check();
+  // Öffentliche Statusseite des Uptime-Monitors: /status – ohne Anmeldung
+  const statusPage = /^\/status\/?$/.test(window.location.pathname);
+
+  if (!enrollToken && !renewPage && !statusPage) session.check();
 
   const path = $derived(aliases[router.path] ?? router.path);
   const designPath = $derived(path.startsWith('design/') ? path.slice('design/'.length) : null);
@@ -26,11 +30,19 @@
   const title = $derived(match?.page.title ?? prototype?.title ?? 'Screens');
 
   $effect(() => {
-    document.title = enrollToken ? 'Einladung – Tesseract' : renewPage ? 'Gerät verlängern – Tesseract' : (needsLogin ? 'Anmelden' : title) + ' – Tesseract';
+    document.title = statusPage
+      ? 'Status'
+      : enrollToken
+        ? 'Einladung – Tesseract'
+        : renewPage
+          ? 'Gerät verlängern – Tesseract'
+          : (needsLogin ? 'Anmelden' : title) + ' – Tesseract';
   });
 </script>
 
-{#if enrollToken}
+{#if statusPage}
+  <StatusPage />
+{:else if enrollToken}
   <EnrollPage token={enrollToken} />
 {:else if renewPage}
   <RenewPage />

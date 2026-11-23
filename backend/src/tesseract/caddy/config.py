@@ -40,6 +40,9 @@ CONTROLLER_PUBLIC_PATHS = (
     "/api/agent/*",
     "/assets/*",
     "/api/health",
+    # öffentliche Statusseite des Uptime-Monitors
+    "/status",
+    "/api/status",
     "/favicon.ico",
     "/favicon.svg",
     # Prometheus: Schutz (Token, Admin-Zertifikat oder IP-Liste) prüft der Controller

@@ -39,6 +39,8 @@ SECRET_CONTEXT = "notify-secret"
 EVENTS: dict[str, tuple[str, str, tuple[str, ...]]] = {
     "node_offline": ("Node offline", "critical", ("node_offline",)),
     "node_online": ("Node wieder online", "info", ("node_online",)),
+    "host_down": ("Dienst nicht erreichbar", "critical", ("host_down",)),
+    "host_up": ("Dienst wieder erreichbar", "info", ("host_up",)),
     "config_failed": ("Config nicht übertragen", "critical", ("config_apply_failed",)),
     "node_drift": ("Node lokal geändert", "warn", ("node_drift_detected",)),
     "ip_banned": ("IP automatisch gesperrt", "warn", ("ip_banned",)),
@@ -137,6 +139,10 @@ def describe(e: AuditEntry) -> str:
         return f"{e.target}: kein Kontakt seit {d.get('since', '?')}"
     if a == "node_online":
         return f"{e.target} meldet sich wieder"
+    if a == "host_down":
+        return f"{e.target}: Ziel antwortet nicht ({d.get('error') or 'keine Verbindung'})"
+    if a == "host_up":
+        return f"{e.target} ist wieder erreichbar"
     if a == "config_apply_failed":
         return f"{e.target}: {d.get('error', 'Fehler')}"
     if a == "node_drift_detected":

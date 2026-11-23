@@ -20,6 +20,7 @@ from tesseract.api import (
     ldap,
     logs,
     metrics,
+    monitor,
     nodes,
     notify,
     people,
@@ -54,5 +55,7 @@ api_router.include_router(logs.router)
 api_router.include_router(stats.router)
 api_router.include_router(summary.router)
 api_router.include_router(metrics.router)
+api_router.include_router(monitor.router)
+api_router.include_router(monitor.public)
 api_router.include_router(notify.router)
 api_router.include_router(backups.router)

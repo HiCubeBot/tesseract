@@ -113,6 +113,11 @@ export interface Host {
   internal: boolean;
   /** mTLS: aus den internen Netzen auch ohne Zertifikat */
   internal_no_cert: boolean;
+  /** Uptime-Monitor: Ziel regelmäßig prüfen */
+  monitor: boolean;
+  /** auf der öffentlichen Statusseite zeigen, mit Anzeigename */
+  status_public: boolean;
+  status_name: string;
   custom_cert_id: number | null;
   wildcard_cert: string | null;
   areas: (AreaInput & { id: number })[];
@@ -543,6 +548,9 @@ export const FIELD_LABELS: Record<string, string> = {
   tls_challenge: 'Zertifikats-Prüfung',
   internal: 'Nur intern',
   internal_no_cert: 'Intern ohne Zertifikat',
+  monitor: 'Überwachung',
+  status_public: 'Statusseite',
+  status_name: 'Name auf der Statusseite',
   custom_cert: 'Eigenes Zertifikat',
   areas: 'Bereiche',
   enabled: 'Aktiv',

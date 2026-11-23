@@ -204,6 +204,10 @@ class Host(Base):
     internal: Mapped[bool] = mapped_column(default=False)
     # Zertifikatspflicht (mTLS) gilt nicht für Anfragen aus den internen Netzen
     internal_no_cert: Mapped[bool] = mapped_column(default=False, server_default="0")
+    # Uptime-Monitor: Ziel regelmäßig prüfen; auf der öffentlichen Statusseite zeigen (mit Name)
+    monitor: Mapped[bool] = mapped_column(default=True, server_default="1")
+    status_public: Mapped[bool] = mapped_column(default=False, server_default="0")
+    status_name: Mapped[str] = mapped_column(String(64), default="", server_default="")
     # Eigenes Zertifikat statt automatisch (Let's Encrypt/Caddy-CA)
     custom_cert_id: Mapped[int | None] = mapped_column(
         ForeignKey("custom_certs.id", ondelete="SET NULL")
@@ -646,3 +650,44 @@ class VisitorIp(Base):
     ip: Mapped[str] = mapped_column(String(64), primary_key=True)
     first_day: Mapped[str] = mapped_column(String(10))
     last_day: Mapped[str] = mapped_column(String(10))
+
+
+class MonitorState(Base):
+    """Aktueller Stand des Uptime-Monitors je Node bzw. Host."""
+
+    __tablename__ = "monitor_state"
+
+    kind: Mapped[str] = mapped_column(String(8), primary_key=True)  # node | host
+    ref: Mapped[str] = mapped_column(String(253), primary_key=True)  # Name bzw. Domain
+    status: Mapped[str] = mapped_column(String(8), default="unknown")  # up | down | unknown
+    since: Mapped[datetime] = mapped_column(default=utcnow)
+    checked_at: Mapped[datetime | None]
+    ms: Mapped[float | None]
+    error: Mapped[str | None] = mapped_column(String(255))
+
+
+class UptimeDaily(Base):
+    """Prüfungen je Tag (UTC): Anzahl, davon erreichbar, Ausfallzeit in Sekunden."""
+
+    __tablename__ = "uptime_daily"
+
+    day: Mapped[str] = mapped_column(String(10), primary_key=True)
+    kind: Mapped[str] = mapped_column(String(8), primary_key=True)
+    ref: Mapped[str] = mapped_column(String(253), primary_key=True)
+    checks: Mapped[int] = mapped_column(default=0)
+    up: Mapped[int] = mapped_column(default=0)
+    down_seconds: Mapped[int] = mapped_column(default=0)
+    outages: Mapped[int] = mapped_column(default=0)
+
+
+class Incident(Base):
+    """Ein Ausfall: von – bis (offen, solange er andauert)."""
+
+    __tablename__ = "incidents"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    kind: Mapped[str] = mapped_column(String(8), index=True)
+    ref: Mapped[str] = mapped_column(String(253), index=True)
+    started_at: Mapped[datetime] = mapped_column(index=True)
+    ended_at: Mapped[datetime | None]
+    error: Mapped[str | None] = mapped_column(String(255))

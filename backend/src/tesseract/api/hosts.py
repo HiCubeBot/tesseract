@@ -159,6 +159,10 @@ class HostIn(BaseModel):
     internal: bool = False
     # mTLS: aus den internen Netzen auch ohne Zertifikat
     internal_no_cert: bool = False
+    # Uptime-Monitor und öffentliche Statusseite
+    monitor: bool = True
+    status_public: bool = False
+    status_name: str = Field("", max_length=64)
     custom_cert_id: int | None = None
     areas: list[AreaIn] = Field(default_factory=list, max_length=20)
     enabled: bool = True
@@ -270,6 +274,9 @@ class HostOut(BaseModel):
     tls_challenge: str
     internal: bool
     internal_no_cert: bool = False
+    monitor: bool = True
+    status_public: bool = False
+    status_name: str = ""
     custom_cert_id: int | None
     # Geteiltes Wildcard-Zertifikat, das diesen Host abdeckt (sonst None)
     wildcard_cert: str | None

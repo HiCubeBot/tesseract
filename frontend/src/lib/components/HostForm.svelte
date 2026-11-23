@@ -217,6 +217,25 @@
     </fieldset>
   {/if}
 
+  <fieldset class="dns">
+    <legend>Überwachung</legend>
+    <label class="check">
+      <input type="checkbox" bind:checked={value.monitor} />
+      <span>Erreichbarkeit überwachen <span class="muted">– prüft jede Minute, ob das Ziel vom Node aus antwortet</span></span>
+    </label>
+    <label class="check">
+      <input type="checkbox" bind:checked={value.status_public} />
+      <span>Auf der öffentlichen Statusseite zeigen <span class="muted">– nur Name und Erreichbarkeit, ohne Domain</span></span>
+    </label>
+    {#if value.status_public}
+      <label class="field">
+        Name auf der Statusseite
+        <input class="input" bind:value={value.status_name} maxlength="64" placeholder={value.domain.split('.')[0] || 'z. B. Cloud'} />
+        <span class="muted small">leer = Domain</span>
+      </label>
+    {/if}
+  </fieldset>
+
   <div class="options">
     <label class="check"><input type="checkbox" bind:checked={value.websockets} />WebSockets erlauben</label>
     <label class="check"><input type="checkbox" bind:checked={value.force_https} />HTTP → HTTPS umleiten</label>

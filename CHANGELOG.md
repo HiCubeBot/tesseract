@@ -4,6 +4,24 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.17.0] – 2026-11-23
+
+### Hinzugefügt
+- **Uptime-Monitor:** Tesseract prüft jede Minute, ob die Nodes verbunden sind und die Ziele der
+  Hosts antworten – beim lokalen Node der Controller selbst, bei Agent-Nodes der Agent (vom
+  Node aus, also auch für interne Ziele). Ein Ausfall zählt ab dem zweiten Fehlschlag in Folge;
+  Beginn und Ende landen als Vorfall und im Audit-Log, neue Benachrichtigungen „Dienst nicht
+  erreichbar“ / „wieder erreichbar“. Je Host abschaltbar (Allgemein › Überwachung)
+- **Statistik › Betrieb:** Anfragen, Daten und Abgelehnte seit Beginn der Aufzeichnung,
+  Erreichbarkeit der Nodes und Hosts der letzten 30 Tage als Tagesbalken (ohne Ausfall / unter
+  30 Min. / ab 30 Min.), Zertifikate (Erneuerungen, nächste Abläufe), Rekorde (stärkster Tag,
+  stärkste Stunde, meiste Daten, größte Abweisungs-Welle, schnellster und langsamster Host) und
+  die letzten Ausfälle (`GET /api/monitor`, `GET /api/stats/operations`)
+- **Öffentliche Statusseite** unter `https://<TESSERACT_DOMAIN>/status`: je Host wählbar („Auf der
+  öffentlichen Statusseite zeigen“, mit eigenem Namen), zeigt nur Name, aktuellen Stand und die
+  Erreichbarkeit der letzten 90 Tage – keine Domains oder Adressen. Ohne Anmeldung erreichbar,
+  auch bei `TESSERACT_ADMIN_NETWORKS` (`GET /api/status`); Migration 0026
+
 ## [1.16.0] – 2026-11-23
 
 ### Hinzugefügt

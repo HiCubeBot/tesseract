@@ -53,6 +53,7 @@ import StatsSecurityPage from "./pages/StatsSecurity.svelte";
 import StatsTrafficPage from "./pages/StatsTraffic.svelte";
 import StatsUsagePage from "./pages/StatsUsage.svelte";
 import StatsMapPage from "./pages/StatsMap.svelte";
+import StatsOpsPage from "./pages/StatsOps.svelte";
 import SettingsMetricsPage from "./pages/SettingsMetrics.svelte";
 import SettingsNotifyPage from "./pages/SettingsNotify.svelte";
 import SettingsBackupPage from "./pages/SettingsBackup.svelte";
@@ -81,6 +82,7 @@ export const pages: Page[] = [
   { pattern: "stats-traffic", title: "Statistik · Traffic & Leistung", component: StatsTrafficPage },
   { pattern: "stats-usage", title: "Statistik · Nutzung", component: StatsUsagePage },
   { pattern: "stats-map", title: "Statistik · Karte", component: StatsMapPage },
+  { pattern: "stats-ops", title: "Statistik · Betrieb", component: StatsOpsPage },
   { pattern: "settings-metrics", title: "Einstellungen · Metriken", component: SettingsMetricsPage },
   { pattern: "settings-notify", title: "Einstellungen · Benachrichtigungen", component: SettingsNotifyPage },
   { pattern: "settings-backup", title: "Einstellungen · Backup", component: SettingsBackupPage },
