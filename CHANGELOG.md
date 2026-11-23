@@ -4,6 +4,16 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.18.0] – 2026-11-23
+
+### Geändert
+- **Übersicht überarbeitet:** Kennzahlen mit Verlauf – Anfragen und Abgelehnte der letzten
+  24 Stunden (mit Vergleich zum Vortag), aktive Hosts (mit nicht erreichbaren aus dem
+  Uptime-Monitor), Nodes online, freigegebene Geräte, bald ablaufende Zertifikate; jede Kachel
+  führt zur passenden Seite. Verkehr der letzten 24 Stunden als Diagramm, „Dienste“ mit Zustand
+  und Anfragen je Host, Hinweis bei Ausfällen, „Alles läuft“, wenn nichts zu tun ist. Lädt jede
+  Minute neu; „Config erneut übertragen“ nur noch bei Nodes, die es brauchen
+
 ## [1.17.0] – 2026-11-23
 
 ### Hinzugefügt

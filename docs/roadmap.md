@@ -25,13 +25,13 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 | 1.10 | Nodes über DNS | Node-Schnittstelle wahlweise von den Admin-Netzen ausgenommen, DNS-Eintrag für die Tesseract-Domain – **fertig** |
 | 1.11 | Herkunftskarte | Karte zeigt alle Anfragen, Filter Abgelehnt / Angenommen – **fertig** |
 | 1.12 | Intern ohne Zertifikat | mTLS-Hosts wahlweise aus den internen Netzen ohne Zertifikat – **fertig** |
-| – | [Geplant](#geplant) | Oberfläche, Statistik, Status Page (Versionen 1.13–1.18) |
+| 1.13–1.18 | [Oberfläche, Statistik, Status Page](#oberfläche-statistik-status-page-fertig) | Kein-Zugang-Seite, Seitenleiste, Nodes, Host-Statistik, Statistik mit Karte, Uptime-Monitor, Übersicht – **fertig** |
 | – | [Offen / bekannte Grenzen](#offen--bekannte-grenzen) | Einschränkungen des aktuellen Stands |
 | – | [Backlog](#backlog-niedrige-priorität) | Niedrige Priorität, ohne festen Zeitpunkt |
 
 ---
 
-## Geplant
+## Oberfläche, Statistik, Status Page (fertig)
 
 - [x] Kein-Zugang-Seite überarbeitet: Grund als Kennzeichen, Hinweis zur Einladung, Dienst,
   IP, Zeit, Verarbeitungszeit und Anfrage-ID (1.13)
@@ -47,7 +47,7 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
   Fehlern, Netzbetreiber (ASN), Städte; eigener Tab mit zoombarer Karte (1.16)
 - [x] Status Page: Erreichbarkeit der Dienste prüfen (Uptime Monitor), öffentliche Statusseite;
   Statistik › Betrieb mit Erreichbarkeit der Nodes und Hosts, Zertifikaten und Rekorden (1.17)
-- [ ] Übersicht überarbeitet (1.18)
+- [x] Übersicht überarbeitet (1.18)
 
 ## Version 1.12 – Intern ohne Zertifikat (fertig)
 

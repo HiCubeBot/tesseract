@@ -40,7 +40,7 @@ Edit `.env` – at least:
 TESSERACT_DOMAIN=tesseract.example.com
 TESSERACT_ADMIN_PASSWORD=a-long-password      # at least 12 characters
 TESSERACT_ACME_EMAIL=admin@example.com
-TESSERACT_VERSION=1.12.0                       # pin a version instead of "latest"
+TESSERACT_VERSION=1.18.0                       # pin a version instead of "latest"
 ```
 
 Start it (images come from the GitHub Container Registry):

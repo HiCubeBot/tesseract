@@ -627,6 +627,8 @@ export const ACTION_LABELS: Record<string, string> = {
   node_drift_overwritten: 'Abweichung überschrieben',
   node_drift_accepted: 'Abweichung übernommen',
   node_offline: 'Node offline',
+  host_down: 'Dienst nicht erreichbar',
+  host_up: 'Dienst wieder erreichbar',
   node_online: 'Node wieder online',
   backup_created: 'Sicherung erstellt',
   backup_failed: 'Sicherung fehlgeschlagen',
