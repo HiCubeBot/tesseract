@@ -229,7 +229,7 @@
             {#each d.countries as c (c.country)}
               <li>
                 <div class="bar-top">
-                  <span>{countryName(c.country)}</span>
+                  <a class="plain-link" href={`#/stats-map?country=${c.country}`}>{countryName(c.country)}</a>
                   <span class="val">
                     {#if c.denied}<span class="warn-text">{fmt(c.denied)} abgelehnt</span>{/if}
                     {fmt(c.count)}
@@ -364,6 +364,13 @@
     white-space: nowrap;
     color: var(--text);
     text-decoration: none;
+  }
+  .plain-link {
+    color: var(--text);
+    text-decoration: none;
+  }
+  .plain-link:hover {
+    text-decoration: underline;
   }
   .path:hover {
     text-decoration: underline;

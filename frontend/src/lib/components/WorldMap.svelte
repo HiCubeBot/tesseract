@@ -76,7 +76,15 @@
   {#if path}
     <svg width={W} height={H} viewBox="0 0 {W} {H}" role="img" aria-label={label}>
       {#each countries as c (c.id ?? c.properties.name)}
-        <path d={path(c) ?? ''} class="land" class:active={active.has(c.code)} />
+        <!-- Klick öffnet Statistik › Karte mit diesem Land; per Tastatur über die Liste daneben -->
+        <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+        <path
+          d={path(c) ?? ''}
+          class="land"
+          class:active={active.has(c.code)}
+          class:clickable={!!c.code}
+          onclick={() => c.code && (location.hash = `#/stats-map?country=${c.code}`)}
+        />
       {/each}
       {#each bubbles as b (b.country)}
         <circle
@@ -125,6 +133,12 @@
     fill: var(--surface-active);
     stroke: var(--surface);
     stroke-width: 0.5;
+  }
+  .land.clickable {
+    cursor: pointer;
+  }
+  .land.clickable:hover {
+    fill: color-mix(in srgb, var(--accent) 26%, var(--surface-raised));
   }
   .land.active {
     fill: var(--border-dashed);

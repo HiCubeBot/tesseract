@@ -26,9 +26,13 @@
     color?: string;
     /** Wort für den Tooltip, z. B. „Anfragen“ */
     unit?: string;
+    /** ausgewähltes Land (ISO-Code) – wird hervorgehoben und herangezoomt */
+    selected?: string | null;
+    /** Klick auf ein Land (bzw. ins Meer: null) */
+    onSelect?: (code: string | null) => void;
   }
 
-  let { points, label, color = '#8B7CF6', unit = 'Anfragen' }: Props = $props();
+  let { points, label, color = '#8B7CF6', unit = 'Anfragen', selected = null, onSelect }: Props = $props();
 
   type Country = Feature<Geometry, { name: string }> & { code: string };
   let countries = $state<Country[]>([]);
@@ -97,12 +101,17 @@
   // Ziehen und Pinch-Zoom mit Pointer-Events
   const pointers = new Map<number, [number, number]>();
   let pinchDist = 0;
+  // Klick statt Ziehen: kaum bewegt zwischen Drücken und Loslassen
+  let downAt: [number, number] | null = null;
+  let moved = 0;
   let grabbing = $state(false);
 
   function onDown(e: PointerEvent) {
     (e.currentTarget as Element).setPointerCapture(e.pointerId);
     pointers.set(e.pointerId, svgPoint(e, e.currentTarget as Element));
     grabbing = true;
+    downAt = pointers.size === 1 ? [e.clientX, e.clientY] : null;
+    moved = 0;
     if (pointers.size === 2) {
       const [a, b] = [...pointers.values()];
       pinchDist = Math.hypot(a[0] - b[0], a[1] - b[1]);
@@ -117,6 +126,7 @@
     if (pointers.size === 1) {
       const dx = p[0] - prev[0];
       const dy = p[1] - prev[1];
+      moved += Math.abs(dx) + Math.abs(dy);
       tx += dx;
       ty += dy;
       clampView();
@@ -129,7 +139,15 @@
   }
 
   function onUp(e: PointerEvent) {
+    const wasClick = downAt !== null && pointers.size === 1 && moved < 4 && e.type === 'pointerup';
     pointers.delete(e.pointerId);
+    downAt = null;
+    if (wasClick && onSelect) {
+      // Wegen Pointer-Capture kommt der Klick am SVG an – Land unter dem Zeiger suchen
+      const el = document.elementsFromPoint(e.clientX, e.clientY).find((x) => x instanceof SVGPathElement && x.dataset.code);
+      const code = (el as SVGPathElement | undefined)?.dataset.code ?? null;
+      onSelect(code && code === selected ? null : code);
+    }
     if (pointers.size < 2) pinchDist = 0;
     if (pointers.size === 0) grabbing = false;
   }
@@ -139,6 +157,33 @@
     tx = 0;
     ty = 0;
   }
+
+  /** An ein Land heranzoomen (größtes Teilstück, damit Frankreich nicht in der Karibik endet) */
+  function zoomTo(code: string) {
+    const f = byCode.get(code);
+    if (!f || !path) return;
+    let g: Geometry = f.geometry;
+    if (g.type === 'MultiPolygon') {
+      const parts = (g as MultiPolygon).coordinates.map((c) => ({ type: 'Polygon', coordinates: c }) as Polygon);
+      g = parts.reduce((a, b) => (geoArea(b) > geoArea(a) ? b : a));
+    }
+    const [[x0, y0], [x1, y1]] = path.bounds(g as never);
+    const nk = Math.max(1, Math.min(MAX_K, 0.7 / Math.max((x1 - x0) / W, (y1 - y0) / H, 0.001)));
+    k = nk;
+    tx = W / 2 - nk * ((x0 + x1) / 2);
+    ty = H / 2 - nk * ((y0 + y1) / 2);
+    clampView();
+  }
+
+  // Auswahl von außen (Klick auf der Karte oder in der Liste): heranzoomen
+  let zoomedFor: string | null = null;
+  $effect(() => {
+    const code = selected;
+    if (!path || code === zoomedFor) return;
+    zoomedFor = code;
+    if (code) zoomTo(code);
+    else reset();
+  });
 
   /** Mittelpunkt des größten Teilstücks eines Landes */
   function anchor(f: Country): [number, number] | null {
@@ -214,7 +259,15 @@
       >
         <g transform="translate({tx} {ty}) scale({k})">
           {#each countries as c (c.id ?? c.properties.name)}
-            <path d={path(c) ?? ''} class="land" class:active={active.has(c.code)} style:stroke-width={0.6 / k} />
+            <path
+              d={path(c) ?? ''}
+              data-code={c.code || undefined}
+              class="land"
+              class:active={active.has(c.code)}
+              class:selected={selected === c.code}
+              class:clickable={!!onSelect && !!c.code}
+              style:stroke-width={(selected === c.code ? 1.6 : 0.6) / k}
+            />
           {/each}
         </g>
         {#each clusters as c (c.lead.key)}
@@ -256,7 +309,9 @@
   {:else}
     <div class="loading" style:height="{H}px">Karte wird geladen …</div>
   {/if}
-  <figcaption class="muted">Kreisfläche = Anzahl · Mausrad, Doppelklick oder +/− zum Zoomen, Ziehen zum Verschieben</figcaption>
+  <figcaption class="muted">
+    Kreisfläche = Anzahl · Mausrad, Doppelklick oder +/− zum Zoomen, Ziehen zum Verschieben{onSelect ? ' · Land anklicken für Details' : ''}
+  </figcaption>
 </figure>
 
 <style>
@@ -290,6 +345,16 @@
   }
   .land.active {
     fill: color-mix(in srgb, var(--accent) 16%, var(--surface-raised));
+  }
+  .land.clickable {
+    cursor: pointer;
+  }
+  .land.clickable:hover {
+    fill: color-mix(in srgb, var(--accent) 26%, var(--surface-raised));
+  }
+  .land.selected {
+    fill: color-mix(in srgb, var(--accent) 34%, var(--surface-raised));
+    stroke: var(--accent);
   }
   .bubble {
     fill-opacity: 0.55;

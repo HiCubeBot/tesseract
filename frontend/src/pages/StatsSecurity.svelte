@@ -234,7 +234,7 @@
           />
           <BarList
             color={WHICH_COLORS[which]}
-            items={items.slice(0, 8).map((c) => ({ label: countryName(c.country), value: c.count }))}
+            items={items.slice(0, 8).map((c) => ({ label: countryName(c.country), value: c.count, href: `#/stats-map?country=${c.country}` }))}
             empty={`Keine ${which === 1 ? 'abgelehnten' : which === 2 ? 'angenommenen' : ''} Anfragen mit bekanntem Land im Zeitraum. Private und lokale Adressen (z. B. 127.0.0.1, 192.168.…) haben kein Land.`}
           />
         </div>

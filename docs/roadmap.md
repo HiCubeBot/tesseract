@@ -25,6 +25,7 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 | 1.10 | Nodes über DNS | Node-Schnittstelle wahlweise von den Admin-Netzen ausgenommen, DNS-Eintrag für die Tesseract-Domain – **fertig** |
 | 1.11 | Herkunftskarte | Karte zeigt alle Anfragen, Filter Abgelehnt / Angenommen – **fertig** |
 | 1.12 | Intern ohne Zertifikat | mTLS-Hosts wahlweise aus den internen Netzen ohne Zertifikat – **fertig** |
+| 1.19 | Länder anklickbar | Karte: Land anklicken für Details, Städte und Netzbetreiber – **fertig** |
 | 1.13–1.18 | [Oberfläche, Statistik, Status Page](#oberfläche-statistik-status-page-fertig) | Kein-Zugang-Seite, Seitenleiste, Nodes, Host-Statistik, Statistik mit Karte, Uptime-Monitor, Übersicht – **fertig** |
 | – | [Offen / bekannte Grenzen](#offen--bekannte-grenzen) | Einschränkungen des aktuellen Stands |
 | – | [Backlog](#backlog-niedrige-priorität) | Niedrige Priorität, ohne festen Zeitpunkt |

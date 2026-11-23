@@ -4,6 +4,16 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.19.0] – 2026-11-23
+
+### Hinzugefügt
+- **Länder auf der Karte anklickbar:** Ein Klick auf ein Land (oder in der Länderliste) zoomt
+  heran, hebt es hervor und zeigt daneben Anfragen, Abgelehnte, die häufigsten Ziele und einen
+  Link zu den Log-Einträgen; Städte und Netzbetreiber dann nur für dieses Land. Erneuter Klick
+  oder „×“ hebt die Auswahl auf. Die kleine Karte unter Sicherheit sowie die Länderlisten unter
+  Sicherheit und in der Host-Statistik öffnen die Karte direkt mit dem Land
+  (`#/stats-map?country=DE`, `GET /api/stats/geo?country=DE`)
+
 ## [1.18.0] – 2026-11-23
 
 ### Geändert

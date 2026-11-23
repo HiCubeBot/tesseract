@@ -18,6 +18,7 @@
     cities_db: boolean;
     asn_db: boolean;
     geoip_attribution: string | null;
+    selected: { country: string; requests: number; denied: number; hosts: { host: string; count: number }[] } | null;
   }
 
   const RANGES = ['24h', '7d', '30d'] as const;
@@ -30,15 +31,50 @@
   let node = $state('');
   let nodes = $state<NodeInfo[]>([]);
   let data = $state<Geo | null>(null);
+  // Ausgewähltes Land: Städte, Netzbetreiber und Zusammenfassung nur dieses Landes.
+  // Vorauswahl per Link, z. B. #/stats-map?country=DE
+  let country = $state<string | null>(
+    new URLSearchParams(location.hash.split('?')[1] ?? '').get('country')?.toUpperCase().slice(0, 2) || null
+  );
+  let detail = $state<Geo | null>(null);
   let error = $state('');
   let loading = $state(false);
 
+  const query = () => `range=${RANGES[range]}&which=${WHICH[which]}&node=${encodeURIComponent(node)}`;
+
+  async function loadDetail() {
+    const c = country;
+    if (!c) {
+      detail = null;
+      return;
+    }
+    try {
+      const d = await api.get<Geo>(`/stats/geo?${query()}&country=${c}`);
+      if (country === c) detail = d;
+    } catch {
+      detail = null;
+    }
+  }
+
+  function select(code: string | null) {
+    country = code;
+    detail = null;
+    if (code && tab === 0) tab = 1;
+    if (!code) tab = 0;
+    loadDetail();
+  }
+
+  // Link auf ein Land, während die Seite schon offen ist (gleiche Route, andere Abfrage)
+  function onHash() {
+    const c = new URLSearchParams(location.hash.split('?')[1] ?? '').get('country')?.toUpperCase().slice(0, 2) || null;
+    if (location.hash.startsWith('#/stats-map') && c !== country) select(c);
+  }
+
   async function load() {
     loading = true;
+    loadDetail();
     try {
-      data = await api.get<Geo>(
-        `/stats/geo?range=${RANGES[range]}&which=${WHICH[which]}&node=${encodeURIComponent(node)}`
-      );
+      data = await api.get<Geo>(`/stats/geo?${query()}`);
       error = '';
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
@@ -74,17 +110,26 @@
   });
 
   const TABS = ['Länder', 'Städte', 'Netzbetreiber'];
-  const list = $derived.by((): { key: string; label: string; note?: string; count: number }[] => {
+  const list = $derived.by((): { key: string; label: string; note?: string; count: number; code?: string }[] => {
     if (!data) return [];
-    if (tab === 0) return data.countries.slice(0, 40).map((c) => ({ key: c.country, label: countryName(c.country), count: c.count }));
+    if (tab === 0)
+      return data.countries.slice(0, 40).map((c) => ({ key: c.country, label: countryName(c.country), count: c.count, code: c.country }));
+    // Städte und Netzbetreiber: beim ausgewählten Land nur dessen
+    const src = country ? detail : data;
+    if (!src) return [];
     if (tab === 1)
-      return data.cities.slice(0, 40).map((c) => ({ key: `${c.country}|${c.city}|${c.lat}`, label: c.city, note: countryName(c.country), count: c.count }));
-    return data.asns.slice(0, 40).map((a) => ({ key: String(a.asn), label: a.org || `AS${a.asn}`, note: `AS${a.asn}`, count: a.count }));
+      return src.cities
+        .slice(0, 40)
+        .map((c) => ({ key: `${c.country}|${c.city}|${c.lat}`, label: c.city, note: country ? undefined : countryName(c.country), count: c.count }));
+    return src.asns.slice(0, 40).map((a) => ({ key: String(a.asn), label: a.org || `AS${a.asn}`, note: `AS${a.asn}`, count: a.count }));
   });
+  const sel = $derived(detail?.selected ?? null);
   const listMax = $derived(Math.max(1, ...list.map((i) => i.count)));
   const total = $derived((data?.countries ?? []).reduce((s, c) => s + c.count, 0));
   const unit = $derived(['Anfragen', 'abgelehnt', 'angenommen'][which]);
 </script>
+
+<svelte:window onhashchange={onHash} />
 
 <AppShell active="stats">
   <PageHeader title="Statistik" subtitle="Woher die Anfragen kommen – nach Land, Stadt und Netzbetreiber." />
@@ -116,7 +161,14 @@
   {#if data}
     <div class="layout">
       <section class="card map-card" aria-label="Karte">
-        <ZoomMap {points} color={WHICH_COLORS[which]} {unit} label={`Weltkarte: ${WHICH_LABELS[which].toLowerCase()} Anfragen nach Herkunft`} />
+        <ZoomMap
+          {points}
+          color={WHICH_COLORS[which]}
+          {unit}
+          selected={country}
+          onSelect={select}
+          label={`Weltkarte: ${WHICH_LABELS[which].toLowerCase()} Anfragen nach Herkunft`}
+        />
         <p class="muted tiny">
           {fmt(total)} {unit} mit bekannter Herkunft{#if data.unknown} · {fmt(data.unknown)} ohne (private oder lokale Adressen){/if}
           {#if data.geoip && !data.cities_db} · Städte mit <span class="mono">TESSERACT_GEOIP_AUTO=dbip-city</span>{/if}
@@ -125,23 +177,63 @@
       </section>
 
       <section class="card side" aria-label="Rangliste">
+        {#if country}
+          <div class="detail">
+            <div class="detail-head">
+              <h2>{countryName(country)}</h2>
+              <button type="button" class="clear" onclick={() => select(null)} aria-label="Auswahl aufheben" title="Alle Länder">×</button>
+            </div>
+            {#if sel}
+              <dl>
+                <div><dt>Anfragen</dt><dd>{fmt(sel.requests)}</dd></div>
+                <div>
+                  <dt>Abgelehnt</dt>
+                  <dd class:warn={sel.denied > 0}>{fmt(sel.denied)}{sel.requests ? ` (${Math.round((100 * sel.denied) / sel.requests)} %)` : ''}</dd>
+                </div>
+              </dl>
+              {#if sel.hosts.length}
+                <span class="eyebrow">Häufigste Ziele</span>
+                <ul class="hosts">
+                  {#each sel.hosts as h (h.host)}
+                    <li><span class="mono ellipsis">{h.host === '-' ? 'ohne Host' : h.host}</span><span class="val">{fmt(h.count)}</span></li>
+                  {/each}
+                </ul>
+              {/if}
+              <a class="small" href={`#/logs?q=${encodeURIComponent(`country:${country}`)}${which === 1 ? '&filter=denied' : ''}`}>Einträge in den Logs</a>
+            {:else}
+              <p class="muted small">Lädt …</p>
+            {/if}
+          </div>
+        {/if}
         <SegmentedControl groupLabel="Liste" options={TABS} bind:selected={tab} />
         {#if list.length}
           <ul class="bars">
             {#each list as i (i.key)}
               <li>
-                <div class="bar-top">
-                  <span class="ellipsis">{i.label}{#if i.note} <span class="muted note">{i.note}</span>{/if}</span>
-                  <span class="val">{fmt(i.count)}</span>
-                </div>
-                <div class="track"><div class="fill" style:width="{(i.count / listMax) * 100}%" style:background={WHICH_COLORS[which]}></div></div>
+                {#if i.code}
+                  {@const code = i.code}
+                  <button type="button" class="pick" class:on={country === code} onclick={() => select(country === code ? null : code)}>
+                    <span class="bar-top">
+                      <span class="ellipsis">{i.label}</span>
+                      <span class="val">{fmt(i.count)}</span>
+                    </span>
+                    <span class="track"><span class="fill" style:width="{(i.count / listMax) * 100}%" style:background={WHICH_COLORS[which]}></span></span>
+                  </button>
+                {:else}
+                  <div class="bar-top">
+                    <span class="ellipsis">{i.label}{#if i.note} <span class="muted note">{i.note}</span>{/if}</span>
+                    <span class="val">{fmt(i.count)}</span>
+                  </div>
+                  <div class="track"><div class="fill" style:width="{(i.count / listMax) * 100}%" style:background={WHICH_COLORS[which]}></div></div>
+                {/if}
               </li>
             {/each}
           </ul>
         {:else}
           <p class="muted small">
-            {#if tab === 1 && !data.cities_db}Städte gibt es nur mit einer Stadt-Datenbank (<span class="mono">TESSERACT_GEOIP_AUTO=dbip-city</span>).
-            {:else if tab === 2 && !data.asn_db}Netzbetreiber gibt es nur mit einer ASN-Datenbank (<span class="mono">TESSERACT_GEOIP_AUTO=dbip+asn</span>).
+            {#if tab === 1 && !data.cities_db && !data.cities.length}Städte gibt es nur mit einer Stadt-Datenbank (<span class="mono">TESSERACT_GEOIP_AUTO=dbip-city</span>).
+            {:else if tab === 2 && !data.asn_db && !data.asns.length}Netzbetreiber gibt es nur mit einer ASN-Datenbank (<span class="mono">TESSERACT_GEOIP_AUTO=dbip+asn</span>).
+            {:else if country && tab > 0}Keine {tab === 1 ? 'Städte' : 'Netzbetreiber'} für {countryName(country)} im Zeitraum.
             {:else}Keine Anfragen mit bekannter Herkunft im Zeitraum.{/if}
           </p>
         {/if}
@@ -151,6 +243,100 @@
 </AppShell>
 
 <style>
+  .detail {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .detail-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .detail h2 {
+    margin: 0;
+    font-size: 18px;
+  }
+  .clear {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-input);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .clear:hover {
+    color: var(--text);
+  }
+  .detail dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .detail dt {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .detail dd {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .detail dd.warn {
+    color: var(--warn-text);
+  }
+  .eyebrow {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .hosts {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+  }
+  .hosts li {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .pick {
+    display: block;
+    width: calc(100% + 12px);
+    padding: 4px 6px;
+    margin: -4px -6px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .pick .bar-top {
+    display: flex;
+  }
+  .pick .track,
+  .pick .fill {
+    display: block;
+  }
+  .pick:hover {
+    background: var(--surface-hover);
+  }
+  .pick.on {
+    background: var(--surface-raised);
+  }
   .node-select {
     display: flex;
     align-items: center;

@@ -461,9 +461,16 @@ def records(db: Session) -> dict[str, Any]:
 # ---------- Herkunft (Karte) ----------
 
 
-def geo(store, range_: str, node: str | None, which: str = "all") -> dict[str, Any]:
+def geo(
+    store, range_: str, node: str | None, which: str = "all", country: str | None = None
+) -> dict[str, Any]:
+    """Herkunft für die Karte. Mit `country`: Städte und Netzbetreiber nur dieses Landes und
+    eine Zusammenfassung (Anfragen, abgelehnt, häufigste Hosts)."""
     start, end, _, _ = _window(range_)
+    chosen = country
     sel = _base(node)
+    if chosen:
+        sel = _with(sel, Cond("country", "eq", chosen))
     if which == "denied":
         sel = _with(sel, denied())
     elif which == "allowed":
@@ -485,6 +492,22 @@ def geo(store, range_: str, node: str | None, which: str = "all") -> dict[str, A
     for (asn, org), _, n in store.count(sel, start, end, ["asn", "as_org"]):
         if asn not in (None, "", "0"):
             asns[(int(float(asn)), org or "")] += int(n)
+    selected = None
+    if chosen:
+        base = _base(node)
+        base.add("country", "eq", chosen)
+        hosts: Counter[str] = Counter()
+        denied_n = 0
+        for (h, reason), _, n in store.count(base, start, end, ["host", "reason"]):
+            hosts[h or "-"] += int(n)
+            if reason != "ok":
+                denied_n += int(n)
+        selected = {
+            "country": chosen,
+            "requests": sum(hosts.values()),
+            "denied": denied_n,
+            "hosts": [{"host": h, "count": n} for h, n in hosts.most_common(5)],
+        }
     return {
         "since": start,
         "which": which,
@@ -495,4 +518,5 @@ def geo(store, range_: str, node: str | None, which: str = "all") -> dict[str, A
         ],
         "asns": [{"asn": a, "org": o, "count": n} for (a, o), n in asns.most_common(50)],
         "unknown": unknown,
+        "selected": selected,
     }

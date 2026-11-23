@@ -201,3 +201,45 @@ def test_geoip_auto_values(tmp_path) -> None:
     assert geoip.kinds(s) == ["city", "asn"]
     assert geoip.path(s).name == "dbip-city-lite.mmdb"
     assert geoip.path(Settings(data_dir=tmp_path, geoip_auto="dbip")).name == geoip.FILE
+
+
+def test_geo_country_filter(auth_client: TestClient) -> None:
+    _add(
+        auth_client,
+        [
+            {
+                "country": "DE",
+                "city": "Berlin",
+                "lat": 52.52,
+                "lon": 13.4,
+                "asn": 3320,
+                "as_org": "DTAG",
+                "host": "a.example.org",
+            },
+            {
+                "country": "DE",
+                "city": "Berlin",
+                "lat": 52.52,
+                "lon": 13.4,
+                "status": 403,
+                "reason": "mtls",
+                "host": "b.example.org",
+            },
+            {
+                "country": "US",
+                "city": "Ashburn",
+                "lat": 39.04,
+                "lon": -77.49,
+                "asn": 16509,
+                "as_org": "Amazon",
+            },
+        ],
+    )
+    d = auth_client.get("/api/stats/geo", params={"country": "de"}).json()
+    assert [c["city"] for c in d["cities"]] == ["Berlin"]
+    assert [a["asn"] for a in d["asns"]] == [3320]
+    sel = d["selected"]
+    assert sel["country"] == "DE" and sel["requests"] == 2 and sel["denied"] == 1
+    assert {h["host"] for h in sel["hosts"]} == {"a.example.org", "b.example.org"}
+    assert auth_client.get("/api/stats/geo").json()["selected"] is None
+    assert auth_client.get("/api/stats/geo", params={"country": "DEU"}).status_code == 422

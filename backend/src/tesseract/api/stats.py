@@ -1,8 +1,8 @@
 """Statistik (Phase 5): Sicherheit, Traffic & Leistung, Nutzung."""
 
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 
 from tesseract import stats, stats_external, statsview
 from tesseract.deps import DB, CurrentActor
@@ -91,11 +91,20 @@ def geo(
     range: Range = "24h",
     node: str = "",
     which: Literal["all", "denied", "allowed"] = "all",
+    country: Annotated[str, Query(pattern=r"^([A-Za-z]{2})?$")] = "",
 ) -> dict[str, Any]:
-    """Herkunft für die Karte: Länder, Städte (mit Stadt-Datenbank), Netzbetreiber (mit ASN)."""
+    """Herkunft für die Karte: Länder, Städte (mit Stadt-Datenbank), Netzbetreiber (mit ASN).
+    Mit `country` (ISO-Code) nur Städte und Netzbetreiber dieses Landes plus Zusammenfassung."""
     from tesseract.geoip import status as geoip_status
 
-    data = _run(statsview.geo, _any_store(request, db), range, node or None, which)
+    data = _run(
+        statsview.geo,
+        _any_store(request, db),
+        range,
+        node or None,
+        which,
+        country.upper() or None,
+    )
     g = request.app.state.logs.geo
     return {
         **data,
