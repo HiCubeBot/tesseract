@@ -223,7 +223,8 @@ Alle Einstellungen kommen aus Umgebungsvariablen oder einer `.env` im Arbeitsver
 | `TESSERACT_CADDY_ACCESS_LOG` | – | Pfad im Caddy-Container für das Zugriffs-Log (Logs, Statistik, Metriken) |
 | `TESSERACT_ACCESS_LOG_PATH` | – | Pfad, unter dem der Controller dieselbe Datei liest |
 | `TESSERACT_GEOIP_DB` | – | Optionale GeoIP-Datenbank (`.mmdb`, z. B. GeoLite2-Country, DB-IP Lite) |
-| `TESSERACT_GEOIP_AUTO` | – | `dbip` = GeoIP-Datenbank (DB-IP Lite) selbst holen und monatlich erneuern, ohne Neustart. Einzige Verbindung nach außen, daher standardmäßig aus |
+| `TESSERACT_GEOIP_AUTO` | – | `dbip` = GeoIP-Datenbank (DB-IP Lite) selbst holen und monatlich erneuern, ohne Neustart; `dbip-city` mit Städten, `+asn` zusätzlich Netzbetreiber (z. B. `dbip-city+asn`). Einzige Verbindung nach außen, daher standardmäßig aus |
+| `TESSERACT_GEOIP_ASN_DB` | – | Optionale ASN-Datenbank (`.mmdb`, z. B. GeoLite2-ASN) für die Netzbetreiber |
 | `TESSERACT_BACKGROUND_TASKS` | `true` | Hintergrundaufgaben (Auto-Sperre, Logs, Prüfung lokaler Nodes, Benachrichtigungen) |
 | `TESSERACT_ADMIN_USERNAME` | `admin` | Name des Admins |
 | `TESSERACT_AGENT_API_PUBLIC` | `true` | Node-Schnittstelle (`/api/agent/…`, `/install/…`) von `TESSERACT_ADMIN_NETWORKS` ausnehmen; `false` = Nodes auch nur aus diesen Netzen |

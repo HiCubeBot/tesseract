@@ -42,12 +42,11 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 - [x] Proxy-Hosts: Anfragen der letzten 24 h mit Verlaufslinie je Host; eigener Tab
   „Statistik“ pro Host (Anfragen, Besucher, Daten, Antwortzeit, Fehler, Kompression,
   Pfade, Herkunft, Abgelehnt, Top abgelehnte IPs) (1.15)
-- [ ] Statistik überarbeitet: Kennzahlen mit Verlauf und Vergleich zum Vorzeitraum,
+- [x] Statistik überarbeitet: Kennzahlen mit Verlauf und Vergleich zum Vorzeitraum,
   gesamter Zeitraum, Statuscodes, Protokolle, Clients (Browser/Apps/Bots), Pfade mit
-  Fehlern, Netzbetreiber, Betrieb (Erreichbarkeit der Nodes und Hosts, Zertifikate,
-  Rekorde); eigener Tab mit zoombarer Karte (1.16)
-- [ ] Status Page: Erreichbarkeit der Dienste prüfen (Uptime Monitor), öffentliche Statusseite
-  (1.17)
+  Fehlern, Netzbetreiber (ASN), Städte; eigener Tab mit zoombarer Karte (1.16)
+- [ ] Status Page: Erreichbarkeit der Dienste prüfen (Uptime Monitor), öffentliche Statusseite;
+  Statistik › Betrieb mit Erreichbarkeit der Nodes und Hosts, Zertifikaten und Rekorden (1.17)
 - [ ] Übersicht überarbeitet (1.18)
 
 ## Version 1.12 – Intern ohne Zertifikat (fertig)

@@ -150,40 +150,87 @@ def _valid_ip(ip: str) -> bool:
 # ---------- GeoIP (optional) ----------
 
 
+GEO_FIELDS = ("country", "city", "lat", "lon", "asn", "as_org")
+
+
 class Geo:
-    """Land zu einer IP aus einer lokalen MaxMind-/DB-IP-Datenbank (.mmdb)."""
+    """Herkunft einer IP aus lokalen MaxMind-/DB-IP-Datenbanken (.mmdb): Land, bei einer
+    Stadt-Datenbank auch Stadt und Koordinaten, mit ASN-Datenbank der Netzbetreiber."""
 
-    def __init__(self, path: Any = None) -> None:
-        self.reader = None
-        if path:
-            try:
-                import maxminddb
+    def __init__(self, path: Any = None, asn_path: Any = None) -> None:
+        self.reader = self._open(path)
+        self.asn_reader = self._open(asn_path)
 
-                self.reader = maxminddb.open_database(str(path))
-            except (OSError, ValueError) as e:
-                log.warning("GeoIP-Datenbank %s nicht lesbar: %s", path, e)
+    @staticmethod
+    def _open(path: Any):
+        if not path:
+            return None
+        try:
+            import maxminddb
+
+            return maxminddb.open_database(str(path))
+        except (OSError, ValueError) as e:
+            log.warning("GeoIP-Datenbank %s nicht lesbar: %s", path, e)
+            return None
 
     @property
     def ready(self) -> bool:
         return self.reader is not None
 
-    def country(self, ip: str) -> str | None:
+    @property
+    def cities(self) -> bool:
+        """Liefert die Datenbank Städte (City statt Country)?"""
         if self.reader is None:
-            return None
+            return False
+        return "city" in str(getattr(self.reader.metadata(), "database_type", "")).lower()
+
+    @property
+    def asn(self) -> bool:
+        return self.asn_reader is not None
+
+    @staticmethod
+    def _public(ip: str) -> bool:
         try:
             addr = ipaddress.ip_address(ip)
         except ValueError:
-            return None
-        if addr.is_private or addr.is_loopback or addr.is_link_local:
+            return False
+        return not (addr.is_private or addr.is_loopback or addr.is_link_local)
+
+    @staticmethod
+    def _get(reader, ip: str) -> dict[str, Any] | None:
+        if reader is None:
             return None
         try:
-            rec = self.reader.get(ip)
+            rec = reader.get(ip)
         except ValueError:
             return None
-        if not isinstance(rec, dict):
-            return None
-        code = (rec.get("country") or rec.get("registered_country") or {}).get("iso_code")
-        return str(code)[:2] if code else None
+        return rec if isinstance(rec, dict) else None
+
+    def country(self, ip: str) -> str | None:
+        return self.lookup(ip)["country"]
+
+    def lookup(self, ip: str) -> dict[str, Any]:
+        """{country, city, lat, lon, asn, as_org} – fehlende Angaben als None."""
+        out: dict[str, Any] = dict.fromkeys(("country", "city", "lat", "lon", "asn", "as_org"))
+        if not self._public(ip):
+            return out
+        rec = self._get(self.reader, ip)
+        if rec:
+            code = (rec.get("country") or rec.get("registered_country") or {}).get("iso_code")
+            out["country"] = str(code)[:2] if code else None
+            names = (rec.get("city") or {}).get("names") or {}
+            city = names.get("de") or names.get("en")
+            out["city"] = str(city)[:64] if city else None
+            loc = rec.get("location") or {}
+            if out["city"] and loc.get("latitude") is not None:
+                # auf ~1 km gerundet – genauer ist eine Lite-Datenbank ohnehin nicht
+                out["lat"] = round(float(loc["latitude"]), 2)
+                out["lon"] = round(float(loc["longitude"]), 2)
+        a = self._get(self.asn_reader, ip)
+        if a and a.get("autonomous_system_number"):
+            out["asn"] = int(a["autonomous_system_number"])
+            out["as_org"] = str(a.get("autonomous_system_organization") or "")[:128] or None
+        return out
 
 
 # ---------- Zugriffs-Log ----------
@@ -277,6 +324,7 @@ def ingest(
             reason = "waf"
         device = devices.get(_serial_hex(p["client_serial"])) if p["client_serial"] else None
         ts = datetime.fromtimestamp(p["ts"], UTC)
+        where = geo.lookup(p["ip"]) if geo else dict.fromkeys(GEO_FIELDS)
         db.add(
             LogEntry(
                 ts=ts,
@@ -291,7 +339,12 @@ def ingest(
                 proto=p["proto"],
                 encoding=p["encoding"],
                 ip=p["ip"],
-                country=geo.country(p["ip"]) if geo else None,
+                country=where["country"],
+                city=where["city"],
+                lat=where["lat"],
+                lon=where["lon"],
+                asn=where["asn"],
+                as_org=where["as_org"],
                 device_id=device.id if device else None,
                 reason=reason if reason in REASONS else "ok",
                 waf_rules=ev.rules if ev else [],
@@ -316,7 +369,7 @@ def ingest(
                     "proto": p["proto"],
                     "encoding": p["encoding"],
                     "ip": p["ip"],
-                    "country": geo.country(p["ip"]) if geo else None,
+                    **where,
                     "device": device.name if device else None,
                     "person": device.person.name if device else None,
                     "waf_rules": ev.rules if ev else [],
@@ -466,6 +519,13 @@ class Collector:
         return self.node(db, node, access_lines, waf_lines)
 
     def prune(self, db: Session) -> int:
+        from tesseract.rollup import run as rollup
         from tesseract.services import get_general
 
+        # erst abgeschlossene Tage verdichten, dann alte Einträge löschen
+        try:
+            rollup(db)
+        except Exception:  # pragma: no cover – Statistik darf das Aufräumen nie verhindern
+            log.exception("Statistik: Verdichten fehlgeschlagen")
+            db.rollback()
         return prune(db, int(get_general(db)["logs_days"]))

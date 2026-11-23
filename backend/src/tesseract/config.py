@@ -97,6 +97,8 @@ class Settings(BaseSettings):
     # GeoIP-Datenbank automatisch holen und monatlich erneuern: "dbip" (DB-IP Lite, ohne Konto).
     # Leer = aus (keine Anfrage nach außen, Datei kommt aus geoip_db)
     geoip_auto: str = ""
+    # Optionale ASN-Datenbank (.mmdb, z. B. GeoLite2-ASN) für die Netzbetreiber
+    geoip_asn_db: Path | None = None
     # Ordner für lokale Sicherungen; leer = data_dir/backups
     backup_dir: Path | None = None
     # Docker-API des lokalen Nodes für Hosts aus Container-Labels, z. B.
@@ -121,9 +123,13 @@ class Settings(BaseSettings):
         v = v.strip().lower()
         if v in ("", "off", "aus", "false", "0"):
             return ""
-        if v not in ("dbip",):
-            raise ValueError("TESSERACT_GEOIP_AUTO: „dbip“ oder leer")
-        return v
+        parts = [x for x in v.replace("+", ",").replace(" ", "").split(",") if x]
+        if parts[0] not in ("dbip", "dbip-city") or any(x != "asn" for x in parts[1:]):
+            raise ValueError(
+                "TESSERACT_GEOIP_AUTO: „dbip“ (Länder) oder „dbip-city“ (Städte), "
+                "wahlweise mit „+asn“, oder leer"
+            )
+        return ",".join([parts[0], *(["asn"] if "asn" in parts[1:] else [])])
 
     @field_validator("admin_networks")
     @classmethod

@@ -56,12 +56,13 @@ class SqlStore:
             return col >= v
         if c.op == "lt":
             return col < v
+        text = func.coalesce(cast(col, String), "")
         if c.op == "re":
-            return func.coalesce(col, "").regexp_match("^(" + v + ")$")
+            return text.regexp_match("^(" + v + ")$")
         if c.op == "ire":
-            return func.coalesce(col, "").regexp_match("(?i)" + v)
+            return text.regexp_match("(?i)" + v)
         if c.op == "nire":
-            return not_(func.coalesce(col, "").regexp_match("(?i)" + v))
+            return not_(text.regexp_match("(?i)" + v))
         if c.op == "cidr":
             net = ipaddress.ip_network(v, strict=False)
             ips = [

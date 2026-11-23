@@ -9,6 +9,7 @@
     { href: '#/stats', label: 'Sicherheit' },
     { href: '#/stats-traffic', label: 'Traffic & Leistung' },
     { href: '#/stats-usage', label: 'Nutzung' },
+    { href: '#/stats-map', label: 'Karte' },
     { href: '#/logs', label: 'Logs' }
   ];
 </script>

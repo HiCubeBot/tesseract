@@ -105,9 +105,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # Auto-Sperre: Treffer des lokalen Caddy und der Agents zählen gemeinsam
     app.state.autoban = AutoBan()
     # Zentrale Logs: WAF-Zwischenstand pro Node, GeoIP (Phase 5)
-    from tesseract.geoip import initial_path
+    from tesseract.geoip import asn_path, initial_path
 
-    app.state.logs = Collector(Geo(initial_path(settings)))
+    app.state.logs = Collector(Geo(initial_path(settings), asn_path(settings)))
     # Cloudflare-API für DNS-Einträge – in Tests ein MockTransport
     app.state.dns_transport = None
     # GeoIP-Download (nur mit TESSERACT_GEOIP_AUTO) – in Tests ein MockTransport

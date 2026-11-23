@@ -120,6 +120,17 @@ lädt einmal im Monat die neue Ausgabe; ein Fehlschlag lässt die vorhandene Dat
 Gebrauch. Stand und „Jetzt aktualisieren“ unter Einstellungen › Metriken › Logs. Das ist die
 einzige Verbindung nach außen und deshalb standardmäßig aus.
 
+Mehr Details auf der Karte (Statistik › Karte):
+
+| Wert | Datenbank | Größe | Ergebnis |
+|---|---|---|---|
+| `dbip` | IP to Country Lite | ~8 MB | Länder |
+| `dbip-city` | IP to City Lite | ~130 MB | Länder, Städte, Punkte auf der Karte |
+| `+asn` dazu, z. B. `dbip+asn` | IP to ASN Lite | ~10 MB | Netzbetreiber (Telekom, Hetzner, Amazon …) |
+
+Eine eigene ASN-Datei (z. B. GeoLite2-ASN) geht mit `TESSERACT_GEOIP_ASN_DB`. Städte und
+Netzbetreiber werden beim Eintreffen der Logs gespeichert – ältere Einträge bleiben ohne.
+
 Läuft im Netz ein DNS-Filter (Pi-hole, AdGuard Home), muss `download.db-ip.com` dort erlaubt
 sein – manche Sperrlisten führen die Domain. Sonst steht in den Einstellungen „DB-IP nicht
 erreichbar … DNS-Filter?“.

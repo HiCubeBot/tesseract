@@ -5,7 +5,10 @@ Mit `TESSERACT_GEOIP_AUTO=dbip` holt der Controller monatlich „IP to Country L
 ohne Neustart. Standard ist aus: Ohne diese Einstellung geht keine Anfrage nach außen, und die
 Datenbank kommt wie bisher aus `TESSERACT_GEOIP_DB`.
 
-- Ablage: `<data_dir>/geoip/dbip-country-lite.mmdb` (+ `.json` mit Monat und Zeitpunkt)
+- `dbip-city` statt `dbip`: „IP to City Lite“ (Land, Stadt, Koordinaten – für die Karte mit
+  Städten; gut 100 MB statt 8 MB)
+- `+asn` dazu (z. B. `dbip+asn`): „IP to ASN Lite“ für die Netzbetreiber
+- Ablage: `<data_dir>/geoip/dbip-…-lite.mmdb` (+ `.json` mit Monat und Zeitpunkt)
 - Anfang des Monats gibt es die neue Datei evtl. noch nicht – dann gilt die vom Vormonat.
 - Schlägt ein Download fehl, bleibt die vorhandene Datenbank in Gebrauch.
 """
@@ -22,9 +25,11 @@ import httpx
 
 log = logging.getLogger("tesseract.geoip")
 
-URL = "https://download.db-ip.com/free/dbip-country-lite-{month}.mmdb.gz"
+URL = "https://download.db-ip.com/free/{name}-{month}.mmdb.gz"
+# Art → Dateiname bei DB-IP
+NAMES = {"country": "dbip-country-lite", "city": "dbip-city-lite", "asn": "dbip-asn-lite"}
 FILE = "dbip-country-lite.mmdb"
-SOURCES = ("dbip",)
+SOURCES = ("dbip", "dbip-city")
 ATTRIBUTION = "IP Geolocation by DB-IP"
 CHECK_EVERY = 6 * 3600.0
 MAX_SIZE = 200 * 1024 * 1024
@@ -38,13 +43,37 @@ def directory(settings) -> Path:
     return Path(settings.data_dir) / "geoip"
 
 
-def path(settings) -> Path:
-    return directory(settings) / FILE
+def kinds(settings) -> list[str]:
+    """Welche Dateien geholt werden: Land oder Stadt, wahlweise ASN dazu."""
+    parts = (settings.geoip_auto or "").split(",")
+    out = ["city" if "dbip-city" in parts else "country"] if parts[0] else []
+    if "asn" in parts:
+        out.append("asn")
+    return out
 
 
-def meta(settings) -> dict[str, Any]:
+def _file(kind: str) -> str:
+    return NAMES[kind] + ".mmdb"
+
+
+def path(settings, kind: str | None = None) -> Path:
+    """Datei einer Art; ohne Angabe die Haupt-Datenbank (Land bzw. Stadt)."""
+    if kind is None:
+        k = kinds(settings)
+        kind = k[0] if k else "country"
+    return directory(settings) / _file(kind)
+
+
+def asn_path(settings) -> Path | None:
+    if "asn" in kinds(settings) and path(settings, "asn").exists():
+        return path(settings, "asn")
+    return settings.geoip_asn_db
+
+
+def meta(settings, kind: str | None = None) -> dict[str, Any]:
+    f = path(settings, kind).name + ".json"
     try:
-        return json.loads((directory(settings) / (FILE + ".json")).read_text(encoding="utf-8"))
+        return json.loads((directory(settings) / f).read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return {}
 
@@ -61,8 +90,10 @@ def _previous(month: str) -> str:
 def due(settings, now: datetime | None = None) -> bool:
     """Neu holen, wenn keine Datei da ist oder sie aus einem früheren Monat stammt."""
     now = now or datetime.now(UTC)
-    m = meta(settings)
-    return not path(settings).exists() or m.get("month", "") < _month(now)
+    for kind in kinds(settings):
+        if not path(settings, kind).exists() or meta(settings, kind).get("month", "") < _month(now):
+            return True
+    return False
 
 
 def _validate(data: bytes) -> None:
@@ -84,14 +115,20 @@ def _validate(data: bytes) -> None:
 
 
 def download(settings, transport: httpx.BaseTransport | None = None, now=None) -> dict[str, Any]:
-    """Aktuelle (sonst die vom Vormonat) Datei holen, prüfen und atomar ablegen."""
+    """Alle eingestellten Dateien holen; Rückgabe: Angaben zur Haupt-Datenbank."""
     now = now or datetime.now(UTC)
+    infos = [_download(settings, kind, transport, now) for kind in kinds(settings) or ["country"]]
+    return infos[0]
+
+
+def _download(settings, kind: str, transport, now: datetime) -> dict[str, Any]:
+    """Aktuelle (sonst die vom Vormonat) Datei holen, prüfen und atomar ablegen."""
     month = _month(now)
     last_error = ""
     with httpx.Client(transport=transport, timeout=120.0, follow_redirects=True) as c:
         for m in (month, _previous(month)):
             try:
-                r = c.get(URL.format(month=m))
+                r = c.get(URL.format(name=NAMES[kind], month=m))
             except httpx.ConnectError as e:
                 # häufigster Grund im Heimnetz: Pi-hole/AdGuard sperrt die Domain (0.0.0.0)
                 raise GeoIPError(
@@ -114,19 +151,21 @@ def download(settings, transport: httpx.BaseTransport | None = None, now=None) -
             _validate(data)
             d = directory(settings)
             d.mkdir(parents=True, exist_ok=True)
-            tmp = d / (FILE + ".part")
+            target = path(settings, kind)
+            tmp = d / (target.name + ".part")
             tmp.write_bytes(data)
-            tmp.replace(path(settings))
+            tmp.replace(target)
             info = {
                 "source": "dbip",
+                "kind": kind,
                 # gilt als aktuell für den laufenden Monat, auch wenn es die vom Vormonat ist
                 "month": month,
                 "file_month": m,
                 "at": now.isoformat(timespec="seconds"),
                 "size": len(data),
             }
-            (d / (FILE + ".json")).write_text(json.dumps(info), encoding="utf-8")
-            log.info("GeoIP-Datenbank von DB-IP geladen (%s, %d Bytes)", m, len(data))
+            (d / (target.name + ".json")).write_text(json.dumps(info), encoding="utf-8")
+            log.info("GeoIP-Datenbank %s von DB-IP geladen (%s, %d Bytes)", kind, m, len(data))
             return info
     raise GeoIPError(f"Keine Datei bei DB-IP gefunden ({last_error})")
 
@@ -147,7 +186,8 @@ def status(app) -> dict[str, Any]:
         "updated_at": m.get("at"),
         "file_month": m.get("file_month"),
         "error": st.get("error"),
-        "attribution": ATTRIBUTION if settings.geoip_auto == "dbip" else None,
+        "attribution": ATTRIBUTION if settings.geoip_auto else None,
+        "kinds": kinds(settings),
     }
 
 
@@ -155,7 +195,7 @@ def _swap(app, p: Path) -> None:
     """Neue Datenbank ohne Neustart übernehmen."""
     from tesseract.logs import Geo
 
-    new = Geo(p)
+    new = Geo(p, asn_path(app.state.settings))
     if new.ready:
         # den alten Reader nicht schließen – ein laufender Abgleich könnte ihn noch nutzen;
         # er wird freigegeben, sobald niemand mehr darauf verweist

@@ -222,7 +222,7 @@
         <div class="row">
           <h2>Herkunft</h2>
           <span class="spacer"></span>
-          <a class="small" href="#/stats">Karte öffnen</a>
+          <a class="small" href="#/stats-map">Karte öffnen</a>
         </div>
         {#if d.countries.length}
           <ul class="bars">
@@ -316,7 +316,7 @@
   }
   .kpis {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 12px;
   }
   .grid-main {

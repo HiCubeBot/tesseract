@@ -28,7 +28,7 @@ from tesseract.loki import _vl_headers
 
 # Felder der JSON-Zeile (alles außer den Labels)
 LABELS = ("node", "host", "reason")
-NUMERIC = ("status", "duration_ms", "size", "bytes_in", "waf_score")
+NUMERIC = ("status", "duration_ms", "size", "bytes_in", "waf_score", "asn", "lat", "lon")
 HOUR = timedelta(hours=1)
 
 
@@ -188,6 +188,11 @@ def entry_from(fields: dict[str, Any], ts: datetime) -> dict[str, Any]:
         "encoding": fields.get("encoding") or None,
         "ip": fields.get("ip") or "",
         "country": fields.get("country") or None,
+        "city": fields.get("city") or None,
+        "lat": _num(fields.get("lat")) if fields.get("lat") not in (None, "") else None,
+        "lon": _num(fields.get("lon")) if fields.get("lon") not in (None, "") else None,
+        "asn": int(_num(fields.get("asn"))) if fields.get("asn") not in (None, "") else None,
+        "as_org": fields.get("as_org") or None,
         "device": fields.get("device") or None,
         "person": fields.get("person") or None,
         "reason": fields.get("reason") or "ok",

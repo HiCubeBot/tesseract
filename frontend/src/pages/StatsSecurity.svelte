@@ -6,10 +6,11 @@
   import ColumnChart from '../lib/components/ColumnChart.svelte';
   import BarList from '../lib/components/BarList.svelte';
   import WorldMap from '../lib/components/WorldMap.svelte';
-  import StatCard from '../lib/components/StatCard.svelte';
+  import KpiCard from '../lib/components/KpiCard.svelte';
   import Alert from '../lib/components/Alert.svelte';
   import { api, countryName, LOG_REASONS, type LogReason, type NodeInfo } from '../lib/api';
   import { bucketize, fmt, SERIES, type Range } from '../lib/stats';
+  import { toasts } from '../lib/toast.svelte';
 
   interface Security {
     total: number;
@@ -23,6 +24,19 @@
     by_host: { host: string; total: number; mtls: number; waf: number; ip: number; other: number }[];
     geoip: boolean;
     geoip_attribution: string | null;
+    previous: { total: number; denied: number };
+    waf_detected: number;
+    login_failed: number;
+    hourly_all: { t: string; total: number; denied: number; mtls?: number; waf?: number; ip?: number; login_failed?: number }[];
+    top_ips_flagged: {
+      ip: string;
+      count: number;
+      reason: LogReason;
+      country: string | null;
+      city: string | null;
+      own: boolean;
+      internal: boolean;
+    }[];
   }
 
   const RANGES: Range[] = ['24h', '7d', '30d'];
@@ -65,6 +79,40 @@
   const buckets = $derived(data ? bucketize(data.hourly, RANGES[range], series.map((s) => s.key)) : []);
   const share = $derived(data && data.total ? Math.round((100 * data.denied) / data.total) : 0);
   const rangeText = $derived(['in 24 Stunden', 'in 7 Tagen', 'in 30 Tagen'][range]);
+  // Verlaufslinien der Kennzahlen
+  const kpiBuckets = $derived(
+    data ? bucketize(data.hourly_all, RANGES[range], ['total', 'denied', 'mtls', 'waf', 'ip', 'login_failed']) : []
+  );
+  const spark = (k: string) => kpiBuckets.map((b) => b.values[k] ?? 0);
+  const sumOf = (k: 'mtls' | 'waf' | 'ip') => (data ? data.hourly_all.reduce((s, h) => s + (h[k] ?? 0), 0) : 0);
+  const delta = (cur: number, prev: number) => (prev ? ((cur - prev) / prev) * 100 : null);
+
+  // Top-IPs: eigene (Geräte mit Zertifikat, eigene Sitzung) und interne wahlweise ausblenden
+  let hideOwn = $state(false);
+  const topIps = $derived((data?.top_ips_flagged ?? []).filter((i) => !hideOwn || !(i.own || i.internal)).slice(0, 8));
+  let banned = $state<Set<string>>(new Set());
+  let banning = $state<string | null>(null);
+  async function ban(ip: string) {
+    banning = ip;
+    try {
+      await api.post('/bans', { ip, hours: 24, reason: 'aus der Statistik' });
+      banned = new Set([...banned, ip]);
+      toasts.show('ok', `${ip} ist für 24 Stunden gesperrt.`);
+    } catch (e) {
+      toasts.show('bad', e instanceof Error ? e.message : String(e), 10000);
+    } finally {
+      banning = null;
+    }
+  }
+  const reasonColor = (r: string) =>
+    r === 'mtls'
+      ? SERIES.mtls.color
+      : r === 'waf'
+        ? SERIES.waf.color
+        : ['ip', 'ban', 'internal'].includes(r)
+          ? SERIES.ip.color
+          : SERIES.other.color;
+
   const privateOnlyCert = $derived(
     data?.by_host.filter((h) => h.total > 10 && h.mtls / h.total > 0.9).map((h) => h.host.split('.')[0]) ?? []
   );
@@ -88,20 +136,88 @@
   {#if error}<Alert tone="bad" title="Fehler" text={error} />{/if}
 
   {#if data}
-    <div class="stats">
-      <StatCard label="Anfragen" value={fmt(data.total)} sub={rangeText} tone="neutral" />
-      <StatCard label="Abgelehnt" value={fmt(data.denied)} sub={`${share} % aller Anfragen`} tone={data.denied ? 'warn' : 'ok'} />
-      <StatCard label="Von Coraza blockiert" value={fmt(data.waf_blocked)} sub={data.attacks[0] ? `meist ${data.attacks[0].name}` : 'keine Angriffe'} tone="ok" />
+    <div class="kpis">
+      <KpiCard label="Anfragen" value={fmt(data.total)} delta={delta(data.total, data.previous.total)} sub={rangeText} spark={spark('total')} sparkColor="#8A91A0" />
+      <KpiCard
+        label="Abgelehnt gesamt"
+        value={fmt(data.denied)}
+        delta={delta(data.denied, data.previous.denied)}
+        upIsBad
+        sub={`${share} % aller Anfragen`}
+        spark={spark('denied')}
+        sparkColor="#8A91A0"
+      />
+      <KpiCard label="Ohne Zertifikat" value={fmt(sumOf('mtls'))} sub="mTLS-Handshake abgelehnt" spark={spark('mtls')} sparkColor={SERIES.mtls.color} />
+      <KpiCard
+        label="Von Coraza blockiert"
+        value={fmt(data.waf_blocked)}
+        sub={data.waf_detected ? `${fmt(data.waf_detected)} nur erkannt` : data.attacks[0] ? `meist ${data.attacks[0].name}` : 'keine Angriffe'}
+        spark={spark('waf')}
+        sparkColor={SERIES.waf.color}
+      />
+      <KpiCard label="Vom IP-Filter" value={fmt(sumOf('ip'))} sub="eigene Einträge, Listen, Sperren" spark={spark('ip')} sparkColor={SERIES.ip.color} />
+      <KpiCard
+        label="Fehlanmeldungen"
+        value={fmt(data.login_failed)}
+        tone={data.login_failed >= 10 ? 'warn' : 'neutral'}
+        sub={data.login_failed ? 'an der Oberfläche' : 'keine am Controller'}
+        spark={spark('login_failed')}
+        sparkColor="#E5A443"
+      />
     </div>
 
-    <section class="card" aria-labelledby="denied-title">
-      <h2 id="denied-title">Abgelehnt pro {range === 0 ? 'Stunde' : range === 1 ? '6 Stunden' : 'Tag'}</h2>
-      <ColumnChart {buckets} {series} label="Abgelehnte Anfragen nach Grund" />
-    </section>
+    <div class="main-grid">
+      <section class="card" aria-labelledby="denied-title">
+        <div class="row">
+          <h2 id="denied-title">Abgelehnt pro {range === 0 ? 'Stunde' : range === 1 ? '6 Stunden' : 'Tag'}</h2>
+          <span class="spacer"></span>
+          {#if data.waf_detected}<span class="muted small">{fmt(data.waf_detected)} nur erkannt (WAF protokolliert)</span>{/if}
+        </div>
+        <ColumnChart {buckets} {series} label="Abgelehnte Anfragen nach Grund" height={220} />
+      </section>
+
+      <section class="card" aria-labelledby="ips-title">
+        <div class="row">
+          <h2 id="ips-title">Top abgelehnte IPs</h2>
+          <span class="spacer"></span>
+          <label class="check small"><input type="checkbox" bind:checked={hideOwn} /> Eigene ausblenden</label>
+        </div>
+        {#if topIps.length}
+          <ul class="ips">
+            {#each topIps as i (i.ip)}
+              <li>
+                <i style:background={reasonColor(i.reason)}></i>
+                <div class="ip-main">
+                  <span class="ip-line">
+                    <a class="mono" href={`#/logs?q=${encodeURIComponent('ip:' + i.ip)}`}>{i.ip}</a>
+                    {#if i.own}<span class="badge" title="Diese Adresse nutzt auch ein freigegebenes Gerät oder deine Sitzung">eigene</span>{/if}
+                    {#if i.internal}<span class="badge" title="Aus einem der internen Netze">intern</span>{/if}
+                  </span>
+                  <span class="muted tiny ellipsis">
+                    {[LOG_REASONS[i.reason]?.label, i.city, i.country ? countryName(i.country) : ''].filter(Boolean).join(' · ')}
+                  </span>
+                </div>
+                <span class="num">{fmt(i.count)}</span>
+                {#if i.own || i.internal}
+                  <a class="act" href={`#/logs?q=${encodeURIComponent('ip:' + i.ip)}&filter=denied`} title="Welche Dienste wurden abgelehnt?">Wohin?</a>
+                {:else}
+                  <button type="button" class="act" disabled={banning !== null || banned.has(i.ip)} onclick={() => ban(i.ip)}>
+                    {banned.has(i.ip) ? 'Gesperrt' : 'Sperren'}
+                  </button>
+                {/if}
+              </li>
+            {/each}
+          </ul>
+        {:else}
+          <p class="muted small">Nichts abgelehnt im Zeitraum.</p>
+        {/if}
+      </section>
+    </div>
 
     <section class="card" aria-labelledby="geo-title">
       <div class="row geo-head">
         <h2 id="geo-title">Herkunft der Anfragen</h2>
+        <a class="small" href="#/stats-map">Karte öffnen</a>
         <span class="spacer"></span>
         {#if data.geoip}
           <SegmentedControl groupLabel="Welche Anfragen" options={WHICH_LABELS} bind:selected={which} onChange={loadGeo} />
@@ -135,23 +251,6 @@
         </p>
       {/if}
     </section>
-
-    <div class="cols">
-      <section class="card" aria-labelledby="ips-title">
-        <h2 id="ips-title">Top abgelehnte IPs</h2>
-        <BarList
-          color="#CF7D45"
-          items={data.top_ips.map((i) => ({
-            label: i.ip,
-            value: i.count,
-            mono: true,
-            href: `#/logs?q=${encodeURIComponent('ip:' + i.ip)}`,
-            note: [i.country ? countryName(i.country) : '', LOG_REASONS[i.reason]?.label].filter(Boolean).join(' · ')
-          }))}
-        />
-      </section>
-
-    </div>
 
     <div class="cols">
       <section class="card" aria-labelledby="attack-title">
@@ -207,10 +306,100 @@
     color: var(--text-muted);
     font-size: 13px;
   }
-  .stats {
+  .kpis {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 14px;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+  }
+  .main-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+    gap: 16px;
+    align-items: start;
+  }
+  @media (max-width: 1100px) {
+    .main-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .check {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+  .ips {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .ips li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .ips i {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .ip-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .ip-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+  }
+  .ip-line a {
+    color: var(--text);
+    text-decoration: none;
+  }
+  .badge {
+    padding: 0 6px;
+    border-radius: 999px;
+    font-size: 11px;
+    line-height: 18px;
+    background: var(--surface-raised);
+    color: var(--text-muted);
+  }
+  .ellipsis {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .num {
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+  }
+  .act {
+    min-width: 72px;
+    text-align: center;
+    padding: 4px 10px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-input);
+    background: transparent;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .act:hover:not(:disabled) {
+    color: var(--text);
+  }
+  .act:disabled {
+    opacity: 0.6;
+    cursor: default;
   }
   .cols {
     display: grid;
@@ -264,6 +453,7 @@
     margin: 0;
     font-size: 11px;
   }
+  .main-grid h2,
   .geo-head h2 {
     margin: 0;
   }

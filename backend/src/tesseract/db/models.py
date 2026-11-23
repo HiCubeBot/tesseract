@@ -570,6 +570,13 @@ class LogEntry(Base):
     encoding: Mapped[str | None] = mapped_column(String(16))
     ip: Mapped[str] = mapped_column(String(64), index=True)
     country: Mapped[str | None] = mapped_column(String(2))
+    # mit Stadt-Datenbank: Stadt und Koordinaten (auf ~1 km gerundet); mit ASN-Datenbank:
+    # Netzbetreiber
+    city: Mapped[str | None] = mapped_column(String(64))
+    lat: Mapped[float | None]
+    lon: Mapped[float | None]
+    asn: Mapped[int | None]
+    as_org: Mapped[str | None] = mapped_column(String(128))
     device_id: Mapped[int | None] = mapped_column(
         ForeignKey("devices.id", ondelete="SET NULL"), index=True
     )
@@ -580,3 +587,62 @@ class LogEntry(Base):
     waf_msg: Mapped[str | None] = mapped_column(String(255))
     waf_score: Mapped[int | None]
     user_agent: Mapped[str | None] = mapped_column(String(255))
+
+
+class StatsDaily(Base):
+    """Tageswerte je Host und Node – bleiben, wenn die Logs nach `logs_days` gelöscht werden.
+
+    Grundlage für „Gesamter Zeitraum“ und die Rekorde. Zähler als Spalten, Verteilungen
+    (Statuscodes, Clients) als JSON {Wert: Anzahl}."""
+
+    __tablename__ = "stats_daily"
+
+    day: Mapped[str] = mapped_column(String(10), primary_key=True)  # YYYY-MM-DD (UTC)
+    host: Mapped[str] = mapped_column(String(253), primary_key=True)
+    node: Mapped[str] = mapped_column(String(64), primary_key=True)
+    requests: Mapped[int] = mapped_column(default=0)
+    denied: Mapped[int] = mapped_column(default=0)
+    mtls: Mapped[int] = mapped_column(default=0)
+    waf: Mapped[int] = mapped_column(default=0)
+    ipfilter: Mapped[int] = mapped_column(default=0)
+    s2xx: Mapped[int] = mapped_column(default=0)
+    s3xx: Mapped[int] = mapped_column(default=0)
+    s4xx: Mapped[int] = mapped_column(default=0)
+    s5xx: Mapped[int] = mapped_column(default=0)
+    bytes_out: Mapped[int] = mapped_column(default=0)
+    bytes_in: Mapped[int] = mapped_column(default=0)
+    http1: Mapped[int] = mapped_column(default=0)
+    http2: Mapped[int] = mapped_column(default=0)
+    http3: Mapped[int] = mapped_column(default=0)
+    browser: Mapped[int] = mapped_column(default=0)
+    app: Mapped[int] = mapped_column(default=0)
+    bot: Mapped[int] = mapped_column(default=0)
+    compressed: Mapped[int] = mapped_column(default=0)
+    compressible: Mapped[int] = mapped_column(default=0)
+    visitors: Mapped[int] = mapped_column(default=0)
+    median_ms: Mapped[float | None]
+    codes: Mapped[dict[str, int]] = mapped_column(JSON, default=dict)
+    clients: Mapped[dict[str, int]] = mapped_column(JSON, default=dict)
+
+
+class StatsHourly(Base):
+    """Stundenwerte über alle Hosts (für Rekorde wie „stärkste Stunde“)."""
+
+    __tablename__ = "stats_hourly"
+
+    hour: Mapped[datetime] = mapped_column(primary_key=True)
+    requests: Mapped[int] = mapped_column(default=0)
+    denied: Mapped[int] = mapped_column(default=0)
+    bytes_out: Mapped[int] = mapped_column(default=0)
+    top_host: Mapped[str | None] = mapped_column(String(253))
+    top_denied_host: Mapped[str | None] = mapped_column(String(253))
+
+
+class VisitorIp(Base):
+    """Jede IP, die je eine Antwort bekam (ohne Bots) – für „verschiedene Adressen“ insgesamt."""
+
+    __tablename__ = "visitor_ips"
+
+    ip: Mapped[str] = mapped_column(String(64), primary_key=True)
+    first_day: Mapped[str] = mapped_column(String(10))
+    last_day: Mapped[str] = mapped_column(String(10))

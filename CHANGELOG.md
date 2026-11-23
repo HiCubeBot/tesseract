@@ -4,6 +4,34 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.16.0] – 2026-11-23
+
+### Hinzugefügt
+- **Statistik › Karte:** eigener Tab mit zoombarer Weltkarte (Mausrad, Doppelklick, Ziehen,
+  Pinch), nahe Punkte werden je nach Zoom zusammengefasst („Karlsruhe +8“). Daneben Ranglisten
+  nach Ländern, Städten und Netzbetreibern; Filter Alle / Abgelehnt / Angenommen, Zeitraum,
+  Node (`GET /api/stats/geo`)
+- **Städte und Netzbetreiber:** `TESSERACT_GEOIP_AUTO=dbip-city` holt die Stadt-Datenbank,
+  `+asn` zusätzlich die ASN-Datenbank von DB-IP (z. B. `dbip-city+asn`); eigene ASN-Datei mit
+  `TESSERACT_GEOIP_ASN_DB`. Logs speichern Stadt, Koordinaten und Netzbetreiber (auch in
+  Loki/VictoriaLogs)
+- **Gesamter Zeitraum** unter Traffic & Leistung: Tesseract verdichtet jeden abgeschlossenen Tag
+  zu Tageswerten je Host und Node (Anfragen, Daten, Statuscodes, Protokolle, Clients,
+  Kompression, Besucher, Median) und hebt sie dauerhaft auf – auch wenn die Einzeleinträge nach
+  der Aufbewahrungszeit gelöscht werden. Dazu Rekorde (`GET /api/stats/records`); Migration 0025
+
+### Geändert
+- **Sicherheit:** Kennzahlen mit Verlauf und Veränderung zum Vorzeitraum – Anfragen, Abgelehnt,
+  ohne Zertifikat, von Coraza blockiert (und „nur erkannt“), vom IP-Filter, Fehlanmeldungen an
+  der Oberfläche. Top abgelehnte IPs mit Stadt, Kennzeichen „eigene“ (Adressen freigegebener
+  Geräte oder der eigenen Sitzung) und „intern“, „Eigene ausblenden“, direkt „Sperren“ bzw.
+  „Wohin?“ für eigene Adressen
+- **Traffic & Leistung:** Kennzahlen wie bei den Hosts (Anfragen, Besucher, Daten, Antwortzeit,
+  Serverfehler, Kompression) mit Vorzeitraum; Diagramm wählbar je Kennzahl; Zusammensetzung nach
+  Statuscodes, HTTP-Version und Clients (Browser, Apps & API, Bots); Pfade (aufgerufen, mit
+  Fehlern), Browser/Apps/Bots mit Namen, Statuscodes mit Bedeutung
+- Diagramme beschriften die Zeitachse je nach Breite, damit sich nichts überlappt
+
 ## [1.15.0] – 2026-11-23
 
 ### Hinzugefügt
