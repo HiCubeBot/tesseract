@@ -1,6 +1,6 @@
 <script lang="ts">
   // Kopf der Host-Seiten: Domain, Status, Aktiv-Schalter und Tabs
-  // (Allgemein · Zugriff · Sicherheit · Verlauf)
+  // (Allgemein · Zugriff · Sicherheit · Statistik · Verlauf)
   import StatusPill from './StatusPill.svelte';
   import Switch from './Switch.svelte';
   import type { Host } from '../api';
@@ -23,6 +23,7 @@
     { id: 'general', label: 'Allgemein', path: '' },
     { id: 'access', label: 'Zugriff', path: '/access' },
     { id: 'security', label: 'Sicherheit', path: '/security' },
+    { id: 'stats', label: 'Statistik', path: '/stats' },
     { id: 'history', label: 'Verlauf', path: '/history' }
   ];
 

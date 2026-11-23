@@ -3,7 +3,7 @@ import { reportApply } from './nodes';
 import { toasts } from './toast.svelte';
 
 /** Tabs der Host-Seite */
-export type HostTab = 'general' | 'access' | 'security' | 'history';
+export type HostTab = 'general' | 'access' | 'security' | 'stats' | 'history';
 
 /** Host ein- oder ausschalten (sonst unverändert); gibt den gespeicherten Host zurück */
 export async function setEnabled(h: Host, enabled: boolean): Promise<Host | null> {

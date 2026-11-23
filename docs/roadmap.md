@@ -39,7 +39,7 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 - [x] Sidebar mit Zahlen (Hosts, Personen, Geräte, Nodes) (1.14)
 - [x] Node-Übersicht als Karten: Caddy-Version, Hosts (davon öffentlich), letzter Kontakt,
   Config-Stand, Verbindung zum Controller (1.14)
-- [ ] Proxy-Hosts: Anfragen der letzten 24 h mit Verlaufslinie je Host; eigener Tab
+- [x] Proxy-Hosts: Anfragen der letzten 24 h mit Verlaufslinie je Host; eigener Tab
   „Statistik“ pro Host (Anfragen, Besucher, Daten, Antwortzeit, Fehler, Kompression,
   Pfade, Herkunft, Abgelehnt, Top abgelehnte IPs) (1.15)
 - [ ] Statistik überarbeitet: Kennzahlen mit Verlauf und Vergleich zum Vorzeitraum,

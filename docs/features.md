@@ -97,6 +97,7 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | Sicherheit | Abgelehnte Anfragen pro Stunde, Coraza-Angriffsarten, Top-IPs, Herkunftskarte aller Anfragen mit Filter Alle / Abgelehnt / Angenommen (Kreisfläche = Anzahl, lokale GeoIP-DB, Kartendaten Natural Earth im Build) | 5 / 1.11 |
 | Traffic & Leistung | Anfragen, Datenmenge, Antwortzeiten (Median/p95), 5xx-Fehler, Erreichbarkeit, Hosts im Vergleich | 5 |
 | Nutzung | Wer nutzt was (Person × Dienst), Geräte-Aktivität, Heatmap Wochentag × Uhrzeit | 5 |
+| Statistik pro Host | Tab „Statistik“ je Host: Anfragen, Besucher ohne Bots, Daten (aus/ein), Antwortzeit, 5xx, Kompression – mit Vergleich zum Vorzeitraum und Verlaufslinie; Verlauf mit Vorzeitraum, Abgelehnt nach Grund, Herkunft, Pfade mit Fehlern, abgelehnte IPs mit „Sperren“. In der Hostliste: Anfragen der letzten 24 h mit Verlaufslinie | 1.15 |
 | Logs | Live-Ansicht, Suche mit Filtersyntax (`host:git status:403 ip:…`), Detailansicht mit Regel und Meldung, Anomalie-Score (wenn Coraza ihn schreibt), Grund jeder Ablehnung | 5 |
 | Aktionen aus Logs | IP sperren (24 h, alle Nodes), Ausnahme für Fehlalarm anlegen, alle Einträge einer IP | 5 |
 | Filter | Zeitraum (24 h / 7 / 30 Tage), Node | 5 |

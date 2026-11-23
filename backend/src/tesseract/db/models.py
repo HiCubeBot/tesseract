@@ -564,6 +564,10 @@ class LogEntry(Base):
     duration_ms: Mapped[float] = mapped_column(default=0.0)
     # Bytes der Antwort
     size: Mapped[int] = mapped_column(default=0)
+    # Bytes der Anfrage (Body), HTTP-Version (1.1, 2, 3) und Kompression der Antwort
+    bytes_in: Mapped[int] = mapped_column(default=0, server_default="0")
+    proto: Mapped[str | None] = mapped_column(String(8))
+    encoding: Mapped[str | None] = mapped_column(String(16))
     ip: Mapped[str] = mapped_column(String(64), index=True)
     country: Mapped[str | None] = mapped_column(String(2))
     device_id: Mapped[int | None] = mapped_column(

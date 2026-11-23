@@ -37,6 +37,7 @@ import HostsPage from "./pages/Hosts.svelte";
 import HostWizardPage from "./pages/HostWizard.svelte";
 import HostEditPage from "./pages/HostEdit.svelte";
 import HostHistoryPage from "./pages/HostHistory.svelte";
+import HostStatsPage from "./pages/HostStats.svelte";
 import SettingsPage from "./pages/Settings.svelte";
 import AuditPage from "./pages/Audit.svelte";
 import UsersPage from "./pages/Users.svelte";
@@ -87,6 +88,7 @@ export const pages: Page[] = [
   { pattern: "hosts/:id/access", title: "Host · Zugriff", component: HostEditPage },
   { pattern: "hosts/:id/history", title: "Host · Verlauf", component: HostHistoryPage },
   { pattern: "hosts/:id/security", title: "Host · Sicherheit", component: HostSecurityPage },
+  { pattern: "hosts/:id/stats", title: "Host · Statistik", component: HostStatsPage },
   { pattern: "settings-integrations", title: "Einstellungen · Integrationen", component: SettingsIntegrationsPage },
   { pattern: "settings", title: "Einstellungen", component: SettingsPage },
   { pattern: "audit", title: "Audit-Log", component: AuditPage },

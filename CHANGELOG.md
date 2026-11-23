@@ -4,6 +4,22 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.15.0] – 2026-11-23
+
+### Hinzugefügt
+- **Statistik pro Host:** neuer Tab „Statistik“ auf jeder Host-Seite – Anfragen, Besucher
+  (verschiedene Adressen ohne Bots), ausgelieferte und empfangene Daten, Antwortzeit (Median,
+  p95), Serverfehler und Anteil komprimierter Antworten, jeweils mit Veränderung zum
+  Vorzeitraum und Verlaufslinie. Dazu Anfragen pro Stunde/6 Stunden/Tag mit gestricheltem
+  Vorzeitraum, Abgelehnt nach Grund, Herkunft mit abgelehnten Anfragen je Land, Pfade
+  (IDs und Bilder zusammengefasst) mit Fehlern und die häufigsten abgelehnten IPs zum Sperren
+  (`GET /api/stats/host`)
+- **Anfragen der letzten 24 Stunden in der Hostliste** mit Verlaufslinie je Host
+  (`GET /api/stats/activity`)
+- Logs speichern zusätzlich empfangene Bytes, HTTP-Version und die Kompression der Antwort
+  (auch in Loki/VictoriaLogs); Migration 0024
+- Beides funktioniert mit SQLite und mit Loki/VictoriaLogs über dieselbe Abfrageschicht
+
 ## [1.14.0] – 2026-11-23
 
 ### Hinzugefügt

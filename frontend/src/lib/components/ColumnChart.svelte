@@ -30,7 +30,8 @@
   const slot = $derived((W - PAD.left - PAD.right) / Math.max(1, buckets.length));
   const barW = $derived(Math.min(24, slot * 0.7));
   const y = (v: number) => PAD.top + plotH - (v / max) * plotH;
-  const labelEvery = $derived(Math.ceil(buckets.length / 8));
+  // höchstens eine Beschriftung je ~70 px, damit sich nichts überlappt
+  const labelEvery = $derived(Math.ceil(buckets.length / Math.max(2, Math.min(8, Math.floor(W / 70)))));
 
   /** Gestapelte Segmente eines Buckets – 2px Abstand, oben 4px rund */
   function segments(b: Bucket) {

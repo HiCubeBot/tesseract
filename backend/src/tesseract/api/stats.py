@@ -80,3 +80,37 @@ def countries(
         else stats.countries(db, range, node or None, which)
     )
     return {**data, "geoip": request.app.state.logs.geo.ready}
+
+
+def _any_store(request: Request, db):
+    """Externer Speicher, wenn eingeschaltet – sonst SQLite über dieselbe Schnittstelle."""
+    from tesseract.sqlstore import SqlStore
+
+    return _store(request, db) or SqlStore(db)
+
+
+@router.get("/host")
+def host(
+    request: Request, db: DB, _: CurrentActor, domain: str, range: Range = "24h"
+) -> dict[str, Any]:
+    """Statistik eines Hosts: Kennzahlen mit Vorzeitraum, Verlauf, Herkunft, Pfade, Abgelehnte."""
+    from tesseract import hoststats
+
+    store = _any_store(request, db)
+    try:
+        data = hoststats.host(store, domain.lower(), range)
+    except StoreError as e:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(e)) from e
+    return {**data, "source": store.kind}
+
+
+@router.get("/activity")
+def activity(request: Request, db: DB, _: CurrentActor) -> dict[str, Any]:
+    """Anfragen der letzten 24 Stunden je Host, stündlich – für die Hostliste."""
+    from tesseract import hoststats
+
+    store = _any_store(request, db)
+    try:
+        return {**hoststats.activity(store), "source": store.kind}
+    except StoreError as e:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(e)) from e

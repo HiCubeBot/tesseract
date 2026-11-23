@@ -28,7 +28,7 @@ from tesseract.loki import _vl_headers
 
 # Felder der JSON-Zeile (alles außer den Labels)
 LABELS = ("node", "host", "reason")
-NUMERIC = ("status", "duration_ms", "size", "waf_score")
+NUMERIC = ("status", "duration_ms", "size", "bytes_in", "waf_score")
 HOUR = timedelta(hours=1)
 
 
@@ -41,7 +41,10 @@ class StoreError(Exception):
 
 @dataclass
 class Cond:
-    """Eine Bedingung auf ein Feld. op: eq | ne | in | gte | lt | re | ire | cidr | rule"""
+    """Eine Bedingung auf ein Feld.
+
+    op: eq | ne | in | gte | lt | re | ire (enthält, ohne Groß/klein) | nire (enthält nicht)
+    | cidr | rule"""
 
     field: str
     op: str
@@ -180,6 +183,9 @@ def entry_from(fields: dict[str, Any], ts: datetime) -> dict[str, Any]:
         "status": int(_num(fields.get("status"))),
         "duration_ms": _num(fields.get("duration_ms")),
         "size": int(_num(fields.get("size"))),
+        "bytes_in": int(_num(fields.get("bytes_in"))),
+        "proto": fields.get("proto") or None,
+        "encoding": fields.get("encoding") or None,
         "ip": fields.get("ip") or "",
         "country": fields.get("country") or None,
         "device": fields.get("device") or None,
@@ -247,6 +253,8 @@ class LokiStore:
             return f"{f}=~{_q(c.value)}"
         if c.op == "ire":
             return f"{f}=~{_q('(?i).*' + c.value + '.*')}"
+        if c.op == "nire":
+            return f"{f}!~{_q('(?i).*' + c.value + '.*')}"
         if c.op == "cidr":
             return f"{f}=ip({_q(c.value)})"
         raise StoreError(f"Bedingung {c.op} geht hier nicht")
@@ -361,17 +369,17 @@ class LokiStore:
         inner = f"sum{self._group(by)} (count_over_time({self._pipeline(sel, set(by))} [$RANGE]))"
         return self._flatten(self._metric(inner, start, end, step), by, step)
 
-    def total(self, sel: Sel, start, end, fld: str, by: list[str] = ()):
+    def total(self, sel: Sel, start, end, fld: str, by: list[str] = (), step=None):
         by = list(by)
         pipe = self._pipeline(sel, {fld, *by}) + f" | unwrap {fld}"
         inner = f"sum{self._group(by)} (sum_over_time({pipe} [$RANGE]))"
-        return self._flatten(self._metric(inner, start, end, None), by, None)
+        return self._flatten(self._metric(inner, start, end, step), by, step)
 
-    def quantile(self, q: float, sel: Sel, start, end, fld: str, by: list[str] = ()):
+    def quantile(self, q: float, sel: Sel, start, end, fld: str, by: list[str] = (), step=None):
         by = list(by)
         pipe = self._pipeline(sel, {fld, *by}) + f" | unwrap {fld}"
         inner = f"quantile_over_time({q}, {pipe} [$RANGE]){self._group(by)}"
-        return self._flatten(self._metric(inner, start, end, None), by, None)
+        return self._flatten(self._metric(inner, start, end, step), by, step)
 
     @staticmethod
     def _flatten(series, by, step):
@@ -411,6 +419,8 @@ class VictoriaLogsStore:
             return f"{f}:~{_q('^(' + c.value + ')$')}"
         if c.op == "ire":
             return f"{f}:~{_q('(?i)' + c.value)}"
+        if c.op == "nire":
+            return f"-{f}:~{_q('(?i)' + c.value)}"
         if c.op == "cidr":
             if ":" in c.value:
                 raise StoreError("IPv6-Netze gehen mit VictoriaLogs nicht – einzelne IP angeben")
@@ -489,11 +499,11 @@ class VictoriaLogsStore:
     def count(self, sel: Sel, start, end, by: list[str] = (), step: timedelta | None = None):
         return self._stats(sel, start, end, by, "count()", step)
 
-    def total(self, sel: Sel, start, end, fld: str, by: list[str] = ()):
-        return self._stats(sel, start, end, by, f"sum({fld})")
+    def total(self, sel: Sel, start, end, fld: str, by: list[str] = (), step=None):
+        return self._stats(sel, start, end, by, f"sum({fld})", step)
 
-    def quantile(self, q: float, sel: Sel, start, end, fld: str, by: list[str] = ()):
-        return self._stats(sel, start, end, by, f"quantile({q}, {fld})")
+    def quantile(self, q: float, sel: Sel, start, end, fld: str, by: list[str] = (), step=None):
+        return self._stats(sel, start, end, by, f"quantile({q}, {fld})", step)
 
 
 def store_for(g: dict[str, Any], transport=None) -> "LokiStore | VictoriaLogsStore | None":

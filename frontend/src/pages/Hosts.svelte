@@ -7,6 +7,7 @@
   import EmptyState from '../lib/components/EmptyState.svelte';
   import Icon from '../lib/components/Icon.svelte';
   import Switch from '../lib/components/Switch.svelte';
+  import Sparkline from '../lib/components/Sparkline.svelte';
   import { api, type Host, type NodeInfo } from '../lib/api';
   import { accessLabel, hostStatus, protectionLabel, setEnabled, upstreamLabel } from '../lib/hosts';
 
@@ -30,6 +31,13 @@
     }
   }
   load();
+
+  // Anfragen der letzten 24 Stunden je Domain (stündlich) – Fehler bleiben still
+  let activity = $state<Record<string, { total: number; hourly: number[] }>>({});
+  api
+    .get<{ hosts: Record<string, { total: number; hourly: number[] }> }>('/stats/activity')
+    .then((r) => (activity = r.hosts))
+    .catch(() => {});
 
   async function toggle(h: Host, enabled: boolean) {
     toggling = h.id;
@@ -116,6 +124,7 @@
               <th scope="col">Node</th>
               <th scope="col">Zugriff</th>
               <th scope="col">Schutz</th>
+              <th scope="col" class="num">Anfragen · 24 h</th>
               <th scope="col">Status</th>
               <th scope="col"><span class="visually-hidden">Aktiv</span></th>
             </tr>
@@ -143,6 +152,17 @@
                 <td class="small nowrap">
                   <a class="plain" href={`#/hosts/${h.id}/security`}>{protectionLabel(h)}</a>
                 </td>
+                <td class="activity">
+                  {#if activity[h.domain]}
+                    {@const a = activity[h.domain]}
+                    <a class="plain act" href={`#/hosts/${h.id}/stats`} title="Statistik öffnen">
+                      <span class="num-val">{a.total.toLocaleString('de-DE')}</span>
+                      <Sparkline values={a.hourly} label={`Anfragen der letzten 24 Stunden: ${a.total}`} />
+                    </a>
+                  {:else}
+                    <span class="muted num-val">0</span>
+                  {/if}
+                </td>
                 <td><StatusPill tone={st.tone} label={st.label} /></td>
                 <td class="switch-cell">
                   {#if !h.draft}
@@ -156,7 +176,7 @@
                 </td>
               </tr>
             {:else}
-              <tr><td colspan="7" class="muted">Keine Treffer.</td></tr>
+              <tr><td colspan="8" class="muted">Keine Treffer.</td></tr>
             {/each}
           </tbody>
         </table>
@@ -256,5 +276,22 @@
     white-space: nowrap;
     color: var(--ok-text);
     background: var(--ok-soft);
+  }
+  th.num {
+    text-align: right;
+  }
+  .activity {
+    text-align: right;
+  }
+  .act {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+  }
+  .num-val {
+    font-variant-numeric: tabular-nums;
+    min-width: 48px;
+    text-align: right;
   }
 </style>

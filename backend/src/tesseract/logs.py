@@ -196,6 +196,11 @@ def _header(headers: dict[str, Any], name: str) -> str:
     return ""
 
 
+def _proto(raw: str) -> str | None:
+    v = raw.upper().removeprefix("HTTP/")
+    return {"1.0": "1.0", "1.1": "1.1", "2": "2", "2.0": "2", "3": "3", "3.0": "3"}.get(v)
+
+
 def parse_access(line: str) -> dict[str, Any] | None:
     try:
         entry = json.loads(line)
@@ -218,6 +223,10 @@ def parse_access(line: str) -> dict[str, Any] | None:
         "status": int(entry.get("status") or 0),
         "duration_ms": round(float(entry.get("duration") or 0) * 1000, 3),
         "size": int(entry.get("size") or 0),
+        "bytes_in": int(entry.get("bytes_read") or 0),
+        # HTTP/1.1 | HTTP/2.0 | HTTP/3.0 → 1.1 | 2 | 3
+        "proto": _proto(str(req.get("proto") or "")),
+        "encoding": _header(entry.get("resp_headers") or {}, "Content-Encoding")[:16] or None,
         "ip": ip,
         "reason": str(entry.get("tesseract_reason") or "ok")[:16],
         "user_agent": _header(req.get("headers") or {}, "User-Agent")[:255] or None,
@@ -278,6 +287,9 @@ def ingest(
                 status=p["status"],
                 duration_ms=p["duration_ms"],
                 size=p["size"],
+                bytes_in=p["bytes_in"],
+                proto=p["proto"],
+                encoding=p["encoding"],
                 ip=p["ip"],
                 country=geo.country(p["ip"]) if geo else None,
                 device_id=device.id if device else None,
@@ -300,6 +312,9 @@ def ingest(
                     "status": p["status"],
                     "duration_ms": p["duration_ms"],
                     "size": p["size"],
+                    "bytes_in": p["bytes_in"],
+                    "proto": p["proto"],
+                    "encoding": p["encoding"],
                     "ip": p["ip"],
                     "country": geo.country(p["ip"]) if geo else None,
                     "device": device.name if device else None,
