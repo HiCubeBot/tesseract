@@ -8,6 +8,7 @@ from tesseract.caddy.config import (
     CONTROLLER_PUBLIC_PATHS,
     FINGERPRINT,
     FINGERPRINT_HEADER,
+    STATUS_PATHS,
     path_patterns,
 )
 from tesseract.cli import admin_mtls_off
@@ -72,7 +73,9 @@ def test_enable_requires_current_admin_device(auth_client: TestClient, caddy: Fa
     gate = _controller_route(caddy)["handle"][0]["routes"][0]
     negations = gate["match"][0]["not"]
     assert negations[0]["vars"][FINGERPRINT] == [fp]
-    assert negations[1]["path"] == path_patterns(CONTROLLER_PUBLIC_PATHS)
+    # Statusseite ist standardmäßig aus – ihre Pfade sind dann nicht öffentlich
+    expected = [p for p in CONTROLLER_PUBLIC_PATHS if p not in STATUS_PATHS]
+    assert negations[1]["path"] == path_patterns(expected)
 
     # Backend erzwingt es ebenfalls
     assert auth_client.get("/api/hosts").status_code == 403

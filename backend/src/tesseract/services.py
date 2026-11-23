@@ -119,6 +119,8 @@ GENERAL_DEFAULTS: dict[str, Any] = {
     "metrics_list_ids": [],
     # Caddy-Metriken der Nodes mit ausliefern
     "metrics_caddy": True,
+    # Öffentliche Statusseite /status (Uptime-Monitor) – standardmäßig aus
+    "status_page_enabled": False,
 }
 CLOUDFLARE_CONTEXT = "cloudflare-token"
 ADMIN_GROUP = "Admin"
@@ -538,6 +540,7 @@ def node_config(db: Session, node: Node, settings: Settings, bans: bool = True) 
         if settings.admin_networks_open
         else tuple(settings.admin_network_list),
         controller_agents_open=settings.agent_api_public,
+        controller_status_open=bool(general["status_page_enabled"]),
         trusted_proxies=tuple(
             resolve_ranges(db, general["trusted_proxies"], general["trusted_proxy_list_ids"])
         ),

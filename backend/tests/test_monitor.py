@@ -92,8 +92,17 @@ def test_monitor_api_and_status_page(auth_client: TestClient) -> None:
     cloud = next(h for h in m["hosts"] if h["domain"] == "cloud.example.org")
     assert cloud["status"] == "up" and cloud["pct"] == 100.0 and len(cloud["days"]) == 30
     assert m["nodes"][0]["name"] == "local"
-    # öffentlich, ohne Anmeldung – nur freigegebene Dienste, ohne Domain
+    # standardmäßig aus
     anon = TestClient(auth_client.app)
+    assert anon.get("/api/status").status_code == 404
+    ops = auth_client.get("/api/stats/operations").json()
+    assert ops["status_enabled"] is False
+    g = auth_client.put("/api/settings/general", json={"status_page_enabled": True}).json()
+    assert g["status_page_enabled"] is True and g["status_page_url"].endswith("/status")
+    # andere Einstellungen bleiben unverändert, wenn das Feld fehlt
+    g = auth_client.put("/api/settings/general", json={"autoban_hits": 20}).json()
+    assert g["status_page_enabled"] is True
+    # öffentlich, ohne Anmeldung – nur freigegebene Dienste, ohne Domain
     s = anon.get("/api/status").json()
     assert s["overall"] == "ok"
     assert [x["name"] for x in s["services"]] == ["Cloud"]
@@ -103,5 +112,11 @@ def test_monitor_api_and_status_page(auth_client: TestClient) -> None:
     assert anon.get("/api/monitor").status_code == 401
 
 
-def test_status_paths_public() -> None:
-    assert "/status" in CONTROLLER_PUBLIC_PATHS and "/api/status" in CONTROLLER_PUBLIC_PATHS
+def test_status_paths_only_when_enabled() -> None:
+    from tesseract.caddy.config import NodeSpec, public_paths
+
+    off = public_paths(NodeSpec(admin_listen=""))
+    on = public_paths(NodeSpec(admin_listen="", controller_status_open=True))
+    assert "/status" not in off and "/api/status" not in off
+    assert "/status" in on and "/api/status" in on
+    assert set(CONTROLLER_PUBLIC_PATHS) == set(on)

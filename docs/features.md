@@ -10,7 +10,7 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | Host-Liste | Suche nach Domain/Ziel, Filter (Alle / Aktiv / mTLS / Deaktiviert / Entwürfe) und Node; Hosts per Schalter direkt in der Zeile ein- und ausschalten (bleiben gespeichert, gehen nicht an Caddy) | 1 / 1.5 |
 | Hosts aus Docker-Labels | Container mit `tesseract.domain` werden zu Hosts (Port, Ziel, Zugriff, interne Netze, Freigaben, WAF, Prüfart per Label). Lokal über einen Socket-Proxy, Agent-Nodes melden ihre Container. Neue Hosts als Entwurf, Label-Änderungen gelten, gestoppte/entfernte Container schalten den Host ab; gekennzeichnet in Liste und Host-Seite | 1.6 |
 | Uptime-Monitor | Jede Minute: Node verbunden? Ziel des Hosts erreichbar (vom Node aus)? Ausfall ab dem zweiten Fehlschlag, Vorfälle, Benachrichtigung „Dienst nicht erreichbar“; je Host abschaltbar | 1.17 |
-| Öffentliche Statusseite | `/status` ohne Anmeldung: ausgewählte Dienste mit eigenem Namen, Stand und Erreichbarkeit der letzten 90 Tage – ohne Domains und Adressen | 1.17 |
+| Öffentliche Statusseite | Unter Einstellungen › Allgemein einschaltbar (Standard: aus); `/status` ohne Anmeldung: ausgewählte Dienste mit eigenem Namen, Stand und Erreichbarkeit der letzten 90 Tage – ohne Domains und Adressen | 1.17 |
 | Host bearbeiten | Eigene Seite mit Tabs Allgemein · Zugriff · Sicherheit · Statistik · Verlauf; Aktiv-Schalter im Kopf, Vorab-Prüfungen wie beim Anlegen, Nachfrage bei ungespeicherten Änderungen | 1.5 |
 | Host-Assistent | 3 Schritte: Domain & Ziel → Zugriff → Prüfen & übertragen | 1 |
 | Ziel | Schema (http/https), Ziel-IP/Host und Port, Auswahl des Nodes; bei https optional ohne Prüfung des Zertifikats (selbst signiert) | 1 / 4 / 1.1 |

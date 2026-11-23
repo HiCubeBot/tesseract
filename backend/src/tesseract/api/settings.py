@@ -48,6 +48,8 @@ class GeneralIn(BaseModel):
     wildcard_certs: list[str] = Field(default_factory=list, max_length=20)
     device_self_renew: bool = True
     device_self_renew_days: int = Field(30, ge=1, le=365)
+    # Öffentliche Statusseite /status
+    status_page_enabled: bool | None = None
 
     @field_validator("wildcard_certs")
     @classmethod
@@ -152,6 +154,8 @@ class GeneralOut(BaseModel):
     device_self_renew: bool
     device_self_renew_days: int
     device_self_renew_url: str
+    status_page_enabled: bool = False
+    status_page_url: str = ""
     # Liest der Controller das WAF-Log? (sonst sieht die Auto-Sperre keine Treffer)
     autoban_log_ready: bool
     # nur lesbar – kommen aus der Umgebung
@@ -193,6 +197,12 @@ def get_settings_general(db: DB, _: CurrentActor, settings: AppSettings) -> Gene
         device_self_renew_url=(
             f"https://{settings.controller_domain}/v" if settings.controller_domain else "/v"
         ),
+        status_page_enabled=bool(g["status_page_enabled"]),
+        status_page_url=(
+            f"https://{settings.controller_domain}/status"
+            if settings.controller_domain
+            else "/status"
+        ),
         autoban_log_ready=bool(settings.caddy_waf_log and settings.waf_log_path),
         controller_domain=settings.controller_domain,
         env_managed=settings.env_managed(),
@@ -211,7 +221,11 @@ def put_settings_general(
 ) -> GeneralOut:
     before = get_general(db)
     value = body.model_dump(exclude_unset=True, exclude={"cloudflare_token"})
-    value = {k: v for k, v in value.items() if not (k.startswith("docker_") and v is None)}
+    value = {
+        k: v
+        for k, v in value.items()
+        if not ((k.startswith("docker_") or k == "status_page_enabled") and v is None)
+    }
     if "acme_email" in value:
         value["acme_email"] = value["acme_email"] or ""
     if body.cloudflare_token is not None:
@@ -276,6 +290,8 @@ def put_settings_general(
         "internal_networks",
         "internal_list_ids",
         "wildcard_certs",
+        # Statusseite: Pfade auf der Controller-Domain öffnen bzw. schließen
+        "status_page_enabled",
     )
     if any(before.get(k) != value.get(k, before.get(k)) for k in relevant):
         for node in db.scalars(select(Node)):

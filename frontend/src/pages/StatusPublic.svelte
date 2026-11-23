@@ -23,6 +23,7 @@
   async function load() {
     try {
       const r = await fetch('/api/status', { headers: { Accept: 'application/json' } });
+      if (r.status === 404) throw new Error('Diese Statusseite ist nicht eingeschaltet.');
       if (!r.ok) throw new Error(`Status nicht abrufbar (${r.status})`);
       data = await r.json();
       error = '';

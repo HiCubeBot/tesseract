@@ -17,6 +17,19 @@
   let error = $state('');
 
   let access = $state<AdminAccess | null>(null);
+  let statusBusy = $state(false);
+
+  async function setStatusPage(enabled: boolean) {
+    statusBusy = true;
+    try {
+      fill(await api.put<GeneralSettings>('/settings/general', { status_page_enabled: enabled }));
+      toasts.show('ok', enabled ? 'Die Statusseite ist jetzt öffentlich erreichbar.' : 'Statusseite ausgeschaltet.');
+    } catch (err) {
+      toasts.show('bad', err instanceof Error ? err.message : String(err));
+    } finally {
+      statusBusy = false;
+    }
+  }
   let accessBusy = $state(false);
 
   async function loadAccess() {
@@ -172,6 +185,25 @@
           Notausgang, falls das Gerät verloren ist – auf dem Controller: <code>tesseract admin mtls off</code>
         </p>
         {#if accessBusy}<p class="muted small" aria-live="polite">Überträgt …</p>{/if}
+      {/if}
+    </section>
+
+    <section class="card" aria-labelledby="status-title">
+      <h2 id="status-title">Öffentliche Statusseite</h2>
+      {#if general}
+        <Toggle
+          label="Statusseite einschalten"
+          description="Zeigt ohne Anmeldung, ob die ausgewählten Dienste laufen – nur Name, Stand und Erreichbarkeit der letzten 90 Tage, keine Domains oder Adressen. Auch bei TESSERACT_ADMIN_NETWORKS von überall erreichbar."
+          checked={general.status_page_enabled}
+          onChange={(v) => setStatusPage(v)}
+        />
+        {#if statusBusy}<p class="muted small" aria-live="polite">Überträgt …</p>{/if}
+        {#if general.status_page_enabled}
+          <p class="small"><a class="mono" href={general.status_page_url} target="_blank" rel="noopener">{general.status_page_url}</a></p>
+        {/if}
+        <p class="muted small">
+          Welche Dienste dort stehen, legst du je Host fest: Allgemein › Überwachung › „Auf der öffentlichen Statusseite zeigen“.
+        </p>
       {/if}
     </section>
 

@@ -29,6 +29,8 @@ FINGERPRINT = "{http.request.tls.client.fingerprint}"
 FINGERPRINT_HEADER = "X-Tesseract-Client-Fingerprint"
 # Schnittstelle für Nodes (Agents) – bei TESSERACT_ADMIN_NETWORKS wahlweise ausgenommen
 AGENT_PATHS = ("/api/agent/*", "/install/*")
+# Statusseite: nur öffentlich, wenn in den Einstellungen eingeschaltet
+STATUS_PATHS = ("/status", "/api/status")
 # Auf der Controller-Domain immer ohne Admin-Zertifikat erreichbar (Einladung, Agents, Dateien)
 # Agents melden sich mit eigenem Node-Zertifikat – das prüft der Controller selbst
 CONTROLLER_PUBLIC_PATHS = (
@@ -40,7 +42,7 @@ CONTROLLER_PUBLIC_PATHS = (
     "/api/agent/*",
     "/assets/*",
     "/api/health",
-    # öffentliche Statusseite des Uptime-Monitors
+    # öffentliche Statusseite des Uptime-Monitors (nur, wenn eingeschaltet)
     "/status",
     "/api/status",
     "/favicon.ico",
@@ -156,6 +158,8 @@ class NodeSpec:
     controller_networks: tuple[str, ...] = ()
     # Node-Schnittstelle von controller_networks ausnehmen (TESSERACT_AGENT_API_PUBLIC)
     controller_agents_open: bool = True
+    # Öffentliche Statusseite eingeschaltet (Einstellungen › Allgemein)
+    controller_status_open: bool = False
     # Vertrauenswürdige Proxys davor (z. B. Cloudflare) – nur dann zählt X-Forwarded-For
     trusted_proxies: tuple[str, ...] = ()
     # Authelia-Instanz, z. B. "http://authelia:9091" oder "https://auth.example.org"
@@ -646,7 +650,7 @@ def controller_spec(spec: NodeSpec) -> HostSpec:
         upstream_port=int(port) if port.isdigit() else 80,
         access="mtls" if protected else "public",
         no_cert_action="hint",
-        paths=CONTROLLER_PUBLIC_PATHS if protected else (),
+        paths=public_paths(spec) if protected else (),
         allowed=spec.controller_allowed,
         pass_fingerprint=True,
         ask_client_cert=True,
@@ -654,7 +658,17 @@ def controller_spec(spec: NodeSpec) -> HostSpec:
     )
 
 
-def _admin_networks_route(networks: tuple[str, ...], agents_open: bool = True) -> JSON:
+def public_paths(spec: "NodeSpec", agents_open: bool = True) -> tuple[str, ...]:
+    """Öffentliche Pfade der Controller-Domain – ohne Statusseite, solange sie aus ist."""
+    return tuple(
+        p
+        for p in CONTROLLER_PUBLIC_PATHS
+        if (agents_open or p not in AGENT_PATHS)
+        and (spec.controller_status_open or p not in STATUS_PATHS)
+    )
+
+
+def _admin_networks_route(spec: "NodeSpec") -> JSON:
     """Oberfläche nur aus diesen Netzen: sonst Verbindung abbrechen, keine Antwort. Die
     öffentlichen Pfade (Einladung, Verlängern, Agents …) bleiben überall erreichbar.
     Geprüft wird die echte Verbindungs-IP (remote_ip), nicht X-Forwarded-For."""
@@ -662,14 +676,8 @@ def _admin_networks_route(networks: tuple[str, ...], agents_open: bool = True) -
         "match": [
             {
                 "not": [
-                    {"remote_ip": {"ranges": list(networks)}},
-                    {
-                        "path": [
-                            p
-                            for p in CONTROLLER_PUBLIC_PATHS
-                            if agents_open or p not in AGENT_PATHS
-                        ]
-                    },
+                    {"remote_ip": {"ranges": list(spec.controller_networks)}},
+                    {"path": list(public_paths(spec, spec.controller_agents_open))},
                 ]
             }
         ],
@@ -684,7 +692,7 @@ def _controller_route(spec: NodeSpec) -> JSON:
     route["@id"] = "controller"
     if spec.controller_networks:
         # vor allem anderen – noch vor Zertifikat und WAF
-        gate = _admin_networks_route(spec.controller_networks, spec.controller_agents_open)
+        gate = _admin_networks_route(spec)
         route["handle"][0]["routes"].insert(0, gate)
     return route
 
@@ -774,9 +782,7 @@ def build_config(spec: NodeSpec) -> JSON:
                 {
                     "handler": "subroute",
                     "routes": [
-                        _admin_networks_route(
-                            spec.controller_networks, spec.controller_agents_open
-                        ),
+                        _admin_networks_route(spec),
                         {"handle": redirect["handle"]},
                     ],
                 }

@@ -44,6 +44,7 @@
     per_day_bytes: number;
     status_url: string;
     status_hosts: number;
+    status_enabled: boolean;
     records: {
       day?: { day: string; requests: number; host: string };
       hour?: { hour: string; requests: number; host: string | null };
@@ -265,7 +266,13 @@
       {#if ops}
         <section class="card" aria-labelledby="status-title">
           <h2 id="status-title">Öffentliche Statusseite</h2>
-          {#if ops.status_hosts}
+          {#if !ops.status_enabled}
+            <p class="muted small">
+              Ausgeschaltet. Unter <a href="#/settings">Einstellungen › Allgemein</a> einschalten{ops.status_hosts
+                ? ` – ${ops.status_hosts} ${ops.status_hosts === 1 ? 'Dienst ist' : 'Dienste sind'} schon dafür ausgewählt`
+                : ''}.
+            </p>
+          {:else if ops.status_hosts}
             <p class="small">
               {ops.status_hosts} {ops.status_hosts === 1 ? 'Dienst steht' : 'Dienste stehen'} auf der Statusseite – ohne Anmeldung erreichbar, auch wenn die Oberfläche
               nur aus bestimmten Netzen geht.

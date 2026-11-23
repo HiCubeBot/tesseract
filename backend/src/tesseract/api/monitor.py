@@ -5,12 +5,14 @@ from datetime import timedelta
 from statistics import median
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
+from fastapi import status as http
 from sqlalchemy import func, select
 
 from tesseract import monitor
 from tesseract.db.models import Host, Incident, Node, StatsDaily, utcnow
 from tesseract.deps import DB, AppSettings, CurrentActor
+from tesseract.services import get_general
 from tesseract.statsview import records
 
 router = APIRouter(tags=["monitor"])
@@ -125,6 +127,7 @@ def operations(db: DB, _: CurrentActor, settings: AppSettings) -> dict[str, Any]
         "per_day_bytes": round(int(tot[1]) / days) if days else 0,
         "records": rec,
         "status_url": f"https://{domain}/status" if domain else "/status",
+        "status_enabled": bool(get_general(db)["status_page_enabled"]),
         "status_hosts": db.scalar(
             select(func.count()).select_from(Host).where(Host.status_public.is_(True))
         )
@@ -134,7 +137,10 @@ def operations(db: DB, _: CurrentActor, settings: AppSettings) -> dict[str, Any]
 
 @public.get("/status")
 def status_page(db: DB) -> dict[str, Any]:
-    """Öffentliche Statusseite: nur Hosts mit „Auf der Statusseite zeigen“, nur Name und Stand."""
+    """Öffentliche Statusseite: nur Hosts mit „Auf der Statusseite zeigen“, nur Name und Stand.
+    Nur, wenn sie in den Einstellungen eingeschaltet ist – sonst 404."""
+    if not get_general(db)["status_page_enabled"]:
+        raise HTTPException(http.HTTP_404_NOT_FOUND, "Statusseite ist nicht eingeschaltet")
     hosts = list(
         db.scalars(
             select(Host)

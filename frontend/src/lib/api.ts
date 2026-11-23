@@ -465,6 +465,9 @@ export interface GeneralSettings {
   device_self_renew: boolean;
   device_self_renew_days: number;
   device_self_renew_url: string;
+  /** öffentliche Statusseite /status – standardmäßig aus */
+  status_page_enabled: boolean;
+  status_page_url: string;
   controller_domain: string;
   /** über die Umgebung (.env) festgelegt – wird beim Start überschrieben */
   env_managed: string[];

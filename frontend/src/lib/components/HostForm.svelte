@@ -225,7 +225,7 @@
     </label>
     <label class="check">
       <input type="checkbox" bind:checked={value.status_public} />
-      <span>Auf der öffentlichen Statusseite zeigen <span class="muted">– nur Name und Erreichbarkeit, ohne Domain</span></span>
+      <span>Auf der öffentlichen Statusseite zeigen <span class="muted">– nur Name und Erreichbarkeit, ohne Domain; die Seite selbst wird unter Einstellungen › Allgemein eingeschaltet</span></span>
     </label>
     {#if value.status_public}
       <label class="field">
