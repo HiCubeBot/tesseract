@@ -86,6 +86,7 @@ def test_events_bundling_and_channels(auth_client: TestClient) -> None:
     ntfy, webhook = hook.requests
     assert ntfy.url == "https://ntfy.example.org/tesseract"
     assert ntfy.headers["Authorization"] == "Bearer tk_1" and ntfy.headers["Priority"] == "4"
+    assert ntfy.headers["Content-Type"] == "text/plain; charset=utf-8"
     assert "198.51.100.1 gesperrt (20 WAF-Treffer auf git.example.org)" in ntfy.content.decode()
     body = json.loads(webhook.content)
     assert body["event"] == "ip_banned" and body["level"] == "warn"

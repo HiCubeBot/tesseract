@@ -7,6 +7,9 @@ Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinwe
 ## [1.20.1] – 2026-11-24
 
 ### Behoben
+- **ntfy hinter Tesseract mit WAF:** Nachrichten gingen mit „403“ verloren, weil Coraza (Regel
+  920340, Inhalt ohne `Content-Type`) sie blockierte. Tesseract sendet jetzt
+  `Content-Type: text/plain; charset=utf-8`
 - **ntfy: verständliche Fehlermeldung statt „Client error '403 Forbidden'“** – sagt, ob die
   Anmeldung fehlt, der Benutzer kein Schreibrecht auf das Thema hat (mit passendem
   `ntfy access …`-Befehl) oder die Antwort gar nicht von ntfy, sondern von einem Proxy davor kommt

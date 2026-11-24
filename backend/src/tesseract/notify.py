@@ -232,6 +232,9 @@ class Sender:
 
     def _ntfy(self, c: dict[str, Any], msg: Message) -> None:
         headers = {
+            # ohne Content-Type blockiert die Coraza-WAF (CRS 920340) den Text, wenn ntfy
+            # selbst hinter Tesseract läuft
+            "Content-Type": "text/plain; charset=utf-8",
             # UTF-8 im Titel über RFC-2047-Kodierung (versteht ntfy)
             "Title": "=?UTF-8?B?" + _b64(f"Tesseract: {msg.title}") + "?=",
             "Priority": {"info": "3", "warn": "4", "critical": "5"}[msg.level],
