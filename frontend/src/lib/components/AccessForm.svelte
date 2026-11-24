@@ -159,6 +159,17 @@
       {/if}
     </label>
 
+    <label class="internal" class:on={value.allow_controller}>
+      <input type="checkbox" bind:checked={value.allow_controller} />
+      <span class="stack">
+        <strong>Tesseract selbst darf zugreifen</strong>
+        <span class="muted small">
+          Tesseract meldet sich mit einem eigenen Zertifikat aus der Zertifizierungsstelle – unabhängig von IP und Docker-Netz. Nötig, wenn z. B. ntfy
+          oder ein Webhook-Ziel hinter diesem Host liegt und Tesseract dorthin Benachrichtigungen schickt.
+        </span>
+      </span>
+    </label>
+
     <label class="internal" class:on={value.internal_no_cert} class:disabled={!internalAvailable && !value.internal_no_cert}>
       <input type="checkbox" bind:checked={value.internal_no_cert} disabled={!internalAvailable && !value.internal_no_cert} />
       <span class="stack">

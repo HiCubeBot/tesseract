@@ -204,6 +204,8 @@ class Host(Base):
     internal: Mapped[bool] = mapped_column(default=False)
     # Zertifikatspflicht (mTLS) gilt nicht für Anfragen aus den internen Netzen
     internal_no_cert: Mapped[bool] = mapped_column(default=False, server_default="0")
+    # mTLS: Tesseract selbst (Controller-Zertifikat) darf zugreifen, z. B. für ntfy
+    allow_controller: Mapped[bool] = mapped_column(default=False, server_default="0")
     # Uptime-Monitor: Ziel regelmäßig prüfen; auf der öffentlichen Statusseite zeigen (mit Name)
     monitor: Mapped[bool] = mapped_column(default=True, server_default="1")
     status_public: Mapped[bool] = mapped_column(default=False, server_default="0")

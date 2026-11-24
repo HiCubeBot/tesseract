@@ -218,6 +218,8 @@ class Sender:
     def __init__(self, box: SecretBox, transport: httpx.BaseTransport | None = None) -> None:
         self.box = box
         self.transport = transport
+        # Einstellungen des Controllers: dann mit eigenem Client-Zertifikat (mTLS-Hosts)
+        self.settings = None
         self.smtp_factory = smtplib.SMTP
         self.smtp_ssl_factory = smtplib.SMTP_SSL
 
@@ -228,7 +230,12 @@ class Sender:
         getattr(self, f"_{channel}")(cfg[channel], msg)
 
     def _http(self) -> httpx.Client:
-        return httpx.Client(timeout=15.0, transport=self.transport)
+        verify: Any = True
+        if self.settings is not None and self.transport is None:
+            from tesseract.controllercert import ssl_context
+
+            verify = ssl_context(self.settings)
+        return httpx.Client(timeout=15.0, transport=self.transport, verify=verify)
 
     def _ntfy(self, c: dict[str, Any], msg: Message) -> None:
         headers = {

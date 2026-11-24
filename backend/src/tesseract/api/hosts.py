@@ -159,6 +159,8 @@ class HostIn(BaseModel):
     internal: bool = False
     # mTLS: aus den internen Netzen auch ohne Zertifikat
     internal_no_cert: bool = False
+    # mTLS: Tesseract selbst (Controller-Zertifikat) darf zugreifen
+    allow_controller: bool = False
     # Uptime-Monitor und öffentliche Statusseite
     monitor: bool = True
     status_public: bool = False
@@ -274,6 +276,7 @@ class HostOut(BaseModel):
     tls_challenge: str
     internal: bool
     internal_no_cert: bool = False
+    allow_controller: bool = False
     monitor: bool = True
     status_public: bool = False
     status_name: str = ""
@@ -650,12 +653,28 @@ def preview_route(body: HostIn, _: CurrentActor) -> dict[str, Any]:
     return host_route(host_spec(body, host_id=0, paths=body.paths))
 
 
+def _ensure_controller_cert(request: Request, db, body: HostIn, settings) -> None:
+    """„Tesseract selbst darf zugreifen“ braucht das Controller-Zertifikat – jetzt ausstellen."""
+    if not body.allow_controller:
+        return
+    from tesseract import controllercert
+
+    controllercert.ensure(db, request.app.state.secretbox, settings)
+    if controllercert.stored(db) is None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Erst die Zertifizierungsstelle einrichten – das Zertifikat für Tesseract selbst "
+            "kommt von dort",
+        )
+
+
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_host(
     body: HostIn, request: Request, db: DB, actor: CurrentActor, settings: AppSettings
 ) -> HostSaved:
     _get_node(db, body.node_id)
     _check_grants(db, body)
+    _ensure_controller_cert(request, db, body, settings)
     _ensure_free(db, body.domain, None, settings.controller_domain)
     host = Host(version=1)
     _assign(host, body, get_general(db))
@@ -698,6 +717,7 @@ def update_host(
     host = _get_host(db, host_id)
     _get_node(db, body.node_id)
     _check_grants(db, body)
+    _ensure_controller_cert(request, db, body, settings)
     _ensure_free(db, body.domain, host.id, settings.controller_domain)
     before = snapshot(host)
     old_node = host.node_id

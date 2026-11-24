@@ -32,7 +32,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.secretbox = load_secretbox(settings)
         from tesseract.notify import Notifier, Sender
 
-        app.state.notifier = Notifier(Sender(app.state.secretbox, app.state.notify_transport))
+        sender = Sender(app.state.secretbox, app.state.notify_transport)
+        sender.settings = settings
+        app.state.notifier = Notifier(sender)
         tasks = []
         if settings.sync_on_start:
             tasks.append(
@@ -82,6 +84,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             from tesseract.geoip import watch as geoip_watch
 
             tasks.append(asyncio.create_task(geoip_watch(app)))
+            from tesseract.controllercert import watch as controllercert_watch
+
+            tasks.append(asyncio.create_task(controllercert_watch(app)))
             from tesseract.monitor import watch as monitor_watch
 
             tasks.append(asyncio.create_task(monitor_watch(app)))

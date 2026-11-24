@@ -113,6 +113,8 @@ export interface Host {
   internal: boolean;
   /** mTLS: aus den internen Netzen auch ohne Zertifikat */
   internal_no_cert: boolean;
+  /** mTLS: Tesseract selbst (Controller-Zertifikat) darf zugreifen, z. B. für ntfy */
+  allow_controller: boolean;
   /** Uptime-Monitor: Ziel regelmäßig prüfen */
   monitor: boolean;
   /** auf der öffentlichen Statusseite zeigen, mit Anzeigename */
@@ -551,6 +553,7 @@ export const FIELD_LABELS: Record<string, string> = {
   tls_challenge: 'Zertifikats-Prüfung',
   internal: 'Nur intern',
   internal_no_cert: 'Intern ohne Zertifikat',
+  allow_controller: 'Tesseract darf zugreifen',
   monitor: 'Überwachung',
   status_public: 'Statusseite',
   status_name: 'Name auf der Statusseite',

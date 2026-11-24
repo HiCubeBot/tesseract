@@ -56,6 +56,7 @@ SNAPSHOT_FIELDS = (
     "enabled",
     "draft",
     "internal_no_cert",
+    "allow_controller",
     "monitor",
     "status_public",
     "status_name",
@@ -403,7 +404,9 @@ def host_spec(
     ip_ranges: list[str] | None = None,
     areas: list[AreaSpec] | None = None,
     internal_networks: list[str] | tuple[str, ...] | None = None,
+    controller: tuple[str, str] | None = None,
 ) -> HostSpec:
+    """`controller`: (Fingerabdruck, PEM) des Controller-Zertifikats, falls der Host es zulässt."""
     if paths is None:
         paths = [p.path for p in host.paths] if isinstance(host, Host) else []
     return HostSpec(
@@ -419,7 +422,8 @@ def host_spec(
         access=getattr(host, "access", "public"),
         no_cert_action=getattr(host, "no_cert_action", "reject"),
         paths=tuple(paths),
-        allowed=tuple((d.fingerprint, d.cert_pem) for d in (allowed or [])),
+        allowed=tuple((d.fingerprint, d.cert_pem) for d in (allowed or []))
+        + ((controller,) if controller else ()),
         waf_mode=getattr(host, "waf_mode", "off"),
         waf_paranoia=getattr(host, "waf_paranoia", 1),
         waf_exclusions=tuple(getattr(host, "waf_exclusions", None) or ()),
@@ -436,7 +440,10 @@ def host_spec(
     )
 
 
-def area_specs(db: Session, host: Host) -> list[AreaSpec]:
+def area_specs(
+    db: Session, host: Host, controller: tuple[str, str] | None = None
+) -> list[AreaSpec]:
+    """`controller`: (Fingerabdruck, PEM) des Controller-Zertifikats, wenn freigegeben."""
     out = []
     for a in host.areas:
         allowed = None
@@ -445,6 +452,8 @@ def area_specs(db: Session, host: Host) -> list[AreaSpec]:
                 db, persons_for(db, a.grant_group_ids or [], a.grant_person_ids or [])
             )
             allowed = tuple((d.fingerprint, d.cert_pem) for d in devices)
+            if controller:
+                allowed += (controller,)
         out.append(
             AreaSpec(
                 paths=tuple(a.paths or ()),
@@ -517,6 +526,9 @@ def node_config(db: Session, node: Node, settings: Settings, bans: bool = True) 
     # Die Route für die Oberfläche gibt es nur auf dem lokalen Node (Controller im selben Netz)
     local = not node.is_agent
     internal_nets = resolve_ranges(db, general["internal_networks"], general["internal_list_ids"])
+    from tesseract.controllercert import allowed_entry
+
+    ctl = allowed_entry(db)
     spec = NodeSpec(
         admin_listen=node.admin_listen or settings.caddy_admin_listen,
         hosts=[
@@ -524,8 +536,9 @@ def node_config(db: Session, node: Node, settings: Settings, bans: bool = True) 
                 h,
                 allowed=allowed_devices(db, h),
                 ip_ranges=resolve_ranges(db, h.ip_entries or [], h.ip_list_ids or []),
-                areas=area_specs(db, h),
+                areas=area_specs(db, h, ctl if h.allow_controller else None),
                 internal_networks=internal_nets,
+                controller=ctl if h.allow_controller else None,
             )
             for h in hosts
         ],

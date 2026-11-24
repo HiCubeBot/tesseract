@@ -4,6 +4,16 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.21.0] – 2026-11-24
+
+### Hinzugefügt
+- **Tesseract selbst darf zugreifen:** Der Controller hat jetzt ein eigenes Client-Zertifikat aus
+  der Zertifizierungsstelle (1 Jahr gültig, erneuert sich selbst, auch nach einem Wechsel des
+  Zwischenzertifikats) und nutzt es für Benachrichtigungen an ntfy und Webhooks. Bei Hosts mit
+  Zertifikatspflicht lässt es sich unter Zugriff freigeben („Tesseract selbst darf zugreifen“) –
+  unabhängig von IP-Adresse und Docker-Netz, ohne das Docker-Netz als intern freizugeben;
+  Migration 0027
+
 ## [1.20.1] – 2026-11-24
 
 ### Behoben
