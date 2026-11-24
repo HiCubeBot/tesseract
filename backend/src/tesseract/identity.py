@@ -12,6 +12,8 @@ from tesseract.db.models import Authority, Device, Node, Person, utcnow
 from tesseract.secretbox import SecretBox
 
 KEY_CONTEXT = "authority-key"
+# .p12 der Geräte und ihr Passwort (zum späteren Abruf)
+P12_CONTEXT = "device-p12"
 DEFAULT_DEVICE_DAYS = 365
 MIN_ROOT_PASSPHRASE = 12
 
@@ -408,8 +410,25 @@ def issue_device(
     db.add(device)
     password = pki.generate_p12_password()
     p12 = pki.to_p12(kp, chain(db), password, f"{person.name} – {name}")
-    filename = f"tesseract-{_slug(person.name)}-{_slug(name)}.p12"
-    return IssuedDevice(device, p12, password, filename)
+    _keep_p12(db, box, device, p12, password)
+    return IssuedDevice(device, p12, password, p12_filename(device, person))
+
+
+def p12_filename(device: Device, person: Person | None = None) -> str:
+    person = person or device.person
+    return f"tesseract-{_slug(person.name)}-{_slug(device.name)}.p12"
+
+
+def _keep_p12(db: Session, box: SecretBox, device: Device, p12: bytes, password: str) -> None:
+    """.p12 und Passwort verschlüsselt ablegen – wenn in den Einstellungen gewünscht."""
+    from tesseract.services import get_general
+
+    if get_general(db)["device_keep_p12"]:
+        device.p12_enc = box.encrypt(p12, P12_CONTEXT)
+        device.p12_password_enc = box.encrypt(password.encode(), P12_CONTEXT)
+    else:
+        device.p12_enc = None
+        device.p12_password_enc = None
 
 
 def renew_device(
@@ -436,11 +455,14 @@ def renew_device(
     device.unlimited = days is None
     password = pki.generate_p12_password()
     p12 = pki.to_p12(kp, chain(db), password, f"{person.name} – {device.name}")
-    filename = f"tesseract-{_slug(person.name)}-{_slug(device.name)}.p12"
-    return IssuedDevice(device, p12, password, filename)
+    _keep_p12(db, box, device, p12, password)
+    return IssuedDevice(device, p12, password, p12_filename(device))
 
 
 def revoke_device(device: Device, reason: str = "", at: datetime | None = None) -> None:
     if device.revoked_at is None:
         device.revoked_at = at or utcnow()
         device.revoke_reason = reason
+    # gesperrt → hinterlegte Kopie ist wertlos, weg damit
+    device.p12_enc = None
+    device.p12_password_enc = None

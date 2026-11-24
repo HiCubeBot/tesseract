@@ -39,6 +39,8 @@ CONTROLLER_PUBLIC_PATHS = (
     # Gäste verlängern ihr Gerät selbst (Ausweis: das Gerätezertifikat)
     "/v",
     "/api/renew",
+    # kurzlebiger Download-Link für eine hinterlegte .p12 (z. B. per QR-Code aufs Handy)
+    "/api/dl/*",
     "/api/agent/*",
     "/assets/*",
     "/api/health",

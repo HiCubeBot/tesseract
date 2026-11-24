@@ -4,6 +4,19 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.22.0] – 2026-11-24
+
+### Hinzugefügt
+- **Gerätezertifikate später erneut abrufen:** Die `.p12` neuer und verlängerter Geräte samt
+  Passwort wird verschlüsselt aufbewahrt. Unter Geräte › „Zertifikat“ lässt sie sich jederzeit
+  wieder herunterladen, das Passwort anzeigen oder die Kopie löschen (Audit-Log vermerkt jeden
+  Abruf). Abschaltbar unter Einstellungen › Zertifizierungsstelle; Ausschalten löscht alle
+  Kopien, gesperrte Geräte verlieren ihre sofort. Geräte von vor 1.22 haben keine Kopie –
+  einmal „Verlängern“
+- **Aufs Handy per QR-Code:** Nach dem Ausstellen, Verlängern oder Abrufen erzeugt „Aufs Handy
+  (QR-Code)“ einen Download-Link (15 Minuten, höchstens 3 Abrufe, ohne Passwort im Link) – mit
+  der Kamera scannen, die `.p12` landet direkt auf dem Handy (`/api/dl/…`); Migration 0028
+
 ## [1.21.0] – 2026-11-24
 
 ### Hinzugefügt

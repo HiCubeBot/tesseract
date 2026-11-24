@@ -21,6 +21,32 @@
   let revoke = $state<Device | null>(null);
   let renewing = $state<number | null>(null);
   let renewed = $state<IssuedDevice | null>(null);
+  // hinterlegtes Zertifikat erneut abrufen
+  let shown = $state<IssuedDevice | null>(null);
+
+  async function showCert(d: Device) {
+    try {
+      const c = await api.get<{ filename: string; password: string; p12_base64: string }>(`/devices/${d.id}/certificate`);
+      renewed = null;
+      shown = { device: d, ...c };
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (e) {
+      toasts.show('bad', e instanceof Error ? e.message : String(e), 10000);
+    }
+  }
+
+  async function forget() {
+    const d = shown?.device;
+    if (!d || !confirm(`Hinterlegte Kopie von „${d.name}“ löschen? Das Zertifikat bleibt gültig, lässt sich aber nicht mehr abrufen.`)) return;
+    try {
+      await api.del(`/devices/${d.id}/certificate`);
+      shown = null;
+      toasts.show('ok', 'Hinterlegte Kopie gelöscht.');
+      await load();
+    } catch (e) {
+      toasts.show('bad', e instanceof Error ? e.message : String(e));
+    }
+  }
 
   /** Neues Zertifikat für dasselbe Gerät – Freigaben bleiben, das alte gilt nicht mehr */
   async function renew(d: Device) {
@@ -128,6 +154,7 @@
   </div>
 
   {#if renewed}<IssuedCertificate issued={renewed} onClose={() => (renewed = null)} />{/if}
+  {#if shown}<IssuedCertificate issued={shown} again onClose={() => (shown = null)} onForget={forget} />{/if}
 
   {#if revoke}
     <ConfirmDialog
@@ -170,6 +197,9 @@
                 {#if expiresSoon(d)}<StatusPill tone="warn" label="läuft bald ab" />{:else}<StatusPill tone={st.tone} label={st.label} />{/if}
               </td>
               <td class="right">
+                {#if d.p12_stored && d.status !== 'revoked'}
+                  <Button variant="ghost" size="sm" label="Zertifikat" onClick={() => showCert(d)} />
+                {/if}
                 {#if d.status === 'active' || d.status === 'expired'}
                   <Button variant="ghost" size="sm" label={renewing === d.id ? 'Verlängert …' : 'Verlängern'} disabled={renewing !== null} onClick={() => renew(d)} />
                 {/if}

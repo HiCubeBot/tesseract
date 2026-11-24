@@ -47,7 +47,8 @@ Stand des Sicherheits-Reviews zu Version 1.0 (Phase 6). Ergänzt das
 | Session-, Einladungs-, Agent-, Metrik-Token | DB | nur SHA-256 |
 | Sicherungen | Ziel (lokal, S3) | AES-256-GCM, Schlüssel per scrypt aus der Passphrase, Kopf authentifiziert |
 | Git-Spiegel | Git-Repository | **unverschlüsselt**, aber ohne Geheimnisse und Personen; Token/SSH-Schlüssel verschlüsselt in der DB, an `git` nur über Umgebung bzw. kurzlebige Datei (0600) |
-| Schlüssel der Geräte | nur beim Gerät | einmal als `.p12` ausgeliefert, nie gespeichert |
+| Schlüssel der Geräte (`.p12` + Passwort) | DB, wenn „Zertifikate aufbewahren“ an ist (Standard) | AES-256-GCM mit dem Hauptschlüssel; Abruf nur angemeldet und im Audit-Log, Download-Link 15 Min./3 Abrufe ohne Passwort; gesperrt = gelöscht. Ausgeschaltet: einmal ausgeliefert, nie gespeichert |
+| Client-Zertifikat des Controllers | DB + `<data>/controller-client/` (0600) | Schlüssel in der DB mit dem Hauptschlüssel verschlüsselt |
 
 ## Vertrauen in Caddy (bewusst)
 

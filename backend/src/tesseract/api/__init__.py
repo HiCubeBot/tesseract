@@ -13,6 +13,7 @@ from tesseract.api import (
     ca,
     certificates,
     customcerts,
+    devicecert,
     health,
     hosts,
     invites,
@@ -42,6 +43,8 @@ api_router.include_router(nodes.router)
 api_router.include_router(settings.router)
 api_router.include_router(ca.router)
 api_router.include_router(people.router)
+api_router.include_router(devicecert.router)
+api_router.include_router(devicecert.public)
 api_router.include_router(access.router)
 api_router.include_router(invites.admin)
 api_router.include_router(invites.public)

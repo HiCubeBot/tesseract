@@ -467,6 +467,9 @@ export interface GeneralSettings {
   device_self_renew: boolean;
   device_self_renew_days: number;
   device_self_renew_url: string;
+  /** .p12 neuer Geräte verschlüsselt aufbewahren */
+  device_keep_p12: boolean;
+  device_p12_stored: number;
   /** öffentliche Statusseite /status – standardmäßig aus */
   status_page_enabled: boolean;
   status_page_url: string;
@@ -709,6 +712,8 @@ export interface Device {
   revoke_reason: string;
   last_seen_at: string | null;
   created_at: string;
+  /** .p12 und Passwort hinterlegt – unter Geräte erneut abrufbar */
+  p12_stored: boolean;
 }
 
 export interface Person {

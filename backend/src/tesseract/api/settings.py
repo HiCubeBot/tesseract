@@ -6,11 +6,11 @@ from urllib.parse import urlsplit
 import httpx
 from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr, Field, field_validator
-from sqlalchemy import select
+from sqlalchemy import func, select, update
 
 from tesseract import __version__, audit
 from tesseract.api.iplists import normalize_networks
-from tesseract.db.models import Host, IpList, Node
+from tesseract.db.models import Device, Host, IpList, Node
 from tesseract.deps import DB, AppSettings, Box, CurrentActor, admin_device_for
 from tesseract.services import (
     CLOUDFLARE_CONTEXT,
@@ -48,6 +48,8 @@ class GeneralIn(BaseModel):
     wildcard_certs: list[str] = Field(default_factory=list, max_length=20)
     device_self_renew: bool = True
     device_self_renew_days: int = Field(30, ge=1, le=365)
+    # .p12 neuer Geräte aufbewahren; aus = alle hinterlegten Kopien löschen
+    device_keep_p12: bool | None = None
     # Öffentliche Statusseite /status
     status_page_enabled: bool | None = None
 
@@ -153,6 +155,9 @@ class GeneralOut(BaseModel):
     wildcard_certs: list[str]
     device_self_renew: bool
     device_self_renew_days: int
+    device_keep_p12: bool = True
+    # wie viele Geräte eine hinterlegte .p12 haben
+    device_p12_stored: int = 0
     device_self_renew_url: str
     status_page_enabled: bool = False
     status_page_url: str = ""
@@ -194,6 +199,11 @@ def get_settings_general(db: DB, _: CurrentActor, settings: AppSettings) -> Gene
         wildcard_certs=g["wildcard_certs"],
         device_self_renew=g["device_self_renew"],
         device_self_renew_days=g["device_self_renew_days"],
+        device_keep_p12=bool(g["device_keep_p12"]),
+        device_p12_stored=db.scalar(
+            select(func.count()).select_from(Device).where(Device.p12_enc.is_not(None))
+        )
+        or 0,
         device_self_renew_url=(
             f"https://{settings.controller_domain}/v" if settings.controller_domain else "/v"
         ),
@@ -224,7 +234,10 @@ def put_settings_general(
     value = {
         k: v
         for k, v in value.items()
-        if not ((k.startswith("docker_") or k == "status_page_enabled") and v is None)
+        if not (
+            (k.startswith("docker_") or k in ("status_page_enabled", "device_keep_p12"))
+            and v is None
+        )
     }
     if "acme_email" in value:
         value["acme_email"] = value["acme_email"] or ""
@@ -269,6 +282,9 @@ def put_settings_general(
     for i in [*value.get("trusted_proxy_list_ids", []), *value.get("internal_list_ids", [])]:
         if db.get(IpList, i) is None:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"IP-Liste {i} unbekannt")
+    if value.get("device_keep_p12") is False and before.get("device_keep_p12", True):
+        # ausgeschaltet → alle hinterlegten Kopien löschen
+        db.execute(update(Device).values(p12_enc=None, p12_password_enc=None))
     set_general(db, value)
     audit.record(
         db,

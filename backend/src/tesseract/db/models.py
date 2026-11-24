@@ -362,7 +362,8 @@ class Person(Base):
 
 
 class Device(Base):
-    """Ein Gerät = ein Client-Zertifikat. Der private Schlüssel wird nie gespeichert."""
+    """Ein Gerät = ein Client-Zertifikat. Die .p12 (mit Schlüssel) und ihr Passwort liegen
+    verschlüsselt vor, solange „Zertifikate zum erneuten Abruf aufbewahren“ an ist."""
 
     __tablename__ = "devices"
 
@@ -376,6 +377,9 @@ class Device(Base):
     not_before: Mapped[datetime]
     not_after: Mapped[datetime]
     unlimited: Mapped[bool] = mapped_column(default=False)
+    # .p12 und Passwort verschlüsselt (SecretBox), für späteres Herunterladen
+    p12_enc: Mapped[str | None]
+    p12_password_enc: Mapped[str | None] = mapped_column(String(255))
     revoked_at: Mapped[datetime | None]
     revoke_reason: Mapped[str] = mapped_column(String(255), default="")
     last_seen_at: Mapped[datetime | None]

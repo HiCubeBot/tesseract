@@ -28,11 +28,28 @@
 
   // Gäste verlängern ihr Gerät selbst
   let selfRenew = $state<{ enabled: boolean; days: number; url: string } | null>(null);
+  // .p12 der Geräte aufbewahren
+  let keep = $state<{ enabled: boolean; stored: number } | null>(null);
+
+  async function setKeep(enabled: boolean) {
+    if (!enabled && keep?.stored && !confirm(`Alle ${keep.stored} hinterlegten Zertifikate löschen? Die Geräte bleiben gültig, ihre .p12 lässt sich aber nicht mehr abrufen.`)) {
+      keep = { ...keep };
+      return;
+    }
+    try {
+      const g = await api.put<GeneralSettings>('/settings/general', { device_keep_p12: enabled });
+      keep = { enabled: g.device_keep_p12, stored: g.device_p12_stored };
+      toasts.show('ok', enabled ? 'Neue Zertifikate werden aufbewahrt.' : 'Aufbewahren aus, hinterlegte Kopien gelöscht.');
+    } catch (e) {
+      toasts.show('bad', e instanceof Error ? e.message : String(e), 10000);
+    }
+  }
   let savingRenew = $state(false);
 
   async function loadRenew() {
     const g = await api.get<GeneralSettings>('/settings/general');
     selfRenew = { enabled: g.device_self_renew, days: g.device_self_renew_days, url: g.device_self_renew_url };
+    keep = { enabled: g.device_keep_p12, stored: g.device_p12_stored };
   }
 
   async function saveRenew() {
@@ -301,6 +318,22 @@
         <Button variant="secondary" icon="download" label="Root-Zertifikat herunterladen" onClick={downloadRoot} />
       </div>
     </section>
+
+    {#if keep}
+      <section class="card" aria-labelledby="keep-title">
+        <h2 id="keep-title">Zertifikate aufbewahren</h2>
+        <Toggle
+          label="Zum erneuten Abruf aufbewahren"
+          description="Die .p12 neuer und verlängerter Geräte samt Passwort wird verschlüsselt gespeichert. So lässt sie sich unter Geräte später erneut herunterladen oder per QR-Code aufs Handy holen. Aus = Datei und Passwort gibt es nur einmal beim Ausstellen."
+          checked={keep.enabled}
+          onChange={(v) => setKeep(v)}
+        />
+        <p class="muted small">
+          {keep.stored} {keep.stored === 1 ? 'Gerät hat' : 'Geräte haben'} eine hinterlegte Kopie. Gesperrte Geräte verlieren sie sofort. Zum Entschlüsseln dient der Schlüssel des
+          Controllers (<span class="mono">secret.key</span>) – wer ihn und die Datenbank hat, kommt an die Zertifikate.
+        </p>
+      </section>
+    {/if}
 
     {#if selfRenew}
       <section class="card" aria-labelledby="renew-title">

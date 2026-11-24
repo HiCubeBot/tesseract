@@ -92,6 +92,8 @@ class DeviceOut(BaseModel):
     revoke_reason: str
     last_seen_at: datetime | None
     created_at: datetime
+    # .p12 und Passwort hinterlegt – später erneut abrufbar
+    p12_stored: bool = False
 
 
 class PersonOut(BaseModel):
@@ -152,6 +154,7 @@ def device_out(d: Device) -> DeviceOut:
         revoke_reason=d.revoke_reason,
         last_seen_at=d.last_seen_at,
         created_at=d.created_at,
+        p12_stored=bool(d.p12_enc),
     )
 
 
@@ -352,8 +355,8 @@ def issue(
     actor: CurrentActor,
     settings: AppSettings,
 ) -> IssueOut:
-    """Stellt direkt ein Zertifikat aus (z. B. für das eigene Admin-Gerät).
-    Die .p12 wird genau einmal ausgeliefert; der Schlüssel wird nicht gespeichert."""
+    """Stellt direkt ein Zertifikat aus (z. B. für das eigene Admin-Gerät). Die .p12 kommt
+    sofort mit; ist „aufbewahren“ an, lässt sie sich später unter Geräte erneut abrufen."""
     p: Person = _get(db, Person, person_id, "Person")
     try:
         issued = issue_device(db, box, p, name=body.name, platform=body.platform, days=body.days)
