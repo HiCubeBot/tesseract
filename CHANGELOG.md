@@ -4,6 +4,15 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.20.1] – 2026-11-24
+
+### Behoben
+- **ntfy: verständliche Fehlermeldung statt „Client error '403 Forbidden'“** – sagt, ob die
+  Anmeldung fehlt, der Benutzer kein Schreibrecht auf das Thema hat (mit passendem
+  `ntfy access …`-Befehl) oder die Antwort gar nicht von ntfy, sondern von einem Proxy davor kommt
+- ntfy mit **Benutzer und Passwort**: im Feld „Zugangstoken“ geht jetzt auch `benutzer:passwort`
+  (Basic Auth) statt eines Tokens `tk_…`
+
 ## [1.20.0] – 2026-11-23
 
 ### Geändert

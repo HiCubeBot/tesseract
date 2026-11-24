@@ -172,6 +172,46 @@ def describe(e: AuditEntry) -> str:
 # ---------- Kanäle ----------
 
 
+class NotifyError(ValueError):
+    """Verständliche Fehlermeldung eines Kanals (statt der rohen HTTP-Ausnahme)."""
+
+
+def ntfy_error(r: httpx.Response, url: str, with_auth: bool) -> str:
+    """Antwort von ntfy → Meldung mit Hinweis, was zu tun ist."""
+    topic = url.rstrip("/").rsplit("/", 1)[-1] or "?"
+    detail = ""
+    from_ntfy = False
+    try:
+        data = r.json()
+        if isinstance(data, dict) and "code" in data:
+            from_ntfy = True
+            detail = str(data.get("error") or "")
+    except ValueError:
+        pass
+    text = f"ntfy antwortet {r.status_code}" + (f" ({detail})" if detail else "")
+    if not from_ntfy and r.status_code in (401, 403):
+        return (
+            f"{text} – die Antwort kommt nicht von ntfy, sondern von einem Proxy davor. Ist "
+            "der ntfy-Host z. B. in Tesseract nur mit Zertifikat oder nur intern erreichbar?"
+        )
+    if r.status_code == 401:
+        return f"{text} – Token bzw. Benutzer/Passwort fehlt oder ist falsch"
+    if r.status_code == 403:
+        if not with_auth:
+            return (
+                f"{text} – ntfy erlaubt hier kein anonymes Senden. Zugangstoken eintragen "
+                f"(ntfy token add <benutzer>) und dem Benutzer Schreibrecht geben "
+                f"(ntfy access <benutzer> {topic} rw)"
+            )
+        return (
+            f"{text} – der Benutzer des Tokens darf nicht auf „{topic}“ senden: "
+            f"ntfy access <benutzer> {topic} rw"
+        )
+    if r.status_code == 429:
+        return f"{text} – zu viele Nachrichten, ntfy begrenzt gerade"
+    return text
+
+
 class Sender:
     """Verschickt eine Nachricht über einen Kanal. In Tests ersetzbar."""
 
@@ -200,11 +240,17 @@ class Sender:
             ],
         }
         token = self._secret(c.get("token_enc", ""))
-        if token:
+        auth = None
+        if token and ":" in token and not token.startswith("tk_"):
+            # Benutzer und Passwort statt Zugangstoken
+            user, _, password = token.partition(":")
+            auth = (user, password)
+        elif token:
             headers["Authorization"] = f"Bearer {token}"
         with self._http() as h:
-            r = h.post(c["url"], content=msg.text.encode(), headers=headers)
-        r.raise_for_status()
+            r = h.post(c["url"], content=msg.text.encode(), headers=headers, auth=auth)
+        if r.status_code >= 400:
+            raise NotifyError(ntfy_error(r, c["url"], bool(token)))
 
     def _webhook(self, c: dict[str, Any], msg: Message) -> None:
         body = json.dumps(

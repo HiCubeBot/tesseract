@@ -221,3 +221,45 @@ def test_node_offline_transition(auth_client: TestClient) -> None:
         db.commit()
         actions = list(db.scalars(select(AuditEntry.action).where(AuditEntry.target == "local")))
     assert actions == ["node_offline"]
+
+
+def test_ntfy_errors_and_basic_auth() -> None:
+    import httpx
+
+    from tesseract.notify import Message, NotifyError, Sender
+    from tesseract.secretbox import SecretBox
+
+    box = SecretBox(b"0" * 32)
+    seen = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        if "proxy" in str(request.url):
+            return httpx.Response(403, text="Kein Zugang")
+        if request.headers.get("Authorization", "").startswith("Basic"):
+            return httpx.Response(200, json={"id": "x"})
+        return httpx.Response(403, json={"code": 40301, "http": 403, "error": "forbidden"})
+
+    s = Sender(box, httpx.MockTransport(handler))
+    msg = Message("test", "info", "Test", ["Hallo"])
+    url = "https://ntfy.example.org/tesseract"
+    try:
+        s._ntfy({"url": url, "token_enc": ""}, msg)
+    except NotifyError as e:
+        assert "kein anonymes Senden" in str(e) and "ntfy access <benutzer> tesseract rw" in str(e)
+    else:
+        raise AssertionError("403 erwartet")
+    from tesseract.notify import SECRET_CONTEXT
+
+    enc = box.encrypt(b"anna:geheim", SECRET_CONTEXT)
+    s._ntfy({"url": url, "token_enc": enc}, msg)
+    assert seen[-1].headers["Authorization"].startswith("Basic ")
+    tok = box.encrypt(b"tk_abc", SECRET_CONTEXT)
+    try:
+        s._ntfy({"url": url, "token_enc": tok}, msg)
+    except NotifyError as e:
+        assert "darf nicht auf „tesseract“ senden" in str(e)
+    try:
+        s._ntfy({"url": "https://proxy.example.org/t", "token_enc": tok}, msg)
+    except NotifyError as e:
+        assert "nicht von ntfy" in str(e)

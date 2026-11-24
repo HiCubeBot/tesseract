@@ -130,7 +130,7 @@
         <div class="row"><h2 id="ntfy-title">ntfy</h2><span class="spacer"></span><Button variant="ghost" size="sm" label={testing === 'ntfy' ? 'Sendet …' : 'Test senden'} disabled={!cfg.ntfy.enabled || testing !== null} onClick={() => test('ntfy')} /></div>
         <Toggle label="Eingeschaltet" bind:checked={cfg.ntfy.enabled} />
         <label class="field col"><span class="label">Thema (Adresse)</span><input class="input mono" bind:value={cfg.ntfy.url} placeholder="https://ntfy.sh/mein-geheimes-thema" /></label>
-        <label class="field col"><span class="label">Zugangstoken (optional){cfg.ntfy.token_set ? ' · gesetzt' : ''}</span><input class="input mono" type="password" bind:value={secrets.ntfy} placeholder={cfg.ntfy.token_set ? 'unverändert lassen' : 'tk_…'} autocomplete="off" /></label>
+        <label class="field col"><span class="label">Zugangstoken oder Benutzer:Passwort (optional){cfg.ntfy.token_set ? ' · gesetzt' : ''}</span><input class="input mono" type="password" bind:value={secrets.ntfy} placeholder={cfg.ntfy.token_set ? 'unverändert lassen' : 'tk_… oder benutzer:passwort'} autocomplete="off" /><span class="muted small">Nötig, wenn ntfy anonymes Senden nicht erlaubt. Der Benutzer braucht Schreibrecht auf das Thema (<span class="mono">ntfy access &lt;benutzer&gt; &lt;thema&gt; rw</span>).</span></label>
       </section>
 
       <section class="card" aria-labelledby="mail-title">
