@@ -4,7 +4,7 @@
    * Gerätezertifikat, das der Browser beim Aufruf vorzeigt.
    */
   import Icon from '../lib/components/Icon.svelte';
-  import { ApiError, base64ToBytes, downloadFile, formatDay } from '../lib/api';
+  import { ApiError, base64ToBytes, downloadFile, fetchRetry, formatDay } from '../lib/api';
   import { detectPlatform, INSTALL_STEPS, type Platform } from '../lib/install';
 
   interface RenewStatus {
@@ -34,7 +34,7 @@
   let platform = $state<Platform>(detectPlatform());
 
   async function call<T>(method: string): Promise<T> {
-    const res = await fetch('/api/renew', { method, credentials: 'omit', referrerPolicy: 'no-referrer' });
+    const res = await fetchRetry('/api/renew', { method, credentials: 'omit', referrerPolicy: 'no-referrer' });
     const data = await res.json().catch(() => null);
     if (!res.ok) throw new ApiError(res.status, typeof data?.detail === 'string' ? data.detail : `Fehler ${res.status}`);
     return data as T;

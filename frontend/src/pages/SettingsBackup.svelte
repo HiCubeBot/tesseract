@@ -7,7 +7,7 @@
   import Toggle from '../lib/components/Toggle.svelte';
   import StatCard from '../lib/components/StatCard.svelte';
   import ConfirmDialog from '../lib/components/ConfirmDialog.svelte';
-  import { api, formatAgo, formatBytes, formatDate } from '../lib/api';
+  import { api, fetchRetry, formatAgo, formatBytes, formatDate } from '../lib/api';
   import { toasts } from '../lib/toast.svelte';
 
   interface Result {
@@ -218,7 +218,7 @@
     if (!upload.file) return;
     busy = 'upload';
     try {
-      const res = await fetch('/api/backups/restore/upload', {
+      const res = await fetchRetry('/api/backups/restore/upload', {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/octet-stream', 'X-Backup-Passphrase': upload.phrase },

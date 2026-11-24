@@ -8,6 +8,7 @@
     ApiError,
     base64ToBytes,
     downloadFile,
+    fetchRetry,
     formatDay,
     PLATFORMS,
     type GuestCertificate,
@@ -40,7 +41,7 @@
     const headers: Record<string, string> = {};
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     if (secret) headers['X-Enroll-Secret'] = secret;
-    const res = await fetch(`/api/enroll/${encodeURIComponent(token)}${path}`, {
+    const res = await fetchRetry(`/api/enroll/${encodeURIComponent(token)}${path}`, {
       method,
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,

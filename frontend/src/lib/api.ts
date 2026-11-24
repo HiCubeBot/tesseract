@@ -35,8 +35,28 @@ function errorMessage(body: unknown, status: number): string {
   return `Fehler ${status}`;
 }
 
+/**
+ * fetch mit Wiederholung bei 421 (Misdirected Request).
+ *
+ * Browser verwenden bei HTTP/2 und HTTP/3 eine offene Verbindung eines anderen Hosts weiter,
+ * wenn dessen Zertifikat (z. B. ein Wildcard) auch diesen Namen abdeckt. Caddy lehnt das bei
+ * Client-Zertifikaten mit 421 ab und schließt die Verbindung (Schutz gegen Umgehung von mTLS).
+ * Der nächste Versuch geht über eine eigene Verbindung und klappt. Gefahrlos auch für POST:
+ * Caddy hat die Anfrage abgewiesen, bevor sie das Backend erreicht hat.
+ */
+export async function fetchRetry(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const delays = [0, 150, 500];
+  let res = await fetch(input, init);
+  for (const ms of delays) {
+    if (res.status !== 421) break;
+    if (ms) await new Promise((r) => setTimeout(r, ms));
+    res = await fetch(input, init);
+  }
+  return res;
+}
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const res = await fetch('/api' + path, {
+  const res = await fetchRetry('/api' + path, {
     method,
     credentials: 'same-origin',
     headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,

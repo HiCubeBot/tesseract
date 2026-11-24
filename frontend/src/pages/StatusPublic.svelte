@@ -3,6 +3,7 @@
   // Erreichbarkeit der letzten 90 Tage. Lädt jede Minute neu.
   import { onDestroy } from 'svelte';
   import UptimeBars from '../lib/components/UptimeBars.svelte';
+  import { fetchRetry } from '../lib/api';
 
   interface Service {
     name: string;
@@ -22,7 +23,7 @@
 
   async function load() {
     try {
-      const r = await fetch('/api/status', { headers: { Accept: 'application/json' } });
+      const r = await fetchRetry('/api/status', { headers: { Accept: 'application/json' } });
       if (r.status === 404) throw new Error('Diese Statusseite ist nicht eingeschaltet.');
       if (!r.ok) throw new Error(`Status nicht abrufbar (${r.status})`);
       data = await r.json();

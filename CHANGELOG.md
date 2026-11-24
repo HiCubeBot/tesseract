@@ -4,6 +4,15 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.22.1] – 2026-11-25
+
+### Behoben
+- **Fehler 421 beim Seitenwechsel:** Mit einem Wildcard-Zertifikat schicken Browser Anfragen an
+  Tesseract manchmal über eine noch offene Verbindung eines anderen Hosts. Caddy weist das bei
+  Client-Zertifikaten mit 421 (Misdirected Request) ab – zu Recht, sonst ließe sich mTLS
+  umgehen –, und die Browser versuchen es nicht von selbst erneut. Die Oberfläche wiederholt
+  solche Anfragen jetzt automatisch über eine eigene Verbindung; F5 ist nicht mehr nötig.
+
 ## [1.22.0] – 2026-11-24
 
 ### Hinzugefügt

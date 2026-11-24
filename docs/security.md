@@ -62,6 +62,12 @@ fälschen – deshalb bleibt Port 8000 im internen Docker-Netz (so in `compose.y
 - Server-seitige Anfragen an vom Admin eingetragene Adressen (Erreichbarkeit des Ziels,
   Authelia-Test, Webhook, S3, ntfy) sind gewollt und nur für angemeldete Admins möglich.
 - Abgelehnte TLS-Handshakes (strenges mTLS) erscheinen nicht in den Logs.
+- Sobald ein Host Client-Zertifikate nutzt, prüft Caddy streng, dass SNI und Host-Header
+  übereinstimmen (`strict_sni_host`), sonst ließe sich mTLS über die Verbindung eines offenen
+  Hosts umgehen. Browser verwenden bei Wildcard-Zertifikaten aber Verbindungen anderer Hosts
+  weiter und bekommen dann 421 (Misdirected Request). Das bleibt bewusst so; die Oberfläche
+  wiederholt solche Anfragen selbst. Bei anderen Diensten hinter Tesseract kann vereinzelt
+  eine 421-Seite erscheinen – ein Neuladen hilft.
 - Admin-Anmeldung per Passwort, Passkey oder SSO (OIDC) – siehe [anmeldung.md](anmeldung.md).
   Passwort-Anmeldung lässt sich abschalten.
 
