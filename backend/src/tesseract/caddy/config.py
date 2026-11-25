@@ -396,6 +396,9 @@ def _hint(body: str) -> JSON:
     return {
         "handler": "static_response",
         "status_code": 403,
+        # Verbindung danach schließen: die nächste Anfrage baut eine neue auf und kann dann
+        # ein (inzwischen installiertes) Zertifikat mitschicken
+        "close": True,
         "headers": {
             "Content-Type": ["text/html; charset=utf-8"],
             "Cache-Control": ["no-store"],
@@ -421,7 +424,7 @@ def _deny(host: HostSpec) -> JSON:
                 {"handle": [_hint(HINT_PAGE_EN)]},
             ],
         }
-    return {"handler": "static_response", "status_code": 403, "body": "Kein Zugang"}
+    return {"handler": "static_response", "status_code": 403, "body": "Kein Zugang", "close": True}
 
 
 def gate_route(host: HostSpec) -> JSON | None:
@@ -973,6 +976,12 @@ def build_config(spec: NodeSpec) -> JSON:
                 for cid, cert, key in spec.custom_certs
             ],
         }
+    if any("client_authentication" in p for p in https_server.get("tls_connection_policies", [])):
+        # Keine TLS-Sitzungswiederaufnahme: Eine ohne Zertifikat begonnene Sitzung (z. B. die
+        # Hinweisseite) würde sonst bei jeder neuen Verbindung ohne Zertifikat fortgesetzt –
+        # ein frisch installiertes Gerätezertifikat käme nie an, bis Caddy neu lädt.
+        tls = tls or {}
+        tls["session_tickets"] = {"disabled": True}
     if tls:
         config["apps"]["tls"] = tls
     logs: JSON = {}

@@ -293,3 +293,37 @@ def test_unrevoke_device(auth_client: TestClient, caddy: FakeCaddy) -> None:
     )
     r = auth_client.post(f"/api/devices/{phone['id']}/unrevoke")
     assert r.status_code == 409 and "Person" in r.text
+
+
+def test_no_tls_resumption_and_close_on_deny(auth_client: TestClient, caddy: FakeCaddy) -> None:
+    """Ohne Zertifikat begonnene TLS-Sitzungen dürfen nicht wiederaufgenommen werden – sonst
+    schickt ein Gerät sein frisch installiertes Zertifikat erst nach einem Caddy-Neustart."""
+    ids = _setup(auth_client)
+    auth_client.post(
+        "/api/hosts",
+        json={
+            **HOST,
+            "access": "mtls",
+            "no_cert_action": "hint",
+            "grant_person_ids": [ids["ben"]["id"]],
+        },
+    )
+    assert caddy.last["apps"]["tls"]["session_tickets"] == {"disabled": True}
+    deny = _gate(caddy, "fotos.example.org")["handle"][0]
+    assert all(r["handle"][0]["close"] is True for r in deny["routes"])
+
+
+def test_tls_tickets_untouched_without_client_auth() -> None:
+    spec = NodeSpec(
+        admin_listen="localhost:2019",
+        hosts=[
+            HostSpec(
+                id=1,
+                domain="a.example.org",
+                upstream_scheme="http",
+                upstream_host="x",
+                upstream_port=80,
+            )
+        ],
+    )
+    assert "session_tickets" not in build_config(spec)["apps"].get("tls", {})
