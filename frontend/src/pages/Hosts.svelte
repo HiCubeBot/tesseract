@@ -1,6 +1,8 @@
 <script lang="ts">
   import AppShell from '../lib/components/AppShell.svelte';
   import PageHeader from '../lib/components/PageHeader.svelte';
+  import { session } from '../lib/session.svelte';
+  import { hostHref } from '../lib/permissions';
   import SegmentedControl from '../lib/components/SegmentedControl.svelte';
   import StatusPill from '../lib/components/StatusPill.svelte';
   import Alert from '../lib/components/Alert.svelte';
@@ -71,8 +73,8 @@
   <PageHeader
     title="Proxy-Hosts"
     subtitle="Öffentlich mit Let's Encrypt – oder nur für freigegebene Geräte (mTLS)."
-    primaryLabel="Host anlegen"
-    primaryHref="#/hosts/new"
+    primaryLabel={session.isAdmin ? 'Host anlegen' : undefined}
+    primaryHref={session.isAdmin ? '#/hosts/new' : undefined}
   />
 
   {#if loadError}<Alert tone="bad" title="Hosts konnten nicht geladen werden" text={loadError} />{/if}
@@ -111,8 +113,8 @@
         icon="hosts"
         title="Noch keine Hosts"
         text="Lege den ersten Proxy-Host an – Caddy holt das Zertifikat automatisch."
-        actionLabel="Host anlegen"
-        actionHref="#/hosts/new"
+        actionLabel={session.isAdmin ? 'Host anlegen' : undefined}
+        actionHref={session.isAdmin ? '#/hosts/new' : undefined}
       />
     {:else}
       <div class="table-wrap">
@@ -134,7 +136,7 @@
               {@const st = hostStatus(h)}
               <tr class:off={!h.draft && !h.enabled}>
                 <td>
-                  <a class="mono domain" href={`#/hosts/${h.id}`}>{h.domain}</a>
+                  <a class="mono domain" href={hostHref(session.role, h.id)}>{h.domain}</a>
                   {#if h.source === 'docker'}<span class="src" title={`aus den Docker-Labels von ${h.source_ref?.split(':').slice(1).join(':')}`}>Docker</span>{/if}
                 </td>
                 <td class="mono muted small">{upstreamLabel(h)}</td>
@@ -150,7 +152,11 @@
                   <span class="muted tiny block">{accessLabel(h)}</span>
                 </td>
                 <td class="small nowrap">
-                  <a class="plain" href={`#/hosts/${h.id}/security`}>{protectionLabel(h)}</a>
+                  {#if session.isAdmin}
+                    <a class="plain" href={`#/hosts/${h.id}/security`}>{protectionLabel(h)}</a>
+                  {:else}
+                    {protectionLabel(h)}
+                  {/if}
                 </td>
                 <td class="activity">
                   {#if activity[h.domain]}
@@ -165,7 +171,7 @@
                 </td>
                 <td><StatusPill tone={st.tone} label={st.label} /></td>
                 <td class="switch-cell">
-                  {#if !h.draft}
+                  {#if !h.draft && session.isAdmin}
                     <Switch
                       checked={h.enabled}
                       disabled={toggling !== null}

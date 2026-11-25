@@ -64,6 +64,8 @@ class PersonIn(BaseModel):
     max_devices: int = Field(3, ge=1, le=20)
     disabled: bool = False
     group_ids: list[int] = Field(default_factory=list)
+    # Zugriff auf Tesseract per Gerätezertifikat; None = beim Ändern unverändert
+    ui_role: Literal["none", "read", "own", "admin"] | None = None
 
     @field_validator("name")
     @classmethod
@@ -109,6 +111,8 @@ class PersonOut(BaseModel):
     email: str | None = None
     # aus LDAP übernommen – Name, E-Mail, LDAP-Gruppen und Sperre kommen von dort
     ldap: bool = False
+    # Zugriff auf Tesseract per Gerätezertifikat: none | read | own | admin
+    ui_role: str = "none"
 
 
 class IssueIn(BaseModel):
@@ -171,6 +175,7 @@ def person_out(db: Session, p: Person) -> PersonOut:
         active_devices=active_device_count(db, p.id),
         email=p.email,
         ldap=p.ldap_dn is not None,
+        ui_role=p.ui_role or "none",
     )
 
 
@@ -266,7 +271,13 @@ def list_persons(db: DB, _: CurrentActor) -> list[PersonOut]:
 
 @router.post("/persons", status_code=status.HTTP_201_CREATED)
 def create_person(body: PersonIn, db: DB, actor: CurrentActor) -> PersonOut:
-    p = Person(name=body.name, note=body.note, max_devices=body.max_devices, disabled=body.disabled)
+    p = Person(
+        name=body.name,
+        note=body.note,
+        max_devices=body.max_devices,
+        disabled=body.disabled,
+        ui_role=body.ui_role or "none",
+    )
     p.groups = _groups(db, body.group_ids)
     db.add(p)
     audit.record(
@@ -274,7 +285,7 @@ def create_person(body: PersonIn, db: DB, actor: CurrentActor) -> PersonOut:
         actor=actor.name,
         action="person_created",
         target=body.name,
-        details={"groups": [g.name for g in p.groups]},
+        details={"groups": [g.name for g in p.groups], "ui_role": p.ui_role},
         ip=actor.ip,
     )
     _commit_unique(db, "Eine Person mit diesem Namen")
@@ -296,7 +307,11 @@ def update_person(
     settings: AppSettings,
 ) -> PersonOut:
     p: Person = _get(db, Person, person_id, "Person")
-    before = {"groups": sorted(g.name for g in p.groups), "disabled": p.disabled}
+    before = {
+        "groups": sorted(g.name for g in p.groups),
+        "disabled": p.disabled,
+        "ui_role": p.ui_role,
+    }
     p.name, p.note, p.max_devices, p.disabled = (
         body.name,
         body.note,
@@ -304,7 +319,13 @@ def update_person(
         body.disabled,
     )
     p.groups = _groups(db, body.group_ids)
-    after = {"groups": sorted(g.name for g in p.groups), "disabled": p.disabled}
+    if body.ui_role is not None:
+        p.ui_role = body.ui_role
+    after = {
+        "groups": sorted(g.name for g in p.groups),
+        "disabled": p.disabled,
+        "ui_role": p.ui_role,
+    }
     audit.record(
         db,
         actor=actor.name,
@@ -491,4 +512,39 @@ def revoked_csv(db: DB, _: CurrentActor) -> Response:
         "﻿" + buf.getvalue(),
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": 'attachment; filename="gesperrte-geraete.csv"'},
+    )
+
+
+# ---------- Eigene Geräte (Personen per Zertifikat) ----------
+
+
+class MyDevicesOut(BaseModel):
+    person: str
+    role: str
+    # Gerät, mit dem diese Anfrage kam
+    current_device: str
+    devices: list[DeviceOut]
+    hosts: list[str]
+
+
+@router.get("/me/devices")
+def my_devices(db: DB, actor: CurrentActor) -> MyDevicesOut:
+    """Die eigenen Geräte und freigegebenen Hosts – für Personen mit Zugriff per Zertifikat."""
+    from tesseract.db.models import Host
+    from tesseract.uiaccess import granted_host_ids
+
+    if actor.person_id is None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "Nur für Personen, die per Gerätezertifikat angemeldet sind"
+        )
+    p: Person = _get(db, Person, actor.person_id, "Person")
+    ids = granted_host_ids(db, p.id)
+    rows = db.scalars(select(Host).where(Host.id.in_(ids))) if ids else []
+    hosts = sorted(h.domain for h in rows)
+    return MyDevicesOut(
+        person=p.name,
+        role=actor.role,
+        current_device=actor.device_name,
+        devices=[device_out(d) for d in p.devices],
+        hosts=hosts,
     )

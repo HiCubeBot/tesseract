@@ -13,13 +13,16 @@
     api,
     DEVICE_STATUS,
     PLATFORMS,
+    UI_ROLES,
+    UI_ROLE_HINTS,
     expiresSoon,
     formatDay,
     type CAStatus,
     type Group,
     type Invite,
     type IssuedDevice,
-    type Person
+    type Person,
+    type UiRole
   } from '../lib/api';
   import { untrack } from 'svelte';
   import { router } from '../lib/router.svelte';
@@ -39,7 +42,7 @@
   const selected = $derived(persons.find((p) => p.id === selectedId) ?? null);
 
   // Formular Person
-  let form = $state({ name: '', note: '', max_devices: 3, disabled: false, group_ids: [] as number[] });
+  let form = $state({ name: '', note: '', max_devices: 3, disabled: false, group_ids: [] as number[], ui_role: 'none' as UiRole });
   let saving = $state(false);
   let formError = $state('');
   let confirmDelete = $state(false);
@@ -127,10 +130,11 @@
         note: p.note,
         max_devices: p.max_devices,
         disabled: p.disabled,
-        group_ids: p.groups.map((g) => g.id)
+        group_ids: p.groups.map((g) => g.id),
+        ui_role: p.ui_role ?? 'none'
       };
     } else if (creating) {
-      form = { name: '', note: '', max_devices: 3, disabled: false, group_ids: [] };
+      form = { name: '', note: '', max_devices: 3, disabled: false, group_ids: [], ui_role: 'none' };
     }
     formError = '';
     confirmDelete = false;
@@ -353,6 +357,16 @@
               <input class="input" maxlength="255" bind:value={form.note} />
             </label>
           </div>
+          <label class="field">
+            Zugriff auf Tesseract
+            <select class="input" bind:value={form.ui_role}>
+              {#each Object.keys(UI_ROLES) as r (r)}<option value={r}>{UI_ROLES[r as UiRole]}</option>{/each}
+            </select>
+            <span class="muted small">
+              {UI_ROLE_HINTS[form.ui_role]}
+              {#if form.ui_role !== 'none'}Nur per Gerätezertifikat – kein Passwort, kein Login-Formular.{/if}
+            </span>
+          </label>
           {#if !creating}
             <label class="check"><input type="checkbox" bind:checked={form.disabled} />Person sperren (alle Geräte verlieren den Zugriff)</label>
           {/if}

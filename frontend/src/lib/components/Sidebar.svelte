@@ -4,6 +4,8 @@
   import { session } from '../session.svelte';
   import { theme, THEME_LABELS } from '../theme.svelte';
   import { counts } from '../counts.svelte';
+  import { pageAllowed } from '../permissions';
+  import { UI_ROLES } from '../api';
 
   // Symbole: Monitor (System), Sonne (hell), Mond (dunkel)
   const THEME_ICONS = {
@@ -22,7 +24,8 @@
     | 'nodes'
     | 'stats'
     | 'audit'
-    | 'settings';
+    | 'settings'
+    | 'me';
 
   interface Props {
     active?: NavId;
@@ -33,7 +36,7 @@
   // Zahlen bei jedem Seitenwechsel auffrischen (z. B. nach dem Anlegen eines Hosts)
   $effect(() => {
     void active;
-    if (session.user) counts.refresh();
+    if (session.user && session.isAdmin) counts.refresh();
   });
 
   const COUNT_OF: Partial<Record<NavId, keyof NonNullable<typeof counts.value>>> = {
@@ -59,8 +62,17 @@
     { id: 'nodes', label: 'Nodes', href: '#/nodes', d: icons.server },
     { id: 'stats', label: 'Statistik', href: '#/stats', d: icons.chart },
     { id: 'audit', label: 'Audit-Log', href: '#/audit', d: icons.clipboard },
-    { id: 'settings', label: 'Einstellungen', href: '#/settings', d: icons.sliders }
+    { id: 'settings', label: 'Einstellungen', href: '#/settings', d: icons.sliders },
+    { id: 'me', label: 'Mein Zugang', href: '#/me', d: icons.device }
   ];
+  // Personen per Zertifikat sehen nur, was ihre Rolle erlaubt; „Mein Zugang“ nur sie
+  const shown = $derived(
+    nav.filter((item) =>
+      item.id === 'me'
+        ? session.viaCert
+        : pageAllowed(session.user?.role, item.href.replace(/^#\//, ''))
+    )
+  );
 </script>
 
 <nav aria-label="Hauptnavigation" class="sidebar">
@@ -75,7 +87,7 @@
   </div>
 
   <div class="items">
-    {#each nav as item (item.id)}
+    {#each shown as item (item.id)}
       <a href={item.href} class="item" class:current={item.id === active} aria-current={item.id === active ? 'page' : undefined}>
         <Icon d={item.d} />
         <span class="label">{item.label}</span>
@@ -88,7 +100,9 @@
     <div class="avatar">{(session.user?.username ?? '?').slice(0, 2).toUpperCase()}</div>
     <div class="stack grow">
       <span class="user-name">{session.user?.username ?? 'nicht angemeldet'}</span>
-      <span class="muted small">Controller</span>
+      <span class="muted small">
+        {session.viaCert ? `${session.user?.device ?? ''} · ${UI_ROLES[session.role]}` : 'Controller'}
+      </span>
     </div>
     <button
       type="button"
@@ -99,7 +113,7 @@
     >
       <Icon d={THEME_ICONS[theme.choice]} />
     </button>
-    {#if session.user}
+    {#if session.user && !session.viaCert}
       <button type="button" class="logout" onclick={() => session.logout()} aria-label="Abmelden" title="Abmelden">
         <Icon d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10" />
       </button>

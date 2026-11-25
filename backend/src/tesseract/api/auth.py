@@ -36,8 +36,12 @@ class Me(BaseModel):
     username: str
     # Passwort kommt aus TESSERACT_ADMIN_PASSWORD und lässt sich hier nicht ändern
     password_from_env: bool = False
-    # "local" oder "oidc" (dann gibt es kein Passwort)
+    # "local" oder "oidc" (dann gibt es kein Passwort), "mtls" = Person per Gerätezertifikat
     source: str = "local"
+    # "admin" für Konten; bei Personen per Zertifikat ihre Rolle: read | own | admin
+    role: str = "admin"
+    person: str | None = None
+    device: str | None = None
 
 
 class DeviceInfo(BaseModel):
@@ -161,6 +165,14 @@ def device(request: Request, db: DB) -> DeviceInfo:
 
 @router.get("/me")
 def me(actor: CurrentActor, settings: AppSettings) -> Me:
+    if actor.admin is None:
+        return Me(
+            username=actor.person_name,
+            source="mtls",
+            role=actor.role,
+            person=actor.person_name,
+            device=actor.device_name,
+        )
     managed = bool(settings.resolved_admin_password) and actor.name == settings.admin_username
     return Me(username=actor.name, password_from_env=managed, source=actor.admin.source)
 
@@ -179,7 +191,7 @@ def change_password(
             "Das Passwort ist über TESSERACT_ADMIN_PASSWORD festgelegt – "
             "dort ändern und neu starten",
         )
-    admin = db.merge(actor.admin)
+    admin = db.merge(actor.account)
     if admin.source != "local":
         raise HTTPException(
             status.HTTP_409_CONFLICT, "Dieses Konto meldet sich über SSO an und hat kein Passwort"

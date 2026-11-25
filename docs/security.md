@@ -56,6 +56,9 @@ Der Controller vertraut zwei Angaben von Caddy: dem Fingerabdruck des Client-Zer
 (`X-Tesseract-Client-Fingerprint`) und der Client-IP (`X-Forwarded-For`). Caddy überschreibt
 beide Header bei jeder Anfrage. Wer den Controller-Port **direkt** erreicht, könnte sie
 fälschen – deshalb bleibt Port 8000 im internen Docker-Netz (so in `compose.yaml`).
+Seit 1.24 hängt daran auch die Anmeldung von Personen per Gerätezertifikat
+([anmeldung.md](anmeldung.md#personen-per-gerätezertifikat)) – umso wichtiger, dass der Port
+nicht von außen erreichbar ist.
 
 ## Bekannte Grenzen
 

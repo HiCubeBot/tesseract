@@ -23,6 +23,9 @@ def test_admin_password_from_env(settings: Settings, tmp_path) -> None:
             "username": "chef",
             "password_from_env": True,
             "source": "local",
+            "role": "admin",
+            "person": None,
+            "device": None,
         }
         r = c.post(
             "/api/auth/password",

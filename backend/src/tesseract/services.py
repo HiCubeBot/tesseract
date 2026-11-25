@@ -545,6 +545,7 @@ def node_config(db: Session, node: Node, settings: Settings, bans: bool = True) 
     internal_nets = resolve_ranges(db, general["internal_networks"], general["internal_list_ids"])
     from tesseract.controllercert import allowed_entry
     from tesseract.robots import host_body as robots_body
+    from tesseract.uiaccess import ui_devices
 
     ctl = allowed_entry(db)
     spec = NodeSpec(
@@ -566,7 +567,12 @@ def node_config(db: Session, node: Node, settings: Settings, bans: bool = True) 
         acme_email=general["acme_email"],
         client_ca_der_b64=client_ca_der_b64(db),
         controller_protected=bool(general["admin_mtls"]),
-        controller_allowed=tuple((d.fingerprint, d.cert_pem) for d in admin_devices(db)),
+        # Admin-Geräte und Geräte von Personen mit Zugriff auf Tesseract (uiaccess.py)
+        controller_allowed=tuple(
+            dict.fromkeys(
+                (d.fingerprint, d.cert_pem) for d in [*admin_devices(db), *ui_devices(db)]
+            )
+        ),
         controller_waf_mode=general["controller_waf_mode"],
         controller_networks=()
         if settings.admin_networks_open

@@ -6,6 +6,18 @@ class SessionState {
   user = $state<Me | null>(null);
   checked = $state(false);
 
+  /** Rolle: Admin-Konto oder Person per Gerätezertifikat (read | own | admin) */
+  get role() {
+    return this.user?.role ?? 'admin';
+  }
+  get isAdmin() {
+    return this.role === 'admin';
+  }
+  /** per Gerätezertifikat angemeldet – ohne Sitzung, Abmelden gibt es nicht */
+  get viaCert() {
+    return this.user?.source === 'mtls';
+  }
+
   constructor() {
     onUnauthorized(() => {
       this.user = null;

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
+  import { session } from '../lib/session.svelte';
   import AppShell from '../lib/components/AppShell.svelte';
   import PageHeader from '../lib/components/PageHeader.svelte';
   import KpiCard from '../lib/components/KpiCard.svelte';
@@ -65,8 +66,9 @@
       [hosts, nodes, events, invites] = await Promise.all([
         api.get<Host[]>('/hosts'),
         api.get<NodeInfo[]>('/nodes'),
-        api.get<AuditEntry[]>('/audit?limit=8'),
-        api.get<Invite[]>('/invites')
+        // Audit und Einladungen nur für Admins (Rolle „Lesen“ sieht sie nicht)
+        session.isAdmin ? api.get<AuditEntry[]>('/audit?limit=8') : Promise.resolve([]),
+        session.isAdmin ? api.get<Invite[]>('/invites') : Promise.resolve([])
       ]);
       error = '';
     } catch (e) {

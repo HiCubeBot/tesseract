@@ -38,12 +38,32 @@ AppSettings = Annotated[Settings, Depends(get_app_settings)]
 
 @dataclass
 class Actor:
-    admin: Admin
+    """Wer eine Anfrage stellt: ein Admin-Konto (Sitzung) oder eine Person per Zertifikat."""
+
+    admin: Admin | None
     ip: str | None
+    # "admin" für Konten; bei Personen ihre Rolle (siehe uiaccess.py)
+    role: str = "admin"
+    person_id: int | None = None
+    person_name: str = ""
+    device_name: str = ""
 
     @property
     def name(self) -> str:
-        return self.admin.username
+        if self.admin is not None:
+            return self.admin.username
+        # im Audit-Log: Person und Gerät statt „admin“
+        return f"{self.person_name} ({self.device_name})"
+
+    @property
+    def account(self) -> Admin:
+        """Das Admin-Konto – Passwort, Passkeys & Co. gibt es nur dort."""
+        if self.admin is None:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "Nur für Admin-Konten – du bist per Gerätezertifikat angemeldet",
+            )
+        return self.admin
 
 
 _FP_RE = re.compile(r"[0-9a-f]{64}")
@@ -80,13 +100,40 @@ def require_admin_device(request: Request, db: Session) -> None:
         )
 
 
+def cert_actor(request: Request, db: Session) -> Actor | None:
+    """Person mit Zugriff auf Tesseract, erkannt am Gerätezertifikat (ohne Sitzung)."""
+    from tesseract import uiaccess
+
+    device = uiaccess.device_for(db, client_fingerprint(request))
+    if device is None:
+        return None
+    return Actor(
+        admin=None,
+        ip=client_ip(request),
+        role=device.person.ui_role,
+        person_id=device.person_id,
+        person_name=device.person.name,
+        device_name=device.name,
+    )
+
+
 def current_actor(request: Request, db: DB) -> Actor:
     token = request.cookies.get(SESSION_COOKIE)
     session = session_for_token(db, token) if token else None
-    if session is None:
+    if session is not None:
+        require_admin_device(request, db)
+        return Actor(admin=session.admin, ip=client_ip(request))
+    actor = cert_actor(request, db)
+    if actor is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Nicht angemeldet")
-    require_admin_device(request, db)
-    return Actor(admin=session.admin, ip=client_ip(request))
+    from tesseract import uiaccess
+
+    if not uiaccess.allowed(actor.role, request.method, request.url.path):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            f"Deine Rolle „{uiaccess.ROLE_LABELS.get(actor.role, actor.role)}“ darf das nicht",
+        )
+    return actor
 
 
 CurrentActor = Annotated[Actor, Depends(current_actor)]

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
+  import { session } from '../lib/session.svelte';
   import AppShell from '../lib/components/AppShell.svelte';
   import PageHeader from '../lib/components/PageHeader.svelte';
   import StatsTabs from '../lib/components/StatsTabs.svelte';
@@ -287,10 +288,10 @@
           <dd>{d.ip_requests} Anfragen, {d.ip_denied} abgelehnt{#if d.ip_banned} · <strong>gesperrt</strong>{/if}</dd>
         </dl>
         <div class="actions">
-          {#if !d.ip_banned && !d.device}
+          {#if !d.ip_banned && !d.device && session.isAdmin}
             <Button variant="danger" size="sm" label="IP 24 h sperren" disabled={busy} onClick={() => ban(d)} />
           {/if}
-          {#if rules.length && d.host_id}
+          {#if rules.length && d.host_id && session.isAdmin}
             {#if rules.every((r) => d.waf_exclusions.includes(r))}
               <span class="muted small">Regel {rules.join(', ')} ist für diesen Host bereits ausgenommen.</span>
             {:else}

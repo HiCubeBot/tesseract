@@ -142,6 +142,7 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | Doppelter Schutz | Admin-UI nur mit Admin-Gerätezertifikat erreichbar, zusätzlich Passwort. Eigene Anmeldung von Tesseract, unabhängig von der Authelia-Middleware für Hosts | 1 (Passwort) / 2 (mTLS) |
 | SSO für Admins | Anmeldung an der Admin-Oberfläche über OpenID Connect (Authelia, Keycloak, Authentik, Dex …); Admin über Gruppe oder freigegebene E-Mail. Betrifft nur Administratoren, nicht die Personen mit Zugriff auf Hosts. Das Admin-Gerätezertifikat bleibt Pflicht | 1.3 |
 | Passkey | Anmeldung per WebAuthn (Fingerabdruck, Gesicht, Sicherheitsschlüssel) zusätzlich oder statt Passwort; Passwort-Anmeldung abschaltbar | 1.3 |
+| Personen per Zertifikat | Einzelne Personen dürfen Tesseract öffnen – nur per Gerätezertifikat, ohne Passwort. Rollen Lesen, Eigene Dienste (nur freigegebene Hosts), Admin; Prüfung bei jeder Anfrage, gesperrte Geräte sofort ohne Zugriff; Audit-Log mit Person und Gerät; Seite „Mein Zugang“ ([anmeldung.md](anmeldung.md#personen-per-gerätezertifikat)) | 1.24 |
 | Angemeldet bleiben | 30 Tage pro Gerät | 1 |
 | Passwort-Reset | Nur lokal auf dem Controller: `tesseract admin reset` | 1 |
 

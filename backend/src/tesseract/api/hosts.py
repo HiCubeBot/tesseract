@@ -23,7 +23,7 @@ from tesseract.db.models import (
     Node,
     Person,
 )
-from tesseract.deps import DB, AppSettings, CurrentActor
+from tesseract.deps import DB, Actor, AppSettings, CurrentActor
 from tesseract.services import (
     add_version,
     allowed_devices,
@@ -37,6 +37,7 @@ from tesseract.services import (
     set_paths,
     snapshot,
 )
+from tesseract.uiaccess import visible_host_ids
 
 router = APIRouter(prefix="/hosts", tags=["hosts"])
 
@@ -583,8 +584,22 @@ def _apply(request: Request, db: Session, nodes: set[int], settings: Any) -> App
 
 
 @router.get("")
-def list_hosts(db: DB, _: CurrentActor) -> list[HostOut]:
-    return [_out(db, h) for h in db.scalars(select(Host).order_by(Host.domain))]
+def list_hosts(db: DB, actor: CurrentActor) -> list[HostOut]:
+    visible = visible_host_ids(db, actor)
+    return [
+        _out(db, h)
+        for h in db.scalars(select(Host).order_by(Host.domain))
+        if visible is None or h.id in visible
+    ]
+
+
+def _visible_host(db: Session, actor: Actor, host_id: int) -> Host:
+    """Host laden – bei der Rolle „Eigene Dienste“ nur, wenn die Person freigegeben ist."""
+    host = _get_host(db, host_id)
+    visible = visible_host_ids(db, actor)
+    if visible is not None and host.id not in visible:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Host nicht gefunden")
+    return host
 
 
 def _node_ips(db: Session, node_id: int | None) -> tuple[list[str], str]:
@@ -800,8 +815,8 @@ def create_host(
 
 
 @router.get("/{host_id}")
-def get_host(host_id: int, db: DB, _: CurrentActor) -> HostOut:
-    return _out(db, _get_host(db, host_id))
+def get_host(host_id: int, db: DB, actor: CurrentActor) -> HostOut:
+    return _out(db, _visible_host(db, actor, host_id))
 
 
 @router.put("/{host_id}")
@@ -894,8 +909,8 @@ def _versions(host: Host) -> list[VersionOut]:
 
 
 @router.get("/{host_id}/versions")
-def list_versions(host_id: int, db: DB, _: CurrentActor) -> list[VersionOut]:
-    return _versions(_get_host(db, host_id))
+def list_versions(host_id: int, db: DB, actor: CurrentActor) -> list[VersionOut]:
+    return _versions(_visible_host(db, actor, host_id))
 
 
 def _route_for(snap: dict[str, Any], host_id: int) -> dict[str, Any]:
@@ -910,8 +925,8 @@ def _route_for(snap: dict[str, Any], host_id: int) -> dict[str, Any]:
 
 
 @router.get("/{host_id}/versions/{version}")
-def get_version(host_id: int, version: int, db: DB, _: CurrentActor) -> VersionDetail:
-    host = _get_host(db, host_id)
+def get_version(host_id: int, version: int, db: DB, actor: CurrentActor) -> VersionDetail:
+    host = _visible_host(db, actor, host_id)
     versions = {v.version: v for v in _versions(host)}
     if version not in versions:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Version nicht gefunden")

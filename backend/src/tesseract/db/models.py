@@ -365,6 +365,8 @@ class Person(Base):
     email: Mapped[str | None] = mapped_column(String(255))
     # Aus LDAP übernommen (DN); Name, E-Mail, LDAP-Gruppen und Sperre kommen dann von dort
     ldap_dn: Mapped[str | None] = mapped_column(String(1024), unique=True)
+    # Zugriff auf Tesseract nur per Gerätezertifikat: none | read | own | admin (uiaccess.py)
+    ui_role: Mapped[str] = mapped_column(String(8), default="none", server_default="none")
 
     groups: Mapped[list[Group]] = relationship(
         secondary="person_groups", back_populates="persons", order_by="Group.name"

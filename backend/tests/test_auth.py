@@ -17,6 +17,9 @@ def test_login_logout(client: TestClient) -> None:
         "username": "admin",
         "password_from_env": False,
         "source": "local",
+        "role": "admin",
+        "person": None,
+        "device": None,
     }
 
     assert client.post("/api/auth/logout").status_code == 204

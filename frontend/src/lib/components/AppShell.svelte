@@ -12,7 +12,8 @@
     | 'nodes'
     | 'stats'
     | 'audit'
-    | 'settings';
+    | 'settings'
+    | 'me';
 
   interface Props {
     active: NavId;

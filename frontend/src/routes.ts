@@ -59,6 +59,7 @@ import SettingsNotifyPage from "./pages/SettingsNotify.svelte";
 import SettingsBackupPage from "./pages/SettingsBackup.svelte";
 import SettingsAuthPage from "./pages/SettingsAuth.svelte";
 import SettingsLdapPage from "./pages/SettingsLdap.svelte";
+import MePage from "./pages/Me.svelte";
 
 export interface Page {
   /** Muster ohne "#/", Parameter mit ":" – z. B. "hosts/:id/history" */
@@ -101,6 +102,7 @@ export const pages: Page[] = [
   { pattern: "devices", title: "Geräte", component: DevicesPage },
   { pattern: "access", title: "Zugriffsmatrix", component: AccessPage },
   { pattern: "settings-ca", title: "Einstellungen · Zertifizierungsstelle", component: SettingsCAPage },
+  { pattern: "me", title: "Mein Zugang", component: MePage },
 ];
 
 export function matchPage(path: string): { page: Page; params: Record<string, string> } | null {

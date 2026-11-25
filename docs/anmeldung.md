@@ -56,6 +56,32 @@ falls der SSO-Anbieter ausfällt:
 docker compose exec tesseract tesseract admin password-login on
 ```
 
+## Personen per Gerätezertifikat
+
+Unter Nutzer › Person › „Zugriff auf Tesseract“ lässt sich einzelnen Personen erlauben, die
+Oberfläche zu öffnen – **nur** von ihren Geräten mit Client-Zertifikat, ohne Passwort und ohne
+Login-Formular (Standard: kein Zugriff).
+
+| Rolle | Darf |
+|---|---|
+| Lesen | Übersicht, Hosts, Zertifikate, Nodes, Statistik und Logs ansehen – nichts ändern; keine Einstellungen, kein Audit-Log, keine Einladungen, keine `.p12` |
+| Eigene Dienste | Nur die Hosts, für die die Person freigegeben ist (direkt, über eine Gruppe oder einen Bereich): Statistik und Verlauf; dazu „Mein Zugang“ mit den eigenen Geräten |
+| Admin | Alles wie ein Admin-Konto – nur Passwort, Passkeys und SSO gehören zu Konten und fehlen |
+
+- Erkannt wird bei **jeder** Anfrage am Fingerabdruck, den Caddy durchreicht – es gibt keine
+  Sitzung. Gesperrte oder abgelaufene Geräte und gesperrte Personen verlieren den Zugriff sofort.
+- Die Rechte prüft der Controller zentral (`backend/src/tesseract/uiaccess.py`, Positivliste);
+  die Oberfläche blendet nur aus, was die Rolle nicht darf.
+- Gilt die Rolle für die Person, zählt jedes ihrer aktiven Geräte.
+- Das Audit-Log zeigt Person und Gerät, z. B. `Anna (iPhone)`.
+- Mit „Oberfläche nur mit Admin-Zertifikat“ lässt Caddy auch die Geräte dieser Personen durch;
+  die Passwort-Anmeldung bleibt dann weiter dem Admin-Gerät vorbehalten. `TESSERACT_ADMIN_NETWORKS`
+  gilt wie für alle.
+- Die Gruppe „Admin“ bleibt, was sie war: Ihre Geräte sind der zweite Faktor für Admin-Konten
+  (Passwort/Passkey/SSO), sie melden niemanden ohne Passwort an.
+- Notausgang: Passwort-Anmeldung als Admin bleibt immer möglich; `tesseract admin mtls off`
+  schaltet die Zertifikatspflicht ab.
+
 ## LDAP-Abgleich für Personen und Gruppen
 
 Personen und Gruppen aus LDAP übernehmen und regelmäßig abgleichen (Standard: stündlich).

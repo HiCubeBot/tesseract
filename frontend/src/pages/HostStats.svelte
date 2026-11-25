@@ -10,6 +10,7 @@
   import { api, countryName, formatBytes, LOG_REASONS, type Host, type LogReason } from '../lib/api';
   import { bucketize, fmt, SERIES, type Range } from '../lib/stats';
   import { toasts } from '../lib/toast.svelte';
+  import { session } from '../lib/session.svelte';
 
   interface HourRow {
     t: string;
@@ -280,12 +281,14 @@
                   <span class="muted tiny">{reasonLabel(ip.reason)}{ip.country ? ` · ${countryName(ip.country)}` : ''}</span>
                 </div>
                 <span class="val">{fmt(ip.count)}</span>
-                <button
-                  type="button"
-                  class="ban"
-                  disabled={banning !== null || banned.has(ip.ip)}
-                  onclick={() => ban(ip.ip)}
-                >{banned.has(ip.ip) ? 'Gesperrt' : banning === ip.ip ? '…' : 'Sperren'}</button>
+                {#if session.isAdmin}
+                  <button
+                    type="button"
+                    class="ban"
+                    disabled={banning !== null || banned.has(ip.ip)}
+                    onclick={() => ban(ip.ip)}
+                  >{banned.has(ip.ip) ? 'Gesperrt' : banning === ip.ip ? '…' : 'Sperren'}</button>
+                {/if}
               </li>
             {/each}
           </ul>

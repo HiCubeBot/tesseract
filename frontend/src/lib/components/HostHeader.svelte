@@ -5,6 +5,7 @@
   import Switch from './Switch.svelte';
   import type { Host } from '../api';
   import { hostStatus, setEnabled, type HostTab } from '../hosts';
+  import { session } from '../session.svelte';
 
   interface Props {
     hostId: number;
@@ -19,13 +20,15 @@
   let { hostId, host, tab, dirty = false, onChange }: Props = $props();
   let busy = $state(false);
 
-  const tabs: { id: HostTab; label: string; path: string }[] = [
+  const allTabs: { id: HostTab; label: string; path: string }[] = [
     { id: 'general', label: 'Allgemein', path: '' },
     { id: 'access', label: 'Zugriff', path: '/access' },
     { id: 'security', label: 'Sicherheit', path: '/security' },
     { id: 'stats', label: 'Statistik', path: '/stats' },
     { id: 'history', label: 'Verlauf', path: '/history' }
   ];
+  // Personen per Zertifikat (Lesen, Eigene Dienste): nur Statistik und Verlauf
+  const tabs = $derived(session.isAdmin ? allTabs : allTabs.filter((t) => t.id === 'stats' || t.id === 'history'));
 
   function leave(e: MouseEvent) {
     if (dirty && !confirm('Es gibt ungespeicherte Änderungen. Trotzdem wechseln und verwerfen?')) e.preventDefault();
@@ -51,7 +54,7 @@
     <h1 class="mono">{host?.domain ?? '…'}</h1>
     {#if st}<StatusPill tone={st.tone} label={st.label} />{/if}
     <span class="spacer"></span>
-    {#if host && !host.draft}
+    {#if host && !host.draft && session.isAdmin}
       <span class="enabled">
         <span class="muted small">{host.enabled ? 'Aktiv' : 'Deaktiviert'}</span>
         <Switch

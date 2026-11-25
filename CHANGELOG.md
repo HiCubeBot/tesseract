@@ -4,6 +4,22 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.24.0] – 2026-11-25
+
+### Hinzugefügt
+- **Zugriff auf Tesseract für einzelne Personen – nur per mTLS**
+  ([#33](https://github.com/HiCubeBot/tesseract/issues/33)): Unter Nutzer › Person ›
+  „Zugriff auf Tesseract“ die Rolle wählen – Lesen, Eigene Dienste oder Admin (Standard: kein
+  Zugriff). Die Person öffnet die Oberfläche dann von jedem ihrer aktiven Geräte, ohne Passwort
+  und Login-Formular. Der Controller erkennt Gerät → Person → Rolle bei jeder Anfrage; gesperrte
+  oder abgelaufene Geräte verlieren den Zugriff sofort. Rechte zentral geprüft (Positivliste),
+  die Oberfläche zeigt nur, was die Rolle darf.
+- „Eigene Dienste“ sieht nur freigegebene Hosts (Statistik, Verlauf); neue Seite „Mein Zugang“
+  mit Rolle, eigenen Geräten und freigegebenen Diensten.
+- Audit-Log zeigt Person und Gerät statt „admin“, z. B. `Anna (iPhone)`.
+- Mit „Oberfläche nur mit Admin-Zertifikat“ lässt Caddy auch die Geräte dieser Personen durch.
+- `/api/auth/me` liefert Rolle, Person und Gerät; Migration 0030
+
 ## [1.23.0] – 2026-11-25
 
 ### Hinzugefügt

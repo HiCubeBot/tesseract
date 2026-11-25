@@ -146,7 +146,7 @@ class PasskeyRegister(BaseModel):
 
 @router.get("/passkeys")
 def list_passkeys(db: DB, actor: CurrentActor) -> list[PasskeyOut]:
-    admin = db.merge(actor.admin)
+    admin = db.merge(actor.account)
     return [
         PasskeyOut(id=p.id, name=p.name, created_at=p.created_at, last_used_at=p.last_used_at)
         for p in admin.passkeys
@@ -159,7 +159,7 @@ def passkey_register_options(
 ) -> dict[str, Any]:
     rp_id, _ = passkeys.relying_party(settings, _origin_url(request))
     return passkeys.registration_options(
-        db, request.app.state.passkey_challenges, db.merge(actor.admin), rp_id
+        db, request.app.state.passkey_challenges, db.merge(actor.account), rp_id
     )
 
 
@@ -168,7 +168,7 @@ def passkey_register(
     body: PasskeyRegister, request: Request, db: DB, actor: CurrentActor, settings: AppSettings
 ) -> PasskeyOut:
     rp_id, origins = passkeys.relying_party(settings, _origin_url(request))
-    admin = db.merge(actor.admin)
+    admin = db.merge(actor.account)
     try:
         pk = passkeys.register(
             db,
@@ -190,7 +190,7 @@ def passkey_register(
 @router.delete("/passkeys/{passkey_id}", status_code=status.HTTP_204_NO_CONTENT)
 def passkey_delete(passkey_id: int, db: DB, actor: CurrentActor) -> None:
     pk = db.get(AdminPasskey, passkey_id)
-    if pk is None or pk.admin_id != actor.admin.id:
+    if pk is None or pk.admin_id != actor.account.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Passkey nicht gefunden")
     cfg = sso.get_config(db)
     # Nicht aussperren: letzter Weg hinein?

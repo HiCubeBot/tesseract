@@ -84,8 +84,35 @@ export interface Me {
   username: string;
   /** Passwort kommt aus TESSERACT_ADMIN_PASSWORD (.env) */
   password_from_env?: boolean;
-  /** "local" oder "oidc" (SSO, ohne Passwort) */
-  source?: 'local' | 'oidc';
+  /** "local" oder "oidc" (SSO, ohne Passwort), "mtls" = Person per Gerätezertifikat */
+  source?: 'local' | 'oidc' | 'mtls';
+  /** "admin" für Konten; bei Personen per Zertifikat ihre Rolle */
+  role?: UiRole;
+  person?: string | null;
+  device?: string | null;
+}
+
+/** Zugriff auf Tesseract per Gerätezertifikat */
+export type UiRole = 'none' | 'read' | 'own' | 'admin';
+export const UI_ROLES: Record<UiRole, string> = {
+  none: 'Kein Zugriff',
+  read: 'Lesen',
+  own: 'Eigene Dienste',
+  admin: 'Admin'
+};
+export const UI_ROLE_HINTS: Record<UiRole, string> = {
+  none: 'Tesseract selbst ist für diese Person nicht erreichbar.',
+  read: 'Übersicht, Hosts, Statistik und Logs ansehen – nichts ändern.',
+  own: 'Nur die Hosts, für die die Person freigegeben ist (Statistik, Verlauf), und die eigenen Geräte.',
+  admin: 'Alles wie ein Admin – nur Passwort und Passkeys gibt es nicht.'
+};
+
+export interface MyAccess {
+  person: string;
+  role: UiRole;
+  current_device: string;
+  devices: Device[];
+  hosts: string[];
 }
 
 export interface DeviceInfo {
@@ -783,6 +810,8 @@ export interface Person {
   email: string | null;
   /** aus LDAP übernommen */
   ldap: boolean;
+  /** Zugriff auf Tesseract per Gerätezertifikat */
+  ui_role: UiRole;
 }
 
 export interface IssuedDevice {

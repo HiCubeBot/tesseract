@@ -131,7 +131,14 @@ def test_sso_login_creates_admin(auth_client: TestClient, idp: FakeIdP) -> None:
     r = _sso_login(c, idp)
     assert r.status_code == 303 and r.headers["location"] == "/#/"
     me = c.get("/api/auth/me").json()
-    assert me == {"username": "anna", "password_from_env": False, "source": "oidc"}
+    assert me == {
+        "username": "anna",
+        "password_from_env": False,
+        "source": "oidc",
+        "role": "admin",
+        "person": None,
+        "device": None,
+    }
     # Passwort ändern geht für SSO-Konten nicht
     r = c.post("/api/auth/password", json={"current_password": "x" * 12, "new_password": "y" * 12})
     assert r.status_code == 409

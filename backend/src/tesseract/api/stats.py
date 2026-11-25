@@ -155,12 +155,35 @@ def _any_store(request: Request, db):
     return _store(request, db) or SqlStore(db)
 
 
+def _own_domains(db, actor) -> set[str] | None:
+    """Rolle „Eigene Dienste“: Domains der freigegebenen Hosts (sonst None = alle)."""
+    from tesseract.db.models import Host
+    from tesseract.uiaccess import visible_host_ids
+
+    visible = visible_host_ids(db, actor)
+    if visible is None:
+        return None
+    return {h.domain for h in db.query(Host).filter(Host.id.in_(visible))} if visible else set()
+
+
+def _only_domains(data: dict[str, Any], domains: set[str]) -> dict[str, Any]:
+    """Aktivität nur für diese Domains (Schlüssel = Domain)."""
+    return {
+        k: ({d: v for d, v in val.items() if d in domains} if isinstance(val, dict) else val)
+        for k, val in data.items()
+    }
+
+
 @router.get("/host")
 def host(
-    request: Request, db: DB, _: CurrentActor, domain: str, range: Range = "24h"
+    request: Request, db: DB, actor: CurrentActor, domain: str, range: Range = "24h"
 ) -> dict[str, Any]:
     """Statistik eines Hosts: Kennzahlen mit Vorzeitraum, Verlauf, Herkunft, Pfade, Abgelehnte."""
     from tesseract import hoststats
+
+    allowed = _own_domains(db, actor)
+    if allowed is not None and domain.lower() not in allowed:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Host nicht gefunden")
 
     store = _any_store(request, db)
     try:
@@ -171,12 +194,16 @@ def host(
 
 
 @router.get("/activity")
-def activity(request: Request, db: DB, _: CurrentActor) -> dict[str, Any]:
+def activity(request: Request, db: DB, actor: CurrentActor) -> dict[str, Any]:
     """Anfragen der letzten 24 Stunden je Host, stündlich – für die Hostliste."""
     from tesseract import hoststats
 
     store = _any_store(request, db)
+    allowed = _own_domains(db, actor)
     try:
-        return {**hoststats.activity(store), "source": store.kind}
+        data = hoststats.activity(store)
+        if allowed is not None:
+            data = _only_domains(data, allowed)
+        return {**data, "source": store.kind}
     except StoreError as e:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(e)) from e

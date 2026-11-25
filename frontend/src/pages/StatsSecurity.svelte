@@ -1,5 +1,6 @@
 <script lang="ts">
   import AppShell from '../lib/components/AppShell.svelte';
+  import { session } from '../lib/session.svelte';
   import PageHeader from '../lib/components/PageHeader.svelte';
   import StatsTabs from '../lib/components/StatsTabs.svelte';
   import SegmentedControl from '../lib/components/SegmentedControl.svelte';
@@ -200,7 +201,7 @@
                 <span class="num">{fmt(i.count)}</span>
                 {#if i.own || i.internal}
                   <a class="act" href={`#/logs?q=${encodeURIComponent('ip:' + i.ip)}&filter=denied`} title="Welche Dienste wurden abgelehnt?">Wohin?</a>
-                {:else}
+                {:else if session.isAdmin}
                   <button type="button" class="act" disabled={banning !== null || banned.has(i.ip)} onclick={() => ban(i.ip)}>
                     {banned.has(i.ip) ? 'Gesperrt' : 'Sperren'}
                   </button>

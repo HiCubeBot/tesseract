@@ -8,6 +8,7 @@
   import EnrollPage from './pages/Enroll.svelte';
   import RenewPage from './pages/Renew.svelte';
   import StatusPage from './pages/StatusPublic.svelte';
+  import { homeFor, pageAllowed } from './lib/permissions';
 
   // Öffentliche Einladungsseite /e/<token> – ohne Anmeldung, ohne Hash-Router
   const enrollToken = window.location.pathname.match(/^\/e\/([A-Za-z0-9_-]{8,64})\/?$/)?.[1] ?? null;
@@ -28,6 +29,11 @@
   );
   const needsLogin = $derived(session.checked && !session.user && !match?.page.public);
   const title = $derived(match?.page.title ?? prototype?.title ?? 'Screens');
+
+  // „Eigene Dienste“ starten in der Hostliste statt auf der (gesperrten) Übersicht
+  $effect(() => {
+    if (session.user && path === '' && !pageAllowed(session.user.role, '')) router.go('hosts');
+  });
 
   $effect(() => {
     document.title = statusPage
@@ -50,6 +56,11 @@
   <div class="loading" aria-busy="true">Lade …</div>
 {:else if needsLogin}
   <LoginPage />
+{:else if match && session.user && !pageAllowed(session.user.role, match.page.pattern)}
+  <div class="loading denied" role="alert">
+    <p>Diese Seite ist für deine Rolle nicht freigegeben.</p>
+    <a href={homeFor(session.user.role)}>Zur Startseite</a>
+  </div>
 {:else if match}
   {#key path}
     <match.page.component params={match.params} />
@@ -69,6 +80,10 @@
 <Toasts />
 
 <style>
+  .denied {
+    flex-direction: column;
+    gap: 8px;
+  }
   .loading {
     min-height: 100vh;
     display: flex;
