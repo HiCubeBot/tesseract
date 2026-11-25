@@ -5,7 +5,8 @@
   import Alert from '../lib/components/Alert.svelte';
   import SettingsTabs from '../lib/components/SettingsTabs.svelte';
   import Toggle from '../lib/components/Toggle.svelte';
-  import { api, type AdminAccess, type GeneralSettings } from '../lib/api';
+  import ChipInput from '../lib/components/ChipInput.svelte';
+  import { api, ROBOTS_MODES, type AdminAccess, type GeneralSettings, type RobotsMode } from '../lib/api';
   import { session } from '../lib/session.svelte';
   import { toasts } from '../lib/toast.svelte';
 
@@ -31,6 +32,31 @@
     }
   }
   let accessBusy = $state(false);
+
+  // robots.txt
+  const robotsDefaults: RobotsMode[] = ['off', 'allow', 'deny', 'deny_ai'];
+  let robotsDefault = $state<RobotsMode>('off');
+  let robotsMtls = $state(true);
+  let aiBots = $state<string[]>([]);
+  let robotsBusy = $state(false);
+
+  async function saveRobots(reset = false) {
+    robotsBusy = true;
+    try {
+      fill(
+        await api.put<GeneralSettings>('/settings/general', {
+          robots_default: robotsDefault,
+          robots_mtls_deny: robotsMtls,
+          robots_ai_bots: reset ? [] : aiBots
+        })
+      );
+      toasts.show('ok', 'robots.txt-Einstellungen gespeichert.');
+    } catch (err) {
+      toasts.show('bad', err instanceof Error ? err.message : String(err));
+    } finally {
+      robotsBusy = false;
+    }
+  }
 
   async function loadAccess() {
     try {
@@ -69,6 +95,9 @@
   function fill(g: GeneralSettings) {
     general = g;
     email = g.acme_email;
+    robotsDefault = g.robots_default;
+    robotsMtls = g.robots_mtls_deny;
+    aiBots = [...g.robots_ai_bots];
   }
 
   api.get<GeneralSettings>('/settings/general').then(fill, (e) => (error = String(e.message ?? e)));
@@ -204,6 +233,29 @@
         <p class="muted small">
           Welche Dienste dort stehen, legst du je Host fest: Allgemein › Überwachung › „Auf der öffentlichen Statusseite zeigen“.
         </p>
+      {/if}
+    </section>
+
+    <section class="card" aria-labelledby="robots-title">
+      <h2 id="robots-title">robots.txt</h2>
+      {#if general}
+        <label class="field">
+          Standard für neue Hosts
+          <select class="input" bind:value={robotsDefault}>
+            {#each robotsDefaults as m (m)}<option value={m}>{ROBOTS_MODES[m]}</option>{/each}
+          </select>
+        </label>
+        <Toggle
+          label="Hosts nur mit Zertifikat: alles verbieten"
+          description="mTLS-Hosts ohne eigene robots.txt-Einstellung bekommen automatisch „Disallow: /“."
+          bind:checked={robotsMtls}
+        />
+        <ChipInput label="KI-Crawler (für „KI-Crawler verbieten“)" bind:values={aiBots} placeholder="GPTBot, ClaudeBot …" />
+        <div class="row">
+          <Button label={robotsBusy ? 'Speichert …' : 'Speichern'} disabled={robotsBusy} onClick={() => saveRobots()} />
+          <Button variant="ghost" label="Liste zurücksetzen" disabled={robotsBusy} onClick={() => saveRobots(true)} />
+        </div>
+        <p class="muted small">Pro Host unter Hosts › Sicherheit › robots.txt; per Docker-Label <code>tesseract.robots=deny-ai</code>.</p>
       {/if}
     </section>
 

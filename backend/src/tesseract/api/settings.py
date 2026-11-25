@@ -12,6 +12,7 @@ from tesseract import __version__, audit
 from tesseract.api.iplists import normalize_networks
 from tesseract.db.models import Device, Host, IpList, Node
 from tesseract.deps import DB, AppSettings, Box, CurrentActor, admin_device_for
+from tesseract.robots import DEFAULT_AI_BOTS
 from tesseract.services import (
     CLOUDFLARE_CONTEXT,
     admin_devices,
@@ -52,6 +53,25 @@ class GeneralIn(BaseModel):
     device_keep_p12: bool | None = None
     # Öffentliche Statusseite /status
     status_page_enabled: bool | None = None
+    # robots.txt: Standard für neue Hosts, mTLS-Hosts sperren, Liste der KI-Crawler
+    robots_default: Literal["off", "allow", "deny", "deny_ai"] | None = None
+    robots_mtls_deny: bool | None = None
+    robots_ai_bots: list[str] | None = Field(None, max_length=200)
+
+    @field_validator("robots_ai_bots")
+    @classmethod
+    def _bots(cls, v: list[str] | None) -> list[str] | None:
+        if v is None:
+            return None
+        out = []
+        for b in v:
+            b = b.strip()
+            if not b:
+                continue
+            if not re.match(r"^[A-Za-z0-9._*-]{1,64}$", b):
+                raise ValueError(f"Ungültiger Crawler-Name: {b}")
+            out.append(b)
+        return list(dict.fromkeys(out))
 
     @field_validator("wildcard_certs")
     @classmethod
@@ -161,6 +181,9 @@ class GeneralOut(BaseModel):
     device_self_renew_url: str
     status_page_enabled: bool = False
     status_page_url: str = ""
+    robots_default: str = "off"
+    robots_mtls_deny: bool = True
+    robots_ai_bots: list[str] = Field(default_factory=list)
     # Liest der Controller das WAF-Log? (sonst sieht die Auto-Sperre keine Treffer)
     autoban_log_ready: bool
     # nur lesbar – kommen aus der Umgebung
@@ -213,6 +236,9 @@ def get_settings_general(db: DB, _: CurrentActor, settings: AppSettings) -> Gene
             if settings.controller_domain
             else "/status"
         ),
+        robots_default=g["robots_default"],
+        robots_mtls_deny=bool(g["robots_mtls_deny"]),
+        robots_ai_bots=list(g["robots_ai_bots"] or DEFAULT_AI_BOTS),
         autoban_log_ready=bool(settings.caddy_waf_log and settings.waf_log_path),
         controller_domain=settings.controller_domain,
         env_managed=settings.env_managed(),
@@ -235,8 +261,11 @@ def put_settings_general(
         k: v
         for k, v in value.items()
         if not (
-            (k.startswith("docker_") or k in ("status_page_enabled", "device_keep_p12"))
-            and v is None
+            v is None
+            and (
+                k.startswith(("docker_", "robots_"))
+                or k in ("status_page_enabled", "device_keep_p12")
+            )
         )
     }
     if "acme_email" in value:
@@ -308,6 +337,9 @@ def put_settings_general(
         "wildcard_certs",
         # Statusseite: Pfade auf der Controller-Domain öffnen bzw. schließen
         "status_page_enabled",
+        # robots.txt aller Hosts hängt davon ab
+        "robots_mtls_deny",
+        "robots_ai_bots",
     )
     if any(before.get(k) != value.get(k, before.get(k)) for k in relevant):
         for node in db.scalars(select(Node)):

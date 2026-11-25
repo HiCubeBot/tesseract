@@ -60,6 +60,10 @@ SNAPSHOT_FIELDS = (
     "monitor",
     "status_public",
     "status_name",
+    "robots",
+    "robots_paths",
+    "robots_sitemap",
+    "robots_text",
     "dns_type",
     "dns_target",
     "dns_proxied",
@@ -124,6 +128,10 @@ GENERAL_DEFAULTS: dict[str, Any] = {
     "metrics_caddy": True,
     # Öffentliche Statusseite /status (Uptime-Monitor) – standardmäßig aus
     "status_page_enabled": False,
+    # robots.txt: Modus für neue Hosts, mTLS-Hosts ohne eigene Einstellung sperren, KI-Crawler
+    "robots_default": "off",
+    "robots_mtls_deny": True,
+    "robots_ai_bots": [],
 }
 CLOUDFLARE_CONTEXT = "cloudflare-token"
 ADMIN_GROUP = "Admin"
@@ -407,8 +415,14 @@ def host_spec(
     areas: list[AreaSpec] | None = None,
     internal_networks: list[str] | tuple[str, ...] | None = None,
     controller: tuple[str, str] | None = None,
+    robots: str | None = None,
 ) -> HostSpec:
-    """`controller`: (Fingerabdruck, PEM) des Controller-Zertifikats, falls der Host es zulässt."""
+    """`controller`: (Fingerabdruck, PEM) des Controller-Zertifikats, falls der Host es zulässt.
+    `robots`: fertiger Inhalt der robots.txt (None = aus den Host-Feldern, ohne Einstellungen)."""
+    if robots is None:
+        from tesseract.robots import host_body
+
+        robots = host_body(host, {})
     if paths is None:
         paths = [p.path for p in host.paths] if isinstance(host, Host) else []
     return HostSpec(
@@ -439,6 +453,7 @@ def host_spec(
         cert_free_networks=tuple(internal_networks or ())
         if getattr(host, "internal_no_cert", False)
         else (),
+        robots=robots,
     )
 
 
@@ -529,6 +544,7 @@ def node_config(db: Session, node: Node, settings: Settings, bans: bool = True) 
     local = not node.is_agent
     internal_nets = resolve_ranges(db, general["internal_networks"], general["internal_list_ids"])
     from tesseract.controllercert import allowed_entry
+    from tesseract.robots import host_body as robots_body
 
     ctl = allowed_entry(db)
     spec = NodeSpec(
@@ -541,6 +557,7 @@ def node_config(db: Session, node: Node, settings: Settings, bans: bool = True) 
                 areas=area_specs(db, h, ctl if h.allow_controller else None),
                 internal_networks=internal_nets,
                 controller=ctl if h.allow_controller else None,
+                robots=robots_body(h, general),
             )
             for h in hosts
         ],

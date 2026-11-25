@@ -4,6 +4,20 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.23.0] – 2026-11-25
+
+### Hinzugefügt
+- **robots.txt pro Host** ([#32](https://github.com/HiCubeBot/tesseract/issues/32)): Caddy
+  beantwortet `/robots.txt` selbst, noch vor Zertifikat und WAF – der Dienst muss nichts tun.
+  Unter Hosts › Sicherheit › robots.txt: Alles erlauben, Alles verbieten, KI-Crawler verbieten
+  (Suchmaschinen bleiben erlaubt), Nur bestimmte Pfade sperren oder eigener Text mit
+  Syntaxprüfung und Vorschau; optional `Sitemap:`. „robots.txt des Dienstes übernehmen“ lädt
+  die Datei vom Ziel als Startpunkt.
+- Einstellungen › Allgemein › robots.txt: Standard für neue Hosts, Liste der KI-Crawler und
+  „Hosts nur mit Zertifikat: alles verbieten“ (Standard an – mTLS-Hosts ohne eigene Einstellung
+  liefern `Disallow: /` statt der Kein-Zugang-Seite).
+- Docker-Label `tesseract.robots` (`off`, `allow`, `deny`, `deny-ai`); Migration 0029
+
 ## [1.22.1] – 2026-11-25
 
 ### Behoben

@@ -247,6 +247,7 @@ services:
 
 Weitere Labels: `tesseract.scheme` (http/https), `tesseract.upstream` (Ziel-Adresse, Standard
 ist der Container-Name), `tesseract.internal` (true/false), `tesseract.tls` (http/dns),
+`tesseract.robots` (off/allow/deny/deny-ai, robots.txt von Caddy),
 `tesseract.enable` (false = überspringen).
 
 Einrichten auf dem Controller-Server:

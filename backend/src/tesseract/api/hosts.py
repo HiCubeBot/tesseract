@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from tesseract import audit, checks
+from tesseract import robots as robots_mod
 from tesseract.api.iplists import normalize_networks
 from tesseract.caddy.config import covering_wildcard, host_route, is_public_name
 from tesseract.db.models import (
@@ -165,6 +166,11 @@ class HostIn(BaseModel):
     monitor: bool = True
     status_public: bool = False
     status_name: str = Field("", max_length=64)
+    # robots.txt von Caddy; None = Standard aus den Einstellungen (nur beim Anlegen)
+    robots: Literal["off", "allow", "deny", "deny_ai", "paths", "custom"] | None = None
+    robots_paths: list[str] = Field(default_factory=list, max_length=50)
+    robots_sitemap: str = Field("", max_length=500)
+    robots_text: str = Field("", max_length=robots_mod.MAX_LENGTH)
     custom_cert_id: int | None = None
     areas: list[AreaIn] = Field(default_factory=list, max_length=20)
     enabled: bool = True
@@ -185,6 +191,36 @@ class HostIn(BaseModel):
     def _allow_needs_entries(self) -> "HostIn":
         if self.ip_mode == "allow" and not self.ip_entries and not self.ip_list_ids:
             raise ValueError("„Nur erlauben“ braucht mindestens eine IP, ein Netz oder eine Liste")
+        return self
+
+    @field_validator("robots_paths")
+    @classmethod
+    def _robots_paths(cls, v: list[str]) -> list[str]:
+        out = []
+        for p in v:
+            p = p.strip()
+            if not p:
+                continue
+            p = "/" + p.lstrip("/")
+            if not re.match(r"^/\S*$", p) or len(p) > 255:
+                raise ValueError(f"robots.txt: ungültiger Pfad {p}")
+            out.append(p)
+        return list(dict.fromkeys(out))
+
+    @field_validator("robots_sitemap")
+    @classmethod
+    def _robots_sitemap(cls, v: str) -> str:
+        v = v.strip()
+        if v and not re.match(r"^https?://\S+$", v, re.I):
+            raise ValueError("Sitemap: vollständige Adresse erwartet (https://…)")
+        return v
+
+    @model_validator(mode="after")
+    def _robots_custom(self) -> "HostIn":
+        if self.robots == "custom":
+            result = robots_mod.check(self.robots_text)
+            if result.errors:
+                raise ValueError("robots.txt: " + " · ".join(result.errors[:5]))
         return self
 
     @field_validator("waf_exclusions")
@@ -280,6 +316,10 @@ class HostOut(BaseModel):
     monitor: bool = True
     status_public: bool = False
     status_name: str = ""
+    robots: str = "off"
+    robots_paths: list[str] = Field(default_factory=list)
+    robots_sitemap: str = ""
+    robots_text: str = ""
     custom_cert_id: int | None
     # Geteiltes Wildcard-Zertifikat, das diesen Host abdeckt (sonst None)
     wildcard_cert: str | None
@@ -468,6 +508,8 @@ def _assign(host: Host, body: HostIn, defaults: dict[str, Any] | None = None) ->
         data["waf_mode"] = (defaults or {}).get("waf_default_mode", host.waf_mode or "off")
     if data["waf_paranoia"] is None:
         data["waf_paranoia"] = (defaults or {}).get("waf_default_paranoia", host.waf_paranoia or 1)
+    if data["robots"] is None:
+        data["robots"] = (defaults or {}).get("robots_default", host.robots or "off")
     for k, v in data.items():
         setattr(host, k, v)
     set_paths(host, body.paths)
@@ -651,6 +693,63 @@ def _dns_check(db: Session, body: CheckIn, domain: str) -> checks.Check:
 def preview_route(body: HostIn, _: CurrentActor) -> dict[str, Any]:
     """Caddy-Route, wie sie für diesen Host erzeugt würde."""
     return host_route(host_spec(body, host_id=0, paths=body.paths))
+
+
+class RobotsIn(BaseModel):
+    robots: Literal["off", "allow", "deny", "deny_ai", "paths", "custom"] = "off"
+    robots_paths: list[str] = Field(default_factory=list, max_length=50)
+    robots_sitemap: str = Field("", max_length=500)
+    robots_text: str = Field("", max_length=robots_mod.MAX_LENGTH)
+    access: str = "public"
+
+
+class RobotsOut(BaseModel):
+    text: str
+    errors: list[str]
+    warnings: list[str]
+    # greift die Einstellung „mTLS-Hosts: alles verbieten“?
+    from_settings: bool = False
+
+
+@router.post("/robots/preview")
+def robots_preview(body: RobotsIn, db: DB, _: CurrentActor) -> RobotsOut:
+    """Vorschau und Syntaxprüfung der robots.txt, wie Caddy sie ausliefern würde."""
+    general = get_general(db)
+    text = robots_mod.host_body(body, general)
+    result = robots_mod.check(text) if text else robots_mod.Check()
+    return RobotsOut(
+        text=text,
+        errors=result.errors,
+        warnings=result.warnings,
+        from_settings=body.robots == "off" and bool(text),
+    )
+
+
+@router.get("/{host_id}/robots/upstream")
+async def robots_upstream(host_id: int, db: DB, _: CurrentActor) -> dict[str, str]:
+    """robots.txt, die der Dienst selbst ausliefert – als Ausgangspunkt für einen eigenen Text."""
+    host = _get_host(db, host_id)
+    import httpx
+
+    port = host.upstream_port
+    target = f"[{host.upstream_host}]" if ":" in host.upstream_host else host.upstream_host
+    url = f"{host.upstream_scheme}://{target}:{port}/robots.txt"
+    try:
+        async with httpx.AsyncClient(
+            verify=not host.upstream_insecure,
+            timeout=5,
+            follow_redirects=False,
+        ) as client:
+            r = await client.get(url, headers={"Host": host.domain.removeprefix("*.")})
+    except httpx.HTTPError as e:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"Dienst nicht erreichbar: {e}") from e
+    if r.status_code == 404:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Der Dienst hat keine robots.txt")
+    if r.status_code != 200:
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY, f"Der Dienst antwortet mit {r.status_code}"
+        )
+    return {"text": r.text[: robots_mod.MAX_LENGTH]}
 
 
 def _ensure_controller_cert(request: Request, db, body: HostIn, settings) -> None:

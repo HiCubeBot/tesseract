@@ -11,6 +11,7 @@ labels:
   tesseract.grants: "Familie, Ben"        # vorhandene Gruppen/Personen
   tesseract.waf: "block"                  # off | detect | block
   tesseract.tls: "dns"                    # http | dns
+  tesseract.robots: "deny-ai"             # off | allow | deny | deny-ai (robots.txt)
   tesseract.enable: "false"               # Container überspringen
 ```
 
@@ -147,6 +148,11 @@ def parse(container: dict[str, Any], groups: dict[str, int], persons: dict[str, 
         if labels["tls"] not in ("http", "dns"):
             raise LabelError("tesseract.tls: http oder dns")
         spec["tls_challenge"] = labels["tls"]
+    if "robots" in labels:
+        mode = labels["robots"].lower().replace("-", "_")
+        if mode not in ("off", "allow", "deny", "deny_ai"):
+            raise LabelError("tesseract.robots: off, allow, deny oder deny-ai")
+        spec["robots"] = mode
     if "grants" in labels:
         gids, pids = [], []
         for name in [n.strip() for n in labels["grants"].split(",") if n.strip()]:

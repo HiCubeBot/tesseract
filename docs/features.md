@@ -80,6 +80,7 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | Auto-Sperre | z. B. IP für 24 h sperren nach 20 WAF-Treffern in 10 Min. | 3 |
 | IP von Hand sperren | IP oder Netz für 1 Stunde bis 1 Jahr oder dauerhaft sperren (bis zum Entsperren); gilt auf allen Nodes | 3 / 1.3.1 |
 | Authelia als Host-Middleware | Optional pro Host: Caddy fragt vor dem Dienst per `forward_auth` eine bestehende Authelia-Instanz. Nutzer, Regeln und Zwei-Faktor pflegt man in Authelia selbst; Tesseract richtet nur die Weiterleitung ein. Schützt nur Hosts, nicht die Tesseract-Oberfläche (siehe Admin-SSO unter 10.) | 3 |
+| robots.txt | Caddy beantwortet `/robots.txt` selbst, noch vor Zertifikat und WAF: Aus (Dienst antwortet), Alles erlauben, Alles verbieten, KI-Crawler verbieten (Liste unter Einstellungen pflegbar), Nur bestimmte Pfade sperren oder eigener Text mit Syntaxprüfung und Vorschau; optional `Sitemap:`; robots.txt des Dienstes als Ausgangspunkt übernehmen. Standard für neue Hosts und „mTLS-Hosts: alles verbieten“ unter Einstellungen; Docker-Label `tesseract.robots` | 1.23 |
 | Visualisierung „Weg einer Anfrage“ | Zeigt die Reihenfolge IP-Filter → mTLS → WAF → Auth → Dienst | 3 |
 
 ## 6. Nodes

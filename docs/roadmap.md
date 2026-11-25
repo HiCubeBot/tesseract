@@ -25,6 +25,7 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 | 1.10 | Nodes über DNS | Node-Schnittstelle wahlweise von den Admin-Netzen ausgenommen, DNS-Eintrag für die Tesseract-Domain – **fertig** |
 | 1.11 | Herkunftskarte | Karte zeigt alle Anfragen, Filter Abgelehnt / Angenommen – **fertig** |
 | 1.12 | Intern ohne Zertifikat | mTLS-Hosts wahlweise aus den internen Netzen ohne Zertifikat – **fertig** |
+| 1.23 | robots.txt | robots.txt pro Host direkt von Caddy: Vorlagen (alles erlauben/verbieten, KI-Crawler, Pfade), eigener Text mit Prüfung, Standard in den Einstellungen ([#32](https://github.com/HiCubeBot/tesseract/issues/32)) – **fertig** |
 | 1.22 | Zertifikate abrufen | Gerätezertifikate später erneut herunterladen, Passwort sehen, per QR-Code aufs Handy – **fertig** |
 | 1.21 | Controller-Zertifikat | Tesseract selbst darf auf mTLS-Hosts zugreifen (z. B. ntfy) – **fertig** |
 | 1.20 | Statusseite einschaltbar | Öffentliche Statusseite nur, wenn in den Einstellungen eingeschaltet (Standard aus) – **fertig** |

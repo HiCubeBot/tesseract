@@ -140,6 +140,11 @@ export interface Host {
   /** auf der öffentlichen Statusseite zeigen, mit Anzeigename */
   status_public: boolean;
   status_name: string;
+  /** robots.txt direkt von Caddy */
+  robots: RobotsMode;
+  robots_paths: string[];
+  robots_sitemap: string;
+  robots_text: string;
   custom_cert_id: number | null;
   wildcard_cert: string | null;
   areas: (AreaInput & { id: number })[];
@@ -264,6 +269,24 @@ export const CLOUDFLARE_RANGES = [
   '2a06:98c0::/29', '2c0f:f248::/32'
 ];
 
+export type RobotsMode = 'off' | 'allow' | 'deny' | 'deny_ai' | 'paths' | 'custom';
+export const ROBOTS_MODES: Record<RobotsMode, string> = {
+  off: 'Aus – der Dienst antwortet selbst',
+  allow: 'Alles erlauben',
+  deny: 'Alles verbieten',
+  deny_ai: 'KI-Crawler verbieten, Suchmaschinen erlauben',
+  paths: 'Nur bestimmte Pfade sperren',
+  custom: 'Eigener Text'
+};
+
+export interface RobotsPreview {
+  text: string;
+  errors: string[];
+  warnings: string[];
+  /** greift „mTLS-Hosts: alles verbieten“ aus den Einstellungen */
+  from_settings: boolean;
+}
+
 export const WAF_MODES: Record<WafMode, string> = {
   off: 'Aus',
   detect: 'Nur protokollieren',
@@ -295,7 +318,10 @@ export type HostInput = Omit<
   | 'waf_mode'
   | 'waf_paranoia'
   | 'areas'
+  | 'robots'
 > & {
+  /** null = Standard aus den Einstellungen (nur beim Anlegen) */
+  robots: RobotsMode | null;
   node_id: number;
   grant_group_ids: number[];
   grant_person_ids: number[];
@@ -493,6 +519,10 @@ export interface GeneralSettings {
   /** öffentliche Statusseite /status – standardmäßig aus */
   status_page_enabled: boolean;
   status_page_url: string;
+  /** robots.txt: Standard für neue Hosts, mTLS-Hosts sperren, KI-Crawler */
+  robots_default: RobotsMode;
+  robots_mtls_deny: boolean;
+  robots_ai_bots: string[];
   controller_domain: string;
   /** über die Umgebung (.env) festgelegt – wird beim Start überschrieben */
   env_managed: string[];
@@ -580,6 +610,10 @@ export const FIELD_LABELS: Record<string, string> = {
   monitor: 'Überwachung',
   status_public: 'Statusseite',
   status_name: 'Name auf der Statusseite',
+  robots: 'robots.txt',
+  robots_paths: 'robots.txt: gesperrte Pfade',
+  robots_sitemap: 'robots.txt: Sitemap',
+  robots_text: 'robots.txt: eigener Text',
   custom_cert: 'Eigenes Zertifikat',
   areas: 'Bereiche',
   enabled: 'Aktiv',

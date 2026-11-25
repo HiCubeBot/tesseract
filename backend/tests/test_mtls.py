@@ -45,7 +45,12 @@ def _policy(caddy: FakeCaddy, domain: str) -> dict:
 def _gate(caddy: FakeCaddy, domain: str) -> dict:
     for r in _https(caddy)["routes"]:
         if r["match"][0]["host"] == [domain]:
-            return r["handle"][0]["routes"][0]
+            # die robots.txt-Route (mTLS-Hosts: alles verbieten) steht vor der Sperre
+            return next(
+                x
+                for x in r["handle"][0]["routes"]
+                if x.get("match", [{}])[0].get("path") != ["/robots.txt"]
+            )
     raise AssertionError(domain)
 
 

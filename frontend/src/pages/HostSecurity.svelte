@@ -8,6 +8,7 @@
   import Toggle from '../lib/components/Toggle.svelte';
   import AreaEditor from '../lib/components/AreaEditor.svelte';
   import HostHeader from '../lib/components/HostHeader.svelte';
+  import RobotsEditor from '../lib/components/RobotsEditor.svelte';
   import {
     api,
     IP_MODES,
@@ -33,6 +34,7 @@
   let error = $state('');
   let saving = $state(false);
   let newRule = $state('');
+  let robotsInvalid = $state(false);
 
   const modes: WafMode[] = ['off', 'detect', 'block'];
   let modeIndex = $state(0);
@@ -79,7 +81,11 @@
     'ip_entries',
     'ip_list_ids',
     'authelia',
-    'areas'
+    'areas',
+    'robots',
+    'robots_paths',
+    'robots_sitemap',
+    'robots_text'
   ] as const;
   const areasInvalid = $derived(!!form && form.areas.some((a) => !a.paths.length));
   const pick = (o: Record<string, unknown>) => JSON.stringify(KEYS.map((k) => o[k]));
@@ -261,6 +267,15 @@
       {/if}
     </section>
 
+    <section class="card" aria-labelledby="robots-title">
+      <h2 id="robots-title">robots.txt</h2>
+      <p class="muted small">
+        Caddy beantwortet <code>/robots.txt</code> selbst – noch vor Zertifikat und WAF, der Dienst muss nichts dafür tun.
+        Crawler müssen sich nicht daran halten; gegen hartnäckige Bots helfen WAF, IP-Filter und Zertifikat.
+      </p>
+      <RobotsEditor bind:value={form} {hostId} bind:invalid={robotsInvalid} />
+    </section>
+
     <section class="card" aria-labelledby="areas-title">
       <h2 id="areas-title">Bereiche</h2>
       <p class="muted small">
@@ -271,7 +286,7 @@
     </section>
 
     <div class="row sticky">
-      <Button label={saving ? 'Überträgt …' : 'Speichern & übertragen'} disabled={!dirty || saving || ipEmpty || areasInvalid} onClick={save} />
+      <Button label={saving ? 'Überträgt …' : 'Speichern & übertragen'} disabled={!dirty || saving || ipEmpty || areasInvalid || robotsInvalid} onClick={save} />
       <Button variant="secondary" label="Verwerfen" disabled={!dirty || saving} onClick={load} />
       {#if dirty}<span class="muted small">Ungespeicherte Änderungen</span>{/if}
     </div>

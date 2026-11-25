@@ -82,7 +82,12 @@ def test_full_flow(auth_client: TestClient, caddy: FakeCaddy) -> None:
     # Das neue Gerät steht sofort in der Freigabeliste des Hosts
     routes = caddy.last["apps"]["http"]["servers"]["https"]["routes"]
     gate = next(r for r in routes if r["match"][0]["host"] == ["filme.example.org"])
-    fps = gate["handle"][0]["routes"][0]["match"][0]["not"][0]["vars"][FINGERPRINT]
+    first = next(
+        x
+        for x in gate["handle"][0]["routes"]
+        if x.get("match", [{}])[0].get("path") != ["/robots.txt"]
+    )
+    fps = first["match"][0]["not"][0]["vars"][FINGERPRINT]
     from tesseract import pki
 
     assert fps == [pki.fingerprint(c)]

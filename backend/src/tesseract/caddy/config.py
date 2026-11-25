@@ -113,6 +113,8 @@ class HostSpec:
     cert_free_networks: tuple[str, ...] = ()
     # Eigenes Zertifikat (ID aus custom_certs) statt automatisch
     custom_cert: int | None = None
+    # robots.txt direkt von Caddy (leer = Anfrage geht an den Dienst)
+    robots: str = ""
 
     @property
     def needs_client_auth(self) -> bool:
@@ -578,10 +580,31 @@ def internal_route(networks: tuple[str, ...]) -> JSON:
     return abort
 
 
+def robots_route(body: str) -> JSON:
+    """/robots.txt direkt beantworten – vor Zertifikat, WAF und Bereichen."""
+    return {
+        "match": [{"path": ["/robots.txt"], "method": ["GET", "HEAD"]}],
+        "handle": [
+            {
+                "handler": "static_response",
+                "status_code": 200,
+                "headers": {
+                    "Content-Type": ["text/plain; charset=utf-8"],
+                    "Cache-Control": ["public, max-age=3600"],
+                },
+                "body": body,
+            }
+        ],
+        "terminal": True,
+    }
+
+
 def host_route(
     host: HostSpec, authelia: JSON | None = None, internal: tuple[str, ...] = ()
 ) -> JSON:
     handle = host_handlers(host, authelia)
+    if host.robots:
+        handle[0]["routes"].insert(0, robots_route(host.robots))
     if host.internal:
         # vor allem anderen – noch vor IP-Filter, Zertifikat und WAF
         handle[0]["routes"].insert(0, internal_route(internal))
