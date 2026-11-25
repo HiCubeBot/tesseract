@@ -150,16 +150,18 @@
     background: var(--bg);
   }
   .qr {
-    width: 168px;
-    height: 168px;
+    width: 200px;
+    height: 200px;
     flex-shrink: 0;
     border-radius: 8px;
-    overflow: hidden;
     background: #fff;
   }
   .qr :global(svg) {
+    display: block;
     width: 100%;
     height: 100%;
+    /* Module scharf, ohne Kantenglättung – sonst lesen manche Kameras schlechter */
+    shape-rendering: crispEdges;
   }
   .stack {
     display: flex;

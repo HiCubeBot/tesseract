@@ -1,6 +1,6 @@
 [project]
 name = "tesseract-agent"
-version = "1.26.0"
+version = "1.26.1"
 description = "Tesseract-Agent – verbindet einen Caddy-Server ausgehend per mTLS mit dem Controller"
 readme = "README.md"
 authors = [

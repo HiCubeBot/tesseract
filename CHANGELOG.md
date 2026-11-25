@@ -4,6 +4,13 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.26.1] – 2026-11-25
+
+### Behoben
+- **QR-Codes nicht scanbar:** Das SVG hatte eine feste Größe ohne `viewBox` – beim Verkleinern
+  schnitt der Browser rechts und unten ab. Jetzt skalierbar mit Ruhezone von 4 Modulen, scharfen
+  Kanten und etwas größer (Zertifikat aufs Handy 200 px, Einladung 180 px).
+
 ## [1.26.0] – 2026-11-25
 
 ### Geändert

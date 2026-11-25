@@ -51,7 +51,7 @@
   </div>
 
   <div class="share">
-    <img src={`/api/invites/${invite.id}/qr.svg`} alt={t('QR-Code für den Einladungslink')} width="148" height="148" />
+    <img src={`/api/invites/${invite.id}/qr.svg`} alt={t('QR-Code für den Einladungslink')} width="180" height="180" />
     <div class="stack">
       <label class="field">
         {t('Link')}

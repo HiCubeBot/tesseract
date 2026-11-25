@@ -23,7 +23,10 @@ def test_view_again_and_download_link(auth_client: TestClient) -> None:
 
     link = auth_client.post(f"/api/devices/{dev['id']}/download-link").json()
     assert (
-        "/api/dl/" in link["url"] and link["qr_svg"].startswith("<?xml") or "<svg" in link["qr_svg"]
+        "/api/dl/" in link["url"]
+        and link["qr_svg"].startswith("<svg")
+        and "viewBox=" in link["qr_svg"]
+        and 'width="' not in link["qr_svg"]
     )
     token_path = "/api/dl/" + link["url"].rsplit("/api/dl/", 1)[1]
     anon = TestClient(auth_client.app)

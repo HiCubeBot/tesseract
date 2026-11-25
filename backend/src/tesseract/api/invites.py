@@ -227,6 +227,20 @@ def get_invite(
     return invite_out(db, box, _get_invite(db, invite_id), public_base(request, settings))
 
 
+def qr_svg(url: str, buf) -> None:
+    """QR-Code als skalierbares SVG: viewBox statt fester Größe (sonst schneidet der Browser
+    ihn beim Verkleinern ab), Ruhezone von 4 Modulen wie im Standard, ohne XML-Kopf."""
+    segno.make(url, error="m").save(
+        buf,
+        kind="svg",
+        border=4,
+        omitsize=True,
+        xmldecl=False,
+        dark="#000000",
+        light="#ffffff",
+    )
+
+
 @admin.get("/invites/{invite_id}/qr.svg")
 def invite_qr(
     invite_id: int, request: Request, db: DB, box: Box, _: CurrentActor, settings: AppSettings
@@ -234,9 +248,7 @@ def invite_qr(
     invite = _get_invite(db, invite_id)
     url = f"{public_base(request, settings)}/e/{invite_token(box, invite)}"
     buf = io.BytesIO()
-    segno.make(url, error="m").save(
-        buf, kind="svg", scale=6, border=2, dark="#0e1014", light="#ffffff"
-    )
+    qr_svg(url, buf)
     return Response(
         buf.getvalue(), media_type="image/svg+xml", headers={"Cache-Control": "no-store"}
     )

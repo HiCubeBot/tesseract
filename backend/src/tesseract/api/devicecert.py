@@ -11,12 +11,11 @@ import secrets
 import time
 from dataclasses import dataclass
 
-import segno
 from fastapi import APIRouter, HTTPException, Request, Response, status
 from pydantic import BaseModel
 
 from tesseract import audit
-from tesseract.api.invites import public_base
+from tesseract.api.invites import public_base, qr_svg
 from tesseract.db.models import Device
 from tesseract.deps import DB, AppSettings, Box, CurrentActor, client_ip
 from tesseract.identity import P12_CONTEXT, p12_filename
@@ -126,9 +125,7 @@ def download_link(
     _links(request)[token] = Link(d.id, expires)
     url = f"{public_base(request, settings)}/api/dl/{token}"
     buf = io.BytesIO()
-    segno.make(url, error="m").save(
-        buf, kind="svg", scale=5, border=2, dark="#0e1014", light="#ffffff"
-    )
+    qr_svg(url, buf)
     audit.record(
         db,
         actor=actor.name,

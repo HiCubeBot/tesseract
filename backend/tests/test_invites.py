@@ -36,7 +36,9 @@ def test_full_flow(auth_client: TestClient, caddy: FakeCaddy) -> None:
     ctx = _prepare(auth_client)
     inv, token = ctx["invite"], ctx["token"]
     assert inv["state"] == "open" and len(_code(inv)) == 6
-    assert auth_client.get(f"/api/invites/{inv['id']}/qr.svg").text.startswith("<?xml")
+    qr = auth_client.get(f"/api/invites/{inv['id']}/qr.svg").text
+    # skalierbar: viewBox statt fester Größe (sonst schneidet der Browser den Code ab)
+    assert qr.startswith("<svg") and "viewBox=" in qr and 'width="' not in qr
 
     # Gast sieht seine Einladung – ohne Anmeldung
     auth_client.cookies.clear()
