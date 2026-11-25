@@ -986,6 +986,10 @@ def build_config(spec: NodeSpec) -> JSON:
         # ein frisch installiertes Gerätezertifikat käme nie an, bis Caddy neu lädt.
         tls = tls or {}
         tls["session_tickets"] = {"disabled": True}
+        # Kein HTTP/3: Browser schicken über QUIC keine Client-Zertifikate (und fragen auch
+        # nicht danach). Wo das Zertifikat nur optional ist (Oberfläche, Hinweisseite),
+        # käme die Anfrage dann still ohne Zertifikat an.
+        https_server["protocols"] = ["h1", "h2"]
     if tls:
         config["apps"]["tls"] = tls
     logs: JSON = {}

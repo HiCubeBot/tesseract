@@ -940,6 +940,8 @@ export interface LogEntry {
   waf_msg: string | null;
   waf_score: number | null;
   user_agent: string | null;
+  /** HTTP-Version: "1.1", "2", "3" */
+  proto?: string | null;
 }
 
 export interface LogSource {

@@ -4,6 +4,16 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.26.4] – 2026-11-25
+
+### Behoben
+- **Handy fragt nicht nach dem Zertifikat („Empty Response“ von unterwegs):** Über HTTP/3
+  (QUIC) schicken Browser keine Client-Zertifikate und zeigen auch keine Auswahl. Wo das
+  Zertifikat nur optional abgefragt wird (Oberfläche, Hinweisseite, intern ohne Zertifikat),
+  kam die Anfrage so still ohne Zertifikat an und wurde von außen abgebrochen. Sobald ein Host
+  Client-Zertifikate abfragt, spricht Caddy jetzt nur HTTP/1.1 und HTTP/2.
+- Log-Ansicht: zeigt das Protokoll (HTTP/1.1, 2 oder 3) einer Anfrage.
+
 ## [1.26.3] – 2026-11-25
 
 ### Behoben

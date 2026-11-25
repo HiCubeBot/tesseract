@@ -69,6 +69,8 @@ nicht von außen erreichbar ist.
   aus: Eine ohne Zertifikat begonnene Sitzung würde sonst ohne Zertifikat fortgesetzt, und ein
   neu installiertes Gerätezertifikat käme nicht an. Jede neue Verbindung macht daher einen
   vollständigen Handshake; nach „Kein Zugang“ schließt Caddy die Verbindung.
+- Aus demselben Grund ist dann HTTP/3 aus: Über QUIC schicken Browser keine Client-Zertifikate.
+  Caddy spricht in dem Fall nur HTTP/1.1 und HTTP/2 – für alle Hosts dieses Nodes.
 - Sobald ein Host Client-Zertifikate nutzt, prüft Caddy streng, dass SNI und Host-Header
   übereinstimmen (`strict_sni_host`), sonst ließe sich mTLS über die Verbindung eines offenen
   Hosts umgehen. Browser verwenden bei Wildcard-Zertifikaten aber Verbindungen anderer Hosts

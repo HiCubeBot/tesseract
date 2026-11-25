@@ -1,3 +1,3 @@
 """Tesseract-Agent: läuft neben Caddy auf jedem Node und hält die Verbindung zum Controller."""
 
-__version__ = "1.26.3"
+__version__ = "1.26.4"

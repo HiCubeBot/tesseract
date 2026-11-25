@@ -39,6 +39,8 @@ class LogOut(BaseModel):
     waf_msg: str | None
     waf_score: int | None
     user_agent: str | None
+    # HTTP-Version: "1.1", "2", "3"
+    proto: str | None = None
 
 
 class Source(BaseModel):
@@ -87,6 +89,7 @@ def _out(e: LogEntry, nodes: dict[int, str], devices: dict[int, Device]) -> LogO
         waf_msg=e.waf_msg,
         waf_score=e.waf_score,
         user_agent=e.user_agent,
+        proto=e.proto,
     )
 
 

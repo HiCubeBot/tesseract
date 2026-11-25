@@ -327,3 +327,26 @@ def test_tls_tickets_untouched_without_client_auth() -> None:
         ],
     )
     assert "session_tickets" not in build_config(spec)["apps"].get("tls", {})
+
+
+def test_no_http3_with_client_auth(auth_client: TestClient, caddy: FakeCaddy) -> None:
+    """Über QUIC schicken Browser keine Client-Zertifikate – dann nur HTTP/1.1 und HTTP/2."""
+    _setup(auth_client)
+    auth_client.post("/api/hosts", json={**HOST, "access": "mtls", "no_cert_action": "hint"})
+    assert _https(caddy)["protocols"] == ["h1", "h2"]
+
+
+def test_http3_stays_without_client_auth() -> None:
+    spec = NodeSpec(
+        admin_listen="localhost:2019",
+        hosts=[
+            HostSpec(
+                id=1,
+                domain="a.example.org",
+                upstream_scheme="http",
+                upstream_host="x",
+                upstream_port=80,
+            )
+        ],
+    )
+    assert "protocols" not in build_config(spec)["apps"]["http"]["servers"]["https"]
