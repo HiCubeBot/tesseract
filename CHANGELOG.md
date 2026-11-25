@@ -4,6 +4,18 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.26.2] – 2026-11-25
+
+### Behoben
+- **Neues Gerät kommt trotz Freigabe nicht durch:** Hatte ein Gerät einen Host schon einmal ohne
+  Zertifikat geöffnet (z. B. die Kein-Zugang-Seite), nahm der Browser diese TLS-Sitzung bei jeder
+  neuen Verbindung wieder auf – ohne Zertifikat, auch nachdem eins installiert war. Erst ein
+  Neuladen der Caddy-Config (z. B. Freigabe entfernen und wieder hinzufügen) half. Betroffen
+  waren Hosts mit Hinweisseite, „aus internen Netzen ohne Zertifikat“ oder öffentlichen Pfaden.
+  Jetzt schaltet Tesseract die TLS-Sitzungswiederaufnahme ab, sobald ein Host Zertifikate
+  abfragt, und schließt die Verbindung nach einer Ablehnung („Kein Zugang“) – die nächste
+  Anfrage startet mit Zertifikat.
+
 ## [1.26.1] – 2026-11-25
 
 ### Behoben

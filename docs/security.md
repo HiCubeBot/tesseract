@@ -65,6 +65,10 @@ nicht von außen erreichbar ist.
 - Server-seitige Anfragen an vom Admin eingetragene Adressen (Erreichbarkeit des Ziels,
   Authelia-Test, Webhook, S3, ntfy) sind gewollt und nur für angemeldete Admins möglich.
 - Abgelehnte TLS-Handshakes (strenges mTLS) erscheinen nicht in den Logs.
+- Fragt ein Host Client-Zertifikate ab, ist die TLS-Sitzungswiederaufnahme (Session Tickets)
+  aus: Eine ohne Zertifikat begonnene Sitzung würde sonst ohne Zertifikat fortgesetzt, und ein
+  neu installiertes Gerätezertifikat käme nicht an. Jede neue Verbindung macht daher einen
+  vollständigen Handshake; nach „Kein Zugang“ schließt Caddy die Verbindung.
 - Sobald ein Host Client-Zertifikate nutzt, prüft Caddy streng, dass SNI und Host-Header
   übereinstimmen (`strict_sni_host`), sonst ließe sich mTLS über die Verbindung eines offenen
   Hosts umgehen. Browser verwenden bei Wildcard-Zertifikaten aber Verbindungen anderer Hosts
