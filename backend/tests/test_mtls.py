@@ -110,7 +110,14 @@ def test_hint_page_uses_verify_if_given(auth_client: TestClient, caddy: FakeCadd
     )
     assert _policy(caddy, "fotos.example.org")["mode"] == "verify_if_given"
     deny = _gate(caddy, "fotos.example.org")["handle"][0]
-    assert deny["status_code"] == 403 and "Kein Zugang" in deny["body"]
+    assert deny["handler"] == "subroute"
+    de, en = deny["routes"]
+    # Deutsch bei „de…“ oder ohne Accept-Language, sonst Englisch
+    assert de["match"][0]["header_regexp"]["Accept-Language"]["pattern"] == r"(?i)^\s*de\b"
+    assert de["match"][1] == {"header": {"Accept-Language": None}}
+    page = de["handle"][0]
+    assert page["status_code"] == 403 and "Kein Zugang" in page["body"]
+    assert "No access" in en["handle"][0]["body"] and en["handle"][0]["status_code"] == 403
 
 
 def test_public_host_with_protected_path(auth_client: TestClient, caddy: FakeCaddy) -> None:

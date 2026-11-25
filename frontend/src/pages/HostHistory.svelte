@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n';
   import AppShell from '../lib/components/AppShell.svelte';
   import Button from '../lib/components/Button.svelte';
   import Alert from '../lib/components/Alert.svelte';
@@ -55,7 +56,7 @@
     restoring = true;
     try {
       const r = await api.post<HostSaved>(`/hosts/${hostId}/versions/${detail.version}/restore`);
-      reportApply(r.apply, `Version ${detail.version} von ${r.host.domain}`, r.dns);
+      reportApply(r.apply, t('Version {0} von {1}', detail.version, r.host.domain), r.dns);
       selected = null;
       await load();
     } catch (e) {
@@ -67,27 +68,27 @@
 
   const summary = (v: Version) =>
     v.changes.length
-      ? v.changes.map((c) => FIELD_LABELS[c.field] ?? c.field).join(', ') + ' geändert'
+      ? v.changes.map((c) => FIELD_LABELS[c.field] ?? c.field).join(', ') + t(' geändert')
       : v.version === 1
-        ? 'Angelegt'
-        : 'keine Änderung';
+        ? t('Angelegt')
+        : t('keine Änderung');
 </script>
 
 <AppShell active="hosts">
   <HostHeader {hostId} {host} tab="history" onChange={() => load()} />
-  <p class="muted intro">Jede gespeicherte Änderung wird eine Version. Nichts wird überschrieben.</p>
+  <p class="muted intro">{t('Jede gespeicherte Änderung wird eine Version. Nichts wird überschrieben.')}</p>
 
-  {#if error}<Alert tone="bad" title="Fehler" text={error} />{/if}
+  {#if error}<Alert tone="bad" title={t('Fehler')} text={error} />{/if}
 
   <div class="layout">
-    <section class="card list" aria-label="Versionen">
+    <section class="card list" aria-label={t('Versionen')}>
       <ol>
         {#each versions as v (v.version)}
           <li>
             <button type="button" class:on={v.version === selected} onclick={() => (selected = v.version)}>
               <span class="row">
-                <strong>Version {v.version}</strong>
-                {#if v.current}<StatusPill tone="ok" label="läuft" />{/if}
+                <strong>{t('Version {0}', v.version)}</strong>
+                {#if v.current}<StatusPill tone="ok" label={t('läuft')} />{/if}
               </span>
               <span class="muted small">{formatDate(v.created_at)} · {v.actor}</span>
               <span class="small">{v.comment || summary(v)}</span>
@@ -100,29 +101,29 @@
     {#if detail}
       <section class="card detail" aria-labelledby="v-title">
         <div class="row">
-          <h2 id="v-title">Version {detail.version}</h2>
+          <h2 id="v-title">{t('Version {0}', detail.version)}</h2>
           <span class="spacer"></span>
           {#if detail.current}
-            <span class="muted small">Das ist die laufende Version.</span>
+            <span class="muted small">{t('Das ist die laufende Version.')}</span>
           {:else}
             <Button
               variant="secondary"
               icon="refresh"
-              label={restoring ? 'Überträgt …' : 'Diese Version wiederherstellen'}
+              label={restoring ? t('Überträgt …') : t('Diese Version wiederherstellen')}
               disabled={restoring}
               onClick={restore}
             />
           {/if}
         </div>
         {#if !detail.current}
-          <p class="muted small">Erzeugt eine neue Version mit diesem Stand und überträgt sie an {host?.node.name}.</p>
+          <p class="muted small">{t('Erzeugt eine neue Version mit diesem Stand und überträgt sie an {0}.', host?.node.name)}</p>
         {/if}
 
         {#if detail.changes.length}
           <div class="table-wrap">
             <table class="table">
               <thead>
-                <tr><th scope="col">Einstellung</th><th scope="col">vorher</th><th scope="col">nachher</th></tr>
+                <tr><th scope="col">{t('Einstellung')}</th><th scope="col">{t('vorher')}</th><th scope="col">{t('nachher')}</th></tr>
               </thead>
               <tbody>
                 {#each detail.changes as c (c.field)}
@@ -136,18 +137,18 @@
             </table>
           </div>
         {:else}
-          <p class="muted">{detail.version === 1 ? 'Erste Version des Hosts.' : 'Keine Änderungen gegenüber der vorherigen Version.'}</p>
+          <p class="muted">{detail.version === 1 ? t('Erste Version des Hosts.') : t('Keine Änderungen gegenüber der vorherigen Version.')}</p>
         {/if}
 
         <div class="routes">
           {#if detail.previous_route}
             <div class="field">
-              <span>Caddy-Route vorher</span>
+              <span>{t('Caddy-Route vorher')}</span>
               <pre class="code">{JSON.stringify(detail.previous_route, null, 2)}</pre>
             </div>
           {/if}
           <div class="field">
-            <span>Caddy-Route {detail.previous_route ? 'nachher' : ''}</span>
+            <span>{t('Caddy-Route {0}', detail.previous_route ? 'nachher' : '')}</span>
             <pre class="code">{JSON.stringify(detail.route, null, 2)}</pre>
           </div>
         </div>

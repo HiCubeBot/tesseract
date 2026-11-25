@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../i18n';
   import Icon from './Icon.svelte';
 
   interface Props {
@@ -15,8 +16,8 @@
   let {
     title = '',
     text = '',
-    word = 'bestätigen',
-    confirmLabel = 'Bestätigen',
+    word = t('bestätigen'),
+    confirmLabel = t('Bestätigen'),
     tone = 'danger',
     onConfirm,
     onCancel
@@ -34,11 +35,11 @@
   </div>
   {#if text}<p>{text}</p>{/if}
   <label>
-    <span>Zum Bestätigen <strong>{word}</strong> eingeben</span>
+    <span>{t('Zum Bestätigen')} <strong>{word}</strong> {t('eingeben')}</span>
     <input type="text" autocomplete="off" bind:value={typed} />
   </label>
   <div class="actions">
-    <button type="button" class="cancel" onclick={() => onCancel?.()}>Abbrechen</button>
+    <button type="button" class="cancel" onclick={() => onCancel?.()}>{t('Abbrechen')}</button>
     <button type="button" class="confirm" disabled={!ok} onclick={() => ok && onConfirm?.()}>{confirmLabel}</button>
   </div>
 </section>

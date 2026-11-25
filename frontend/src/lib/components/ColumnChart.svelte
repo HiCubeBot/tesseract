@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../i18n';
   import { compact, fmt, niceMax, type Bucket } from '../stats';
 
   interface Series {
@@ -93,18 +94,18 @@
         {#each series as s (s.key)}
           {#if series.length > 1}<span><i style:background={s.color}></i>{s.label}: {fmt(b.values[s.key] ?? 0)}</span>{/if}
         {/each}
-        <span class="sum">{series.length > 1 ? 'Summe' : series[0]?.label}: {fmt(totals[hover])}</span>
+        <span class="sum">{series.length > 1 ? t('Summe') : series[0]?.label}: {fmt(totals[hover])}</span>
       </div>
     {/if}
   </div>
   <button type="button" class="table-toggle" aria-expanded={showTable} onclick={() => (showTable = !showTable)}>
-    {showTable ? 'Tabelle ausblenden' : 'Als Tabelle'}
+    {showTable ? t('Tabelle ausblenden') : t('Als Tabelle')}
   </button>
   {#if showTable}
     <div class="table-wrap">
       <table class="table">
         <caption class="visually-hidden">{label}</caption>
-        <thead><tr><th scope="col">Zeitraum</th>{#each series as s (s.key)}<th scope="col">{s.label}</th>{/each}</tr></thead>
+        <thead><tr><th scope="col">{t('Zeitraum')}</th>{#each series as s (s.key)}<th scope="col">{s.label}</th>{/each}</tr></thead>
         <tbody>
           {#each buckets as b, i (i)}
             {#if totals[i]}<tr><td>{b.title}</td>{#each series as s (s.key)}<td>{fmt(b.values[s.key] ?? 0)}</td>{/each}</tr>{/if}

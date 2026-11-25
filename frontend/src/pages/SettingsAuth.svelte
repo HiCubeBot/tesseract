@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n';
   import AppShell from '../lib/components/AppShell.svelte';
   import PageHeader from '../lib/components/PageHeader.svelte';
   import SettingsTabs from '../lib/components/SettingsTabs.svelte';
@@ -65,7 +66,7 @@
         oidc: { ...oidc, client_secret: secret || null }
       });
       secret = '';
-      toasts.show('ok', 'Gespeichert.');
+      toasts.show('ok', t('Gespeichert.'));
     } catch (e) {
       toasts.show('bad', e instanceof Error ? e.message : String(e), 10000);
       await load();
@@ -81,7 +82,7 @@
       const credential = await webauthn.create(options);
       await api.post('/auth/passkeys', { id, credential, name: keyName || 'Passkey' });
       keyName = '';
-      toasts.show('ok', 'Passkey hinzugefügt. Ab jetzt geht die Anmeldung auch ohne Passwort.');
+      toasts.show('ok', t('Passkey hinzugefügt. Ab jetzt geht die Anmeldung auch ohne Passwort.'));
       await load();
     } catch (e) {
       toasts.show('bad', webauthn.explain(e), 10000);
@@ -96,7 +97,7 @@
     if (!k) return;
     try {
       await api.del(`/auth/passkeys/${k.id}`);
-      toasts.show('ok', `„${k.name}“ entfernt.`);
+      toasts.show('ok', t('„{0}“ entfernt.', k.name));
       await load();
     } catch (e) {
       toasts.show('bad', e instanceof Error ? e.message : String(e), 10000);
@@ -104,83 +105,82 @@
   }
 
   function copy(text: string) {
-    navigator.clipboard?.writeText(text).then(() => toasts.show('ok', 'Kopiert.'));
+    navigator.clipboard?.writeText(text).then(() => toasts.show('ok', t('Kopiert.')));
   }
 </script>
 
 <AppShell active="settings">
   <PageHeader
-    title="Einstellungen"
-    subtitle="Wie sich Admins an der Oberfläche anmelden. Das Admin-Gerätezertifikat bleibt davor die erste Hürde."
-    primaryLabel={saving ? 'Speichert …' : 'Speichern'}
+    title={t('Einstellungen')}
+    subtitle={t('Wie sich Admins an der Oberfläche anmelden. Das Admin-Gerätezertifikat bleibt davor die erste Hürde.')}
+    primaryLabel={saving ? t('Speichert …') : t('Speichern')}
     primaryIcon="check"
     onPrimary={() => save()}
   />
   <SettingsTabs current="#/settings-auth" />
 
-  {#if error}<Alert tone="bad" title="Fehler" text={error} />{/if}
+  {#if error}<Alert tone="bad" title={t('Fehler')} text={error} />{/if}
 
   {#if cfg}
     <section class="card" aria-labelledby="pk-title">
       <div class="row">
-        <h2 id="pk-title">Passkeys (für mein Konto)</h2>
+        <h2 id="pk-title">{t('Passkeys (für mein Konto)')}</h2>
         <span class="spacer"></span>
       </div>
       <p class="muted small">
-        Anmelden per Fingerabdruck, Gesicht oder Sicherheitsschlüssel statt Passwort – kein Name, kein Passwort, nicht phishbar.
-        Passkeys gelten nur für diese Domain.
+        {t('Anmelden per Fingerabdruck, Gesicht oder Sicherheitsschlüssel statt Passwort – kein Name, kein Passwort, nicht phishbar. Passkeys gelten nur für diese Domain.')}
       </p>
       {#if !webauthn.supported()}
-        <Alert tone="warn" title="Hier nicht möglich" text="Passkeys brauchen HTTPS (oder localhost) und einen aktuellen Browser." />
+        <Alert tone="warn" title={t('Hier nicht möglich')} text={t('Passkeys brauchen HTTPS (oder localhost) und einen aktuellen Browser.')} />
       {/if}
       {#if keys.length}
         <ul class="list">
           {#each keys as k (k.id)}
             <li>
               <span class="strong">{k.name}</span>
-              <span class="muted small">angelegt {formatDay(k.created_at)} · zuletzt {formatAgo(k.last_used_at)}</span>
+              <span class="muted small">{t('angelegt {0} · zuletzt {1}', formatDay(k.created_at), formatAgo(k.last_used_at))}</span>
               <span class="spacer"></span>
-              <Button variant="ghost" size="sm" icon="trash" label="Entfernen" onClick={() => (remove = k)} />
+              <Button variant="ghost" size="sm" icon="trash" label={t('Entfernen')} onClick={() => (remove = k)} />
             </li>
           {/each}
         </ul>
       {/if}
       <div class="row">
-        <input class="input name" placeholder="Name, z. B. YubiKey oder MacBook" bind:value={keyName} maxlength="64" />
-        <Button label={adding ? 'Wartet auf das Gerät …' : 'Passkey hinzufügen'} icon="plus" disabled={adding || !webauthn.supported()} onClick={addPasskey} />
+        <input class="input name" placeholder={t('Name, z. B. YubiKey oder MacBook')} bind:value={keyName} maxlength="64" />
+        <Button label={adding ? t('Wartet auf das Gerät …') : t('Passkey hinzufügen')} icon="plus" disabled={adding || !webauthn.supported()} onClick={addPasskey} />
       </div>
     </section>
 
     <section class="card" aria-labelledby="sso-title">
-      <h2 id="sso-title">SSO über OpenID Connect</h2>
-      <p class="muted small">Für Authelia, Keycloak, Authentik, Dex … Betrifft nur Admins der Oberfläche, nicht die Personen mit Zugriff auf Hosts.</p>
-      <Toggle label="Anmeldung über SSO" bind:checked={cfg.oidc.enabled} />
+      <h2 id="sso-title">{t('SSO über OpenID Connect')}</h2>
+      <p class="muted small">{t('Für Authelia, Keycloak, Authentik, Dex … Betrifft nur Admins der Oberfläche, nicht die Personen mit Zugriff auf Hosts.')}</p>
+      <Toggle label={t('Anmeldung über SSO')} bind:checked={cfg.oidc.enabled} />
       <div class="code-row">
-        <span class="label">Weiterleitungs-Adresse (beim Anbieter eintragen)</span>
-        <div class="row"><code class="mono uri">{cfg.redirect_uri}</code><Button variant="ghost" size="sm" icon="clipboard" label="Kopieren" onClick={() => copy(cfg!.redirect_uri)} /></div>
+        <span class="label">{t('Weiterleitungs-Adresse (beim Anbieter eintragen)')}</span>
+        <div class="row"><code class="mono uri">{cfg.redirect_uri}</code><Button variant="ghost" size="sm" icon="clipboard" label={t('Kopieren')} onClick={() => copy(cfg!.redirect_uri)} /></div>
       </div>
       <div class="grid">
-        <label class="field col"><span class="label">Aussteller (Issuer)</span><input class="input mono" bind:value={cfg.oidc.issuer} placeholder="https://auth.beispiel.de" /></label>
-        <label class="field col"><span class="label">Client-ID</span><input class="input mono" bind:value={cfg.oidc.client_id} placeholder="tesseract" /></label>
-        <label class="field col"><span class="label">Client-Secret{cfg.oidc.client_secret_set ? ' · gesetzt' : ''}</span><input class="input mono" type="password" bind:value={secret} placeholder={cfg.oidc.client_secret_set ? 'unverändert lassen' : ''} autocomplete="off" /></label>
-        <label class="field col"><span class="label">Scopes</span><input class="input mono" bind:value={cfg.oidc.scopes} /></label>
-        <label class="field col"><span class="label">Text auf der Anmeldeseite</span><input class="input" bind:value={cfg.oidc.label} /></label>
-        <label class="field col"><span class="label">Benutzername aus Claim</span><input class="input mono" bind:value={cfg.oidc.username_claim} /></label>
+        <label class="field col"><span class="label">{t('Aussteller (Issuer)')}</span><input class="input mono" bind:value={cfg.oidc.issuer} placeholder="https://auth.beispiel.de" /></label>
+        <label class="field col"><span class="label">{t('Client-ID')}</span><input class="input mono" bind:value={cfg.oidc.client_id} placeholder={t('tesseract')} /></label>
+        <label class="field col"><span class="label">{t('Client-Secret{0}', cfg.oidc.client_secret_set ? t(' · gesetzt') : '')}</span><input class="input mono" type="password" bind:value={secret} placeholder={cfg.oidc.client_secret_set ? t('unverändert lassen') : ''} autocomplete="off" /></label>
+        <label class="field col"><span class="label">{t('Scopes')}</span><input class="input mono" bind:value={cfg.oidc.scopes} /></label>
+        <label class="field col"><span class="label">{t('Text auf der Anmeldeseite')}</span><input class="input" bind:value={cfg.oidc.label} /></label>
+        <label class="field col"><span class="label">{t('Benutzername aus Claim')}</span><input class="input mono" bind:value={cfg.oidc.username_claim} /></label>
       </div>
-      <h3>Wer wird Admin?</h3>
+      <h3>{t('Wer wird Admin?')}</h3>
       <div class="grid">
-        <label class="field col"><span class="label">Mitglied der Gruppe</span><input class="input mono" bind:value={cfg.oidc.admin_group} placeholder="tesseract-admins" /></label>
-        <label class="field col"><span class="label">Gruppen-Claim</span><input class="input mono" bind:value={cfg.oidc.groups_claim} /></label>
+        <label class="field col"><span class="label">{t('Mitglied der Gruppe')}</span><input class="input mono" bind:value={cfg.oidc.admin_group} placeholder={t('tesseract-admins')} /></label>
+        <label class="field col"><span class="label">{t('Gruppen-Claim')}</span><input class="input mono" bind:value={cfg.oidc.groups_claim} /></label>
       </div>
-      <span class="label">… oder eine dieser E-Mail-Adressen</span>
-      <ChipInput bind:values={cfg.oidc.allowed_emails} label="E-Mail hinzufügen" placeholder="admin@beispiel.de" mono={false} />
+      <span class="label">{t('… oder eine dieser E-Mail-Adressen')}</span>
+      <ChipInput bind:values={cfg.oidc.allowed_emails} label={t('E-Mail hinzufügen')} placeholder="admin@beispiel.de" mono={false} />
     </section>
 
     <section class="card" aria-labelledby="pw-title">
-      <h2 id="pw-title">Passwort-Anmeldung</h2>
+      <h2 id="pw-title">{t('Passwort-Anmeldung')}</h2>
       <Toggle
-        label="Anmeldung mit Benutzername und Passwort erlauben"
-        description="Abschalten geht erst, wenn SSO oder ein Passkey eingerichtet ist. Notausgang auf dem Controller: tesseract admin password-login on"
+        label={t('Anmeldung mit Benutzername und Passwort erlauben')}
+        description={t('Abschalten geht erst, wenn SSO oder ein Passkey eingerichtet ist. Notausgang auf dem Controller: tesseract admin password-login on')}
         checked={cfg.password_login}
         onChange={(on) => save(on)}
       />
@@ -189,10 +189,10 @@
 
   {#if remove}
     <ConfirmDialog
-      title={`Passkey „${remove.name}“ entfernen?`}
-      text="Mit diesem Passkey ist danach keine Anmeldung mehr möglich. Auf dem Gerät selbst bleibt er gespeichert, bis du ihn dort löschst."
+      title={t('Passkey „{0}“ entfernen?', remove.name)}
+      text={t('Mit diesem Passkey ist danach keine Anmeldung mehr möglich. Auf dem Gerät selbst bleibt er gespeichert, bis du ihn dort löschst.')}
       word="entfernen"
-      confirmLabel="Entfernen"
+      confirmLabel={t('Entfernen')}
       onConfirm={doRemove}
       onCancel={() => (remove = null)}
     />

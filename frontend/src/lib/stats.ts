@@ -1,5 +1,6 @@
 /** Hilfen für die Statistik-Seiten: UTC-Stunden-Buckets in Ortszeit zusammenfassen. */
 
+import { locale, t } from './i18n';
 export type Range = '24h' | '7d' | '30d';
 
 export interface Bucket {
@@ -41,22 +42,22 @@ export function bucketize(hourly: { t: string; [k: string]: number | string }[],
 
 function axisLabel(d: Date, range: Range): string {
   if (range === '24h') return `${String(d.getHours()).padStart(2, '0')}:00`;
-  if (range === '7d') return d.toLocaleDateString('de-DE', { weekday: 'short' });
-  return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+  if (range === '7d') return d.toLocaleDateString(locale, { weekday: 'short' });
+  return d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit' });
 }
 
 function bucketTitle(d: Date, range: Range): string {
-  if (range === '24h') return `${d.toLocaleDateString('de-DE', { weekday: 'short' })} ${axisLabel(d, range)}–${String((d.getHours() + 1) % 24).padStart(2, '0')}:00`;
-  if (range === '7d') return `${d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' })} ${String(d.getHours()).padStart(2, '0')}–${String(d.getHours() + 6).padStart(2, '0')} Uhr`;
-  return d.toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: '2-digit' });
+  if (range === '24h') return `${d.toLocaleDateString(locale, { weekday: 'short' })} ${axisLabel(d, range)}–${String((d.getHours() + 1) % 24).padStart(2, '0')}:00`;
+  if (range === '7d') return t('{0} {1}–{2} Uhr', d.toLocaleDateString(locale, { weekday: 'short', day: '2-digit', month: '2-digit' }), String(d.getHours()).padStart(2, '0'), String(d.getHours() + 6).padStart(2, '0'));
+  return d.toLocaleDateString(locale, { weekday: 'long', day: '2-digit', month: '2-digit' });
 }
 
-export const fmt = (n: number) => n.toLocaleString('de-DE');
+export const fmt = (n: number) => n.toLocaleString(locale);
 
 /** Kompakte Zahl für Achsen: 1.500 → 1,5 k */
 export function compact(n: number): string {
-  if (n >= 1e6) return `${(n / 1e6).toLocaleString('de-DE', { maximumFractionDigits: 1 })} M`;
-  if (n >= 1e4) return `${(n / 1e3).toLocaleString('de-DE', { maximumFractionDigits: 0 })} k`;
+  if (n >= 1e6) return `${(n / 1e6).toLocaleString(locale, { maximumFractionDigits: 1 })} M`;
+  if (n >= 1e4) return `${(n / 1e3).toLocaleString(locale, { maximumFractionDigits: 0 })} k`;
   return fmt(n);
 }
 
@@ -82,8 +83,8 @@ export const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
 /** Farben aus dem Design (gegen die dunkle Fläche geprüft: Farbsehschwäche, Kontrast) */
 export const SERIES = {
-  mtls: { label: 'Ohne Zertifikat', color: '#8B7CF6' },
+  mtls: { label: t('Ohne Zertifikat'), color: '#8B7CF6' },
   waf: { label: 'WAF', color: '#14A399' },
-  ip: { label: 'IP-Filter', color: '#CF7D45' },
-  other: { label: 'Sonstige', color: '#5E6573' }
+  ip: { label: t('IP-Filter'), color: '#CF7D45' },
+  other: { label: t('Sonstige'), color: '#5E6573' }
 } as const;

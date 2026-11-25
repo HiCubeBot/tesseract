@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n';
   // Host bearbeiten – volle Seite mit Tabs „Allgemein“ und „Zugriff“
   // (Sicherheit und Verlauf sind eigene Seiten mit demselben Kopf)
   import AppShell from '../lib/components/AppShell.svelte';
@@ -137,8 +138,8 @@
     const domain = host.domain;
     try {
       const r = await api.del<{ ok: boolean; error: string | null }>(`/hosts/${host.id}`);
-      if (r.ok) toasts.show('ok', `${domain} gelöscht und übertragen.`);
-      else toasts.show('warn', `${domain} gelöscht, aber nicht übertragen: ${r.error}`, 12000);
+      if (r.ok) toasts.show('ok', t('{0} gelöscht und übertragen.', domain));
+      else toasts.show('warn', t('{0} gelöscht, aber nicht übertragen: {1}', domain, r.error), 12000);
       router.go('hosts');
     } catch (e) {
       toasts.show('bad', e instanceof Error ? e.message : String(e));
@@ -157,77 +158,77 @@
 <AppShell active="hosts">
   <HostHeader {hostId} {host} {tab} {dirty} onChange={enabledChanged} />
 
-  {#if error}<Alert tone="bad" title="Das hat nicht geklappt" text={error} />{/if}
+  {#if error}<Alert tone="bad" title={t('Das hat nicht geklappt')} text={error} />{/if}
 
   {#if host && form}
     {#if host.draft}
-      <Alert tone="warn" title="Entwurf" text="Dieser Host ist gespeichert, aber noch nicht an Caddy übertragen." />
+      <Alert tone="warn" title={t('Entwurf')} text={t('Dieser Host ist gespeichert, aber noch nicht an Caddy übertragen.')} />
     {/if}
     {#if host.source === 'docker'}
       <Alert
         tone="info"
-        title={`Aus Docker-Labels · Container ${host.source_ref?.split(':').slice(1).join(':')}`}
+        title={t('Aus Docker-Labels · Container {0}', host.source_ref?.split(':').slice(1).join(':'))}
         text={host.source_disabled
-          ? 'Der Container läuft nicht – der Host ist deshalb abgeschaltet und wird wieder aktiv, sobald der Container läuft.'
-          : 'Ändern sich die Labels des Containers, gelten sie und überschreiben die betroffenen Felder. Felder ohne Label bleiben, wie du sie hier einstellst.'}
+          ? t('Der Container läuft nicht – der Host ist deshalb abgeschaltet und wird wieder aktiv, sobald der Container läuft.')
+          : t('Ändern sich die Labels des Containers, gelten sie und überschreiben die betroffenen Felder. Felder ohne Label bleiben, wie du sie hier einstellst.')}
       />
     {/if}
 
     {#if tab === 'general'}
       <div class="layout">
-        <section class="card main" aria-label="Domain und Ziel">
+        <section class="card main" aria-label={t('Domain und Ziel')}>
           <HostForm bind:value={form} {nodes} {dnsAvailable} {wildcards} {customCerts} {dnsZones} />
         </section>
         <aside class="side">
           <section class="card" aria-labelledby="checks-title">
-            <h2 id="checks-title">Prüfungen</h2>
+            <h2 id="checks-title">{t('Prüfungen')}</h2>
             <CheckList {checks} busy={checking} />
           </section>
           <section class="card" aria-labelledby="meta-title">
-            <h2 id="meta-title">Details</h2>
+            <h2 id="meta-title">{t('Details')}</h2>
             <dl class="meta">
-              <dt>Angelegt</dt><dd>{formatDate(host.created_at)}</dd>
-              <dt>Geändert</dt><dd>{formatDate(host.updated_at)}</dd>
-              <dt>Version</dt><dd><a href={`#/hosts/${host.id}/history`}>{host.version}</a></dd>
+              <dt>{t('Angelegt')}</dt><dd>{formatDate(host.created_at)}</dd>
+              <dt>{t('Geändert')}</dt><dd>{formatDate(host.updated_at)}</dd>
+              <dt>{t('Version')}</dt><dd><a href={`#/hosts/${host.id}/history`}>{host.version}</a></dd>
               {#if host.dns_records.length}
-                <dt>DNS</dt>
+                <dt>{t('DNS')}</dt>
                 <dd class="mono">
-                  {#each host.dns_records as r (r.id)}<div>{r.type} → {r.content}{r.proxied ? ' (Proxy)' : ''}</div>{/each}
+                  {#each host.dns_records as r (r.id)}<div>{r.type} → {r.content}{r.proxied ? t(' (Proxy)') : ''}</div>{/each}
                 </dd>
               {/if}
             </dl>
             {#if host.dns_error}
-              <p class="field-error">DNS-Eintrag: {host.dns_error}. Erneut speichern versucht es noch einmal.</p>
+              <p class="field-error">{t('DNS-Eintrag: {0}. Erneut speichern versucht es noch einmal.', host.dns_error)}</p>
             {/if}
           </section>
         </aside>
       </div>
     {:else}
       <section class="card" aria-labelledby="access-title">
-        <h2 id="access-title">Wer darf zugreifen?</h2>
+        <h2 id="access-title">{t('Wer darf zugreifen?')}</h2>
         <AccessForm bind:value={form} {groups} {persons} {caConfigured} {internalAvailable} />
       </section>
     {/if}
 
     <footer class="row bar">
       {#if host.draft}
-        <Button label={saving ? 'Überträgt …' : 'Anlegen & übertragen'} disabled={saving || blocking} onClick={() => save(true)} />
-        <Button variant="secondary" label="Entwurf speichern" disabled={saving || !dirty} onClick={() => save(false)} />
+        <Button label={saving ? t('Überträgt …') : t('Anlegen & übertragen')} disabled={saving || blocking} onClick={() => save(true)} />
+        <Button variant="secondary" label={t('Entwurf speichern')} disabled={saving || !dirty} onClick={() => save(false)} />
       {:else}
-        <Button label={saving ? 'Überträgt …' : 'Speichern & übertragen'} disabled={saving || !dirty || blocking} onClick={() => save(false)} />
+        <Button label={saving ? t('Überträgt …') : t('Speichern & übertragen')} disabled={saving || !dirty || blocking} onClick={() => save(false)} />
       {/if}
-      <Button variant="secondary" label="Verwerfen" disabled={saving || !dirty} onClick={() => host && (form = toInput(host))} />
-      {#if dirty}<span class="muted small">Ungespeicherte Änderungen</span>{/if}
+      <Button variant="secondary" label={t('Verwerfen')} disabled={saving || !dirty} onClick={() => host && (form = toInput(host))} />
+      {#if dirty}<span class="muted small">{t('Ungespeicherte Änderungen')}</span>{/if}
       <span class="spacer"></span>
-      <Button variant="danger" icon="trash" label="Löschen" onClick={() => (confirmDelete = true)} />
+      <Button variant="danger" icon="trash" label={t('Löschen')} onClick={() => (confirmDelete = true)} />
     </footer>
 
     {#if confirmDelete}
       <ConfirmDialog
-        title="Host löschen?"
-        text={`${host.domain} wird aus Caddy entfernt. Der Verlauf geht verloren. Zum vorübergehenden Abschalten reicht der Schalter „Aktiv“.`}
+        title={t('Host löschen?')}
+        text={t('{0} wird aus Caddy entfernt. Der Verlauf geht verloren. Zum vorübergehenden Abschalten reicht der Schalter „Aktiv“.', host.domain)}
         word={host.domain}
-        confirmLabel="Endgültig löschen"
+        confirmLabel={t('Endgültig löschen')}
         onConfirm={remove}
         onCancel={() => (confirmDelete = false)}
       />

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n';
   import AppShell from '../lib/components/AppShell.svelte';
   import PageHeader from '../lib/components/PageHeader.svelte';
   import SettingsTabs from '../lib/components/SettingsTabs.svelte';
@@ -74,7 +75,7 @@
       const { bind_password_set: _p, last: _l, ...rest } = cfg;
       cfg = await api.put<LdapCfg>('/settings/ldap', { ...rest, interval_minutes: Number(rest.interval_minutes), bind_password: password || null });
       password = '';
-      toasts.show('ok', 'Gespeichert.');
+      toasts.show('ok', t('Gespeichert.'));
       return true;
     } catch (e) {
       toasts.show('bad', e instanceof Error ? e.message : String(e), 10000);
@@ -92,8 +93,8 @@
       if (dry) preview = r;
       else {
         preview = null;
-        if (r.ok) toasts.show('ok', `Abgeglichen: ${r.users} Personen, ${r.groups} Gruppen.`);
-        else toasts.show('bad', r.error ?? 'Abgleich fehlgeschlagen', 12000);
+        if (r.ok) toasts.show('ok', t('Abgeglichen: {0} Personen, {1} Gruppen.', r.users, r.groups));
+        else toasts.show('bad', r.error ?? t('Abgleich fehlgeschlagen'), 12000);
         await load();
       }
     } catch (e) {
@@ -108,42 +109,42 @@
 
 <AppShell active="settings">
   <PageHeader
-    title="Einstellungen"
-    subtitle="Personen und Gruppen aus einem LDAP-Verzeichnis übernehmen. Geräte und Zertifikate verwaltet weiter Tesseract."
-    primaryLabel={busy === 'save' ? 'Speichert …' : 'Speichern'}
+    title={t('Einstellungen')}
+    subtitle={t('Personen und Gruppen aus einem LDAP-Verzeichnis übernehmen. Geräte und Zertifikate verwaltet weiter Tesseract.')}
+    primaryLabel={busy === 'save' ? t('Speichert …') : t('Speichern')}
     primaryIcon="check"
     onPrimary={save}
   />
   <SettingsTabs current="#/settings-ldap" />
 
-  {#if error}<Alert tone="bad" title="Fehler" text={error} />{/if}
+  {#if error}<Alert tone="bad" title={t('Fehler')} text={error} />{/if}
 
   {#if cfg}
     {#if cfg.last}
       <Alert
         tone={cfg.last.ok ? 'ok' : 'bad'}
-        title={cfg.last.ok ? `Letzter Abgleich ${formatAgo(cfg.last.at)}` : `Letzter Abgleich fehlgeschlagen (${formatAgo(cfg.last.at)})`}
-        text={cfg.last.ok ? `${cfg.last.users} Personen, ${cfg.last.groups} Gruppen · neu: ${list(cfg.last.created)} · gesperrt: ${list(cfg.last.disabled)}` : (cfg.last.error ?? '')}
+        title={cfg.last.ok ? t('Letzter Abgleich {0}', formatAgo(cfg.last.at)) : t('Letzter Abgleich fehlgeschlagen ({0})', formatAgo(cfg.last.at))}
+        text={cfg.last.ok ? t('{0} Personen, {1} Gruppen · neu: {2} · gesperrt: {3}', cfg.last.users, cfg.last.groups, list(cfg.last.created), list(cfg.last.disabled)) : (cfg.last.error ?? '')}
       />
     {/if}
 
     <section class="card" aria-labelledby="conn-title">
-      <h2 id="conn-title">Verbindung</h2>
-      <Toggle label="Regelmäßig abgleichen" description={`alle ${cfg.interval_minutes} Minuten`} bind:checked={cfg.enabled} />
+      <h2 id="conn-title">{t('Verbindung')}</h2>
+      <Toggle label={t('Regelmäßig abgleichen')} description={t('alle {0} Minuten', cfg.interval_minutes)} bind:checked={cfg.enabled} />
       <div class="grid">
-        <label class="field col"><span class="label">Adresse</span><input class="input mono" bind:value={cfg.url} placeholder="ldaps://ldap.beispiel.de:636" /></label>
-        <label class="field col"><span class="label">Bind-DN</span><input class="input mono" bind:value={cfg.bind_dn} placeholder="cn=tesseract,ou=dienste,dc=beispiel,dc=de" /></label>
-        <label class="field col"><span class="label">Passwort{cfg.bind_password_set ? ' · gesetzt' : ''}</span><input class="input" type="password" bind:value={password} placeholder={cfg.bind_password_set ? 'unverändert lassen' : ''} autocomplete="off" /></label>
-        <label class="field col"><span class="label">Abstand (Minuten)</span><input class="input" type="number" min="5" bind:value={cfg.interval_minutes} /></label>
+        <label class="field col"><span class="label">{t('Adresse')}</span><input class="input mono" bind:value={cfg.url} placeholder="ldaps://ldap.beispiel.de:636" /></label>
+        <label class="field col"><span class="label">{t('Bind-DN')}</span><input class="input mono" bind:value={cfg.bind_dn} placeholder="cn=tesseract,ou=dienste,dc=beispiel,dc=de" /></label>
+        <label class="field col"><span class="label">{t('Passwort{0}', cfg.bind_password_set ? t(' · gesetzt') : '')}</span><input class="input" type="password" bind:value={password} placeholder={cfg.bind_password_set ? t('unverändert lassen') : ''} autocomplete="off" /></label>
+        <label class="field col"><span class="label">{t('Abstand (Minuten)')}</span><input class="input" type="number" min="5" bind:value={cfg.interval_minutes} /></label>
       </div>
-      <label class="check"><input type="checkbox" bind:checked={cfg.starttls} /> STARTTLS (bei ldap://)</label>
+      <label class="check"><input type="checkbox" bind:checked={cfg.starttls} /> {t('STARTTLS (bei ldap://)')}</label>
     </section>
 
     <section class="card" aria-labelledby="map-title">
       <div class="row">
-        <h2 id="map-title">Personen und Gruppen</h2>
+        <h2 id="map-title">{t('Personen und Gruppen')}</h2>
         <span class="spacer"></span>
-        <label class="preset">Vorlage
+        <label class="preset">{t('Vorlage')}
           <select class="input" onchange={(e) => { const p = PRESETS[(e.currentTarget as HTMLSelectElement).value]; if (p && cfg) Object.assign(cfg, p); }}>
             <option value="">–</option>
             {#each Object.keys(PRESETS) as k (k)}<option value={k}>{k}</option>{/each}
@@ -151,50 +152,49 @@
         </label>
       </div>
       <div class="grid">
-        <label class="field col"><span class="label">Suchbasis Personen</span><input class="input mono" bind:value={cfg.user_base} placeholder="ou=people,dc=beispiel,dc=de" /></label>
-        <label class="field col"><span class="label">Filter Personen</span><input class="input mono" bind:value={cfg.user_filter} /></label>
-        <label class="field col"><span class="label">Attribut Kennung</span><input class="input mono" bind:value={cfg.attr_uid} /></label>
-        <label class="field col"><span class="label">Attribut Name</span><input class="input mono" bind:value={cfg.attr_name} /></label>
-        <label class="field col"><span class="label">Attribut E-Mail</span><input class="input mono" bind:value={cfg.attr_mail} /></label>
-        <label class="field col"><span class="label">Filter „deaktiviert“ (optional)</span><input class="input mono" bind:value={cfg.disabled_filter} placeholder="(nsAccountLock=TRUE)" /></label>
-        <label class="field col"><span class="label">Suchbasis Gruppen (leer = keine)</span><input class="input mono" bind:value={cfg.group_base} placeholder="ou=groups,dc=beispiel,dc=de" /></label>
-        <label class="field col"><span class="label">Filter Gruppen</span><input class="input mono" bind:value={cfg.group_filter} /></label>
-        <label class="field col"><span class="label">Attribut Gruppenname</span><input class="input mono" bind:value={cfg.attr_group_name} /></label>
-        <label class="field col"><span class="label">Attribut Mitglieder</span><input class="input mono" bind:value={cfg.attr_member} /></label>
+        <label class="field col"><span class="label">{t('Suchbasis Personen')}</span><input class="input mono" bind:value={cfg.user_base} placeholder="ou=people,dc=beispiel,dc=de" /></label>
+        <label class="field col"><span class="label">{t('Filter Personen')}</span><input class="input mono" bind:value={cfg.user_filter} /></label>
+        <label class="field col"><span class="label">{t('Attribut Kennung')}</span><input class="input mono" bind:value={cfg.attr_uid} /></label>
+        <label class="field col"><span class="label">{t('Attribut Name')}</span><input class="input mono" bind:value={cfg.attr_name} /></label>
+        <label class="field col"><span class="label">{t('Attribut E-Mail')}</span><input class="input mono" bind:value={cfg.attr_mail} /></label>
+        <label class="field col"><span class="label">{t('Filter „deaktiviert“ (optional)')}</span><input class="input mono" bind:value={cfg.disabled_filter} placeholder="(nsAccountLock=TRUE)" /></label>
+        <label class="field col"><span class="label">{t('Suchbasis Gruppen (leer = keine)')}</span><input class="input mono" bind:value={cfg.group_base} placeholder="ou=groups,dc=beispiel,dc=de" /></label>
+        <label class="field col"><span class="label">{t('Filter Gruppen')}</span><input class="input mono" bind:value={cfg.group_filter} /></label>
+        <label class="field col"><span class="label">{t('Attribut Gruppenname')}</span><input class="input mono" bind:value={cfg.attr_group_name} /></label>
+        <label class="field col"><span class="label">{t('Attribut Mitglieder')}</span><input class="input mono" bind:value={cfg.attr_member} /></label>
       </div>
       <Toggle
-        label="Geräte gesperrter Personen widerrufen"
-        description="Wer in LDAP deaktiviert ist oder dort verschwindet, wird gesperrt. Mit diesem Schalter werden auch die Zertifikate widerrufen – endgültig, auch wenn die Person später wieder aktiv wird."
+        label={t('Geräte gesperrter Personen widerrufen')}
+        description={t('Wer in LDAP deaktiviert ist oder dort verschwindet, wird gesperrt. Mit diesem Schalter werden auch die Zertifikate widerrufen – endgültig, auch wenn die Person später wieder aktiv wird.')}
         bind:checked={cfg.revoke_devices}
       />
       <div class="row">
-        <Button variant="secondary" label={busy === 'preview' ? 'Prüft …' : 'Vorschau'} disabled={busy !== null} onClick={() => sync(true)} />
-        <Button label={busy === 'sync' ? 'Gleicht ab …' : 'Jetzt abgleichen'} icon="refresh" disabled={busy !== null} onClick={() => sync(false)} />
+        <Button variant="secondary" label={busy === 'preview' ? t('Prüft …') : t('Vorschau')} disabled={busy !== null} onClick={() => sync(true)} />
+        <Button label={busy === 'sync' ? t('Gleicht ab …') : t('Jetzt abgleichen')} icon="refresh" disabled={busy !== null} onClick={() => sync(false)} />
       </div>
     </section>
 
     {#if preview}
       <section class="card" aria-labelledby="pre-title">
-        <h2 id="pre-title">Vorschau – noch nichts geändert</h2>
+        <h2 id="pre-title">{t('Vorschau – noch nichts geändert')}</h2>
         {#if preview.ok}
           <dl>
-            <dt>Gefunden</dt><dd>{preview.users} Personen, {preview.groups} Gruppen</dd>
-            <dt>Neu</dt><dd>{list(preview.created)}</dd>
-            <dt>Geändert/verknüpft</dt><dd>{list(preview.updated)}</dd>
-            <dt>Würden gesperrt</dt><dd class:bad={!!preview.disabled?.length}>{list(preview.disabled)}{#if preview.revoked_devices} · {preview.revoked_devices} Geräte widerrufen{/if}</dd>
-            <dt>Wieder aktiv</dt><dd>{list(preview.enabled)}</dd>
-            <dt>Neue Gruppen</dt><dd>{list(preview.groups_created)}</dd>
-            <dt>Mitgliedschaften</dt><dd>{preview.memberships_changed} Änderungen</dd>
+            <dt>{t('Gefunden')}</dt><dd>{t('{0} Personen, {1} Gruppen', preview.users, preview.groups)}</dd>
+            <dt>{t('Neu')}</dt><dd>{list(preview.created)}</dd>
+            <dt>{t('Geändert/verknüpft')}</dt><dd>{list(preview.updated)}</dd>
+            <dt>{t('Würden gesperrt')}</dt><dd class:bad={!!preview.disabled?.length}>{list(preview.disabled)}{#if preview.revoked_devices} {t('· {0} Geräte widerrufen', preview.revoked_devices)}{/if}</dd>
+            <dt>{t('Wieder aktiv')}</dt><dd>{list(preview.enabled)}</dd>
+            <dt>{t('Neue Gruppen')}</dt><dd>{list(preview.groups_created)}</dd>
+            <dt>{t('Mitgliedschaften')}</dt><dd>{t('{0} Änderungen', preview.memberships_changed)}</dd>
           </dl>
         {:else}
-          <Alert tone="bad" title="Abgleich nicht möglich" text={preview.error ?? ''} />
+          <Alert tone="bad" title={t('Abgleich nicht möglich')} text={preview.error ?? ''} />
         {/if}
       </section>
     {/if}
 
     <p class="muted small">
-      LDAP-Personen und -Gruppen sind unter Nutzer gekennzeichnet. Name, E-Mail, Sperre und die Mitglieder von LDAP-Gruppen kommen aus LDAP –
-      Änderungen daran in Tesseract überschreibt der nächste Abgleich. Freigaben, Geräte und Tesseract-eigene Gruppen bleiben.
+      {t('LDAP-Personen und -Gruppen sind unter Nutzer gekennzeichnet. Name, E-Mail, Sperre und die Mitglieder von LDAP-Gruppen kommen aus LDAP – Änderungen daran in Tesseract überschreibt der nächste Abgleich. Freigaben, Geräte und Tesseract-eigene Gruppen bleiben.')}
     </p>
   {/if}
 </AppShell>

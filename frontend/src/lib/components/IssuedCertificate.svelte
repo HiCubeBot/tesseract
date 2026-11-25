@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { locale, t } from '../i18n';
   // Zertifikat eines Geräts: .p12 herunterladen, Passwort zeigen, per QR-Code aufs Handy holen.
   // Für frisch ausgestellte und (wenn hinterlegt) für bestehende Geräte.
   import Button from './Button.svelte';
@@ -34,7 +35,7 @@
       if (what === 'pw') {
         copied = true;
         setTimeout(() => (copied = false), 2000);
-      } else toasts.show('ok', 'Link kopiert.');
+      } else toasts.show('ok', t('Link kopiert.'));
     } catch {
       /* Zwischenablage nicht verfügbar – steht ja da */
     }
@@ -51,61 +52,60 @@
     }
   }
 
-  const until = (t: number) => new Date(t * 1000).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  const until = (sec: number) => new Date(sec * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
 </script>
 
 <section class="card issued" aria-labelledby="issued-title">
   <h2 id="issued-title">
-    {again ? `Zertifikat von „${issued.device.name}“` : `Zertifikat für „${issued.device.name}“ ist bereit`}
+    {again ? t('Zertifikat von „{0}“', issued.device.name) : t('Zertifikat für „{0}“ ist bereit', issued.device.name)}
     <span class="muted who">· {issued.device.person_name}</span>
   </h2>
   {#if stored}
     <p class="muted small">
-      Datei und Passwort sind verschlüsselt hinterlegt und lassen sich später unter <a href="#/devices">Geräte</a> erneut abrufen.
+      {t('Datei und Passwort sind verschlüsselt hinterlegt und lassen sich später unter')} <a href="#/devices">{t('Geräte')}</a> {t('erneut abrufen.')}
     </p>
   {:else}
-    <Alert tone="warn" title="Nur jetzt verfügbar" text="Datei und Passwort werden nicht aufbewahrt – sie gibt es nur in diesem Fenster." />
+    <Alert tone="warn" title={t('Nur jetzt verfügbar')} text={t('Datei und Passwort werden nicht aufbewahrt – sie gibt es nur in diesem Fenster.')} />
   {/if}
 
   <div class="row">
-    <Button icon="download" label="Zertifikat herunterladen (.p12)" onClick={download} />
+    <Button icon="download" label={t('Zertifikat herunterladen (.p12)')} onClick={download} />
     {#if stored}
-      <Button variant="secondary" label={linkBusy ? 'Erzeugt …' : 'Aufs Handy (QR-Code)'} disabled={linkBusy} onClick={phone} />
+      <Button variant="secondary" label={linkBusy ? t('Erzeugt …') : t('Aufs Handy (QR-Code)')} disabled={linkBusy} onClick={phone} />
     {/if}
   </div>
 
   {#if link}
     <div class="phone">
-      <div class="qr" aria-label="QR-Code mit dem Download-Link">{@html link.qr_svg}</div>
+      <div class="qr" aria-label={t('QR-Code mit dem Download-Link')}>{@html link.qr_svg}</div>
       <div class="stack">
-        <strong>Mit der Kamera des Handys scannen</strong>
+        <strong>{t('Mit der Kamera des Handys scannen')}</strong>
         <span class="muted small">
-          Lädt die .p12 direkt aufs Handy. Gilt bis {until(link.expires_at)} Uhr und für höchstens {link.uses} Abrufe; das Passwort steht nicht im Link.
+          {t('Lädt die .p12 direkt aufs Handy. Gilt bis {0} Uhr und für höchstens {1} Abrufe; das Passwort steht nicht im Link.', until(link.expires_at), link.uses)}
         </span>
         <span class="mono small url">{link.url}</span>
-        <div><Button variant="ghost" size="sm" icon="clipboard" label="Link kopieren" onClick={() => copy(link!.url, 'link')} /></div>
+        <div><Button variant="ghost" size="sm" icon="clipboard" label={t('Link kopieren')} onClick={() => copy(link!.url, 'link')} /></div>
         <span class="muted small">
-          Android: nach dem Download unter Einstellungen › Sicherheit › „Zertifikat installieren“ (für Browser) oder direkt in der App importieren, z. B. ntfy ›
-          Einstellungen › Erweitert › Zertifikate verwalten. iPhone: Datei öffnen, dann Einstellungen › Profil geladen.
+          {t('Android: nach dem Download unter Einstellungen › Sicherheit › „Zertifikat installieren“ (für Browser) oder direkt in der App importieren, z. B. ntfy › Einstellungen › Erweitert › Zertifikate verwalten. iPhone: Datei öffnen, dann Einstellungen › Profil geladen.')}
         </span>
       </div>
     </div>
   {/if}
 
   <div class="field">
-    Passwort zum Importieren
+    {t('Passwort zum Importieren')}
     <div class="pw">
       <code class="mono">{issued.password}</code>
-      <Button variant="secondary" size="sm" label={copied ? 'Kopiert' : 'Kopieren'} onClick={() => copy(issued.password, 'pw')} />
+      <Button variant="secondary" size="sm" label={copied ? t('Kopiert') : t('Kopieren')} onClick={() => copy(issued.password, 'pw')} />
     </div>
-    <span class="muted small">Datei und Passwort möglichst auf getrennten Wegen weitergeben.</span>
+    <span class="muted small">{t('Datei und Passwort möglichst auf getrennten Wegen weitergeben.')}</span>
   </div>
   <div class="row">
     {#if again && onForget}
-      <Button variant="ghost" size="sm" icon="trash" label="Hinterlegte Kopie löschen" onClick={onForget} />
+      <Button variant="ghost" size="sm" icon="trash" label={t('Hinterlegte Kopie löschen')} onClick={onForget} />
     {/if}
     <span class="spacer"></span>
-    <Button variant={downloaded || again ? 'primary' : 'secondary'} label="Fertig" onClick={onClose} />
+    <Button variant={downloaded || again ? 'primary' : 'secondary'} label={t('Fertig')} onClick={onClose} />
   </div>
 </section>
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { locale, t } from '../lib/i18n';
   import { onDestroy } from 'svelte';
   import AppShell from '../lib/components/AppShell.svelte';
   import PageHeader from '../lib/components/PageHeader.svelte';
@@ -61,7 +62,7 @@
         public_ips: ed.ips.split(/[\s,;]+/).filter(Boolean)
       });
       editing = null;
-      toasts.show('ok', 'Gespeichert.');
+      toasts.show('ok', t('Gespeichert.'));
       await load();
     } catch (err) {
       toasts.show('bad', err instanceof Error ? err.message : String(err), 10000);
@@ -129,13 +130,13 @@
     run(`approve-${n.id}`, async () => {
       await api.post(`/nodes/${n.id}/approve`);
       if (join?.node === n.name) join = null;
-      toasts.show('ok', `${n.name} ist beigetreten. Der Agent holt jetzt seine Config ab.`);
+      toasts.show('ok', t('{0} ist beigetreten. Der Agent holt jetzt seine Config ab.', n.name));
     });
 
   const reject = (n: NodeInfo) =>
     run(`reject-${n.id}`, async () => {
       await api.post(`/nodes/${n.id}/reject`);
-      toasts.show('info', `Beitritt von ${n.name} abgelehnt.`);
+      toasts.show('info', t('Beitritt von {0} abgelehnt.', n.name));
     });
 
   const apply = (n: NodeInfo) => run(`apply-${n.id}`, async () => void (await applyNode(n)));
@@ -143,16 +144,16 @@
   const overwrite = (n: NodeInfo) =>
     run(`overwrite-${n.id}`, async () => {
       const r = await api.post<{ ok: boolean; error: string | null }>(`/nodes/${n.id}/overwrite`);
-      if (!r.ok) throw new Error(r.error ?? 'Überschreiben fehlgeschlagen');
+      if (!r.ok) throw new Error(r.error ?? t('Überschreiben fehlgeschlagen'));
       delete drifts[n.id];
-      toasts.show('ok', `${n.name} bekommt wieder den Stand des Controllers.`);
+      toasts.show('ok', t('{0} bekommt wieder den Stand des Controllers.', n.name));
     });
 
   const accept = (n: NodeInfo) =>
     run(`accept-${n.id}`, async () => {
       await api.post(`/nodes/${n.id}/accept`);
       delete drifts[n.id];
-      toasts.show('info', `Lokale Änderung auf ${n.name} übernommen – bis zur nächsten Änderung im Controller.`);
+      toasts.show('info', t('Lokale Änderung auf {0} übernommen – bis zur nächsten Änderung im Controller.', n.name));
     });
 
   async function doRemove() {
@@ -167,7 +168,7 @@
       return;
     }
     configOpen = n.id;
-    configText = 'Lädt …';
+    configText = t('Lädt …');
     try {
       configText = JSON.stringify(await api.get(`/nodes/${n.id}/config`), null, 2);
     } catch (e) {
@@ -177,49 +178,49 @@
 
   function copy(text: string) {
     navigator.clipboard?.writeText(text).then(
-      () => toasts.show('ok', 'Kopiert.'),
-      () => toasts.show('warn', 'Kopieren nicht möglich – bitte markieren.')
+      () => toasts.show('ok', t('Kopiert.')),
+      () => toasts.show('warn', t('Kopieren nicht möglich – bitte markieren.'))
     );
   }
 
   const fp = (hex: string | null) => (hex ? (hex.match(/.{2}/g) ?? []).join(':').toUpperCase() : '–');
 
   const STATE: Record<NodeState, { tone: 'ok' | 'warn' | 'bad' | 'neutral'; label: string }> = {
-    online: { tone: 'ok', label: 'online' },
-    drift: { tone: 'warn', label: 'lokal geändert' },
-    offline: { tone: 'bad', label: 'offline' },
-    error: { tone: 'bad', label: 'Fehler' },
-    pending: { tone: 'neutral', label: 'wartet auf Beitritt' }
+    online: { tone: 'ok', label: t('online') },
+    drift: { tone: 'warn', label: t('lokal geändert') },
+    offline: { tone: 'bad', label: t('offline') },
+    error: { tone: 'bad', label: t('Fehler') },
+    pending: { tone: 'neutral', label: t('wartet auf Beitritt') }
   };
 
   function syncLabel(n: NodeInfo): { text: string; tone: string } {
     if (n.state === 'pending') return { text: '–', tone: '' };
-    if (n.last_apply_error) return { text: 'Fehler beim Laden', tone: 'bad' };
-    if (n.drift) return { text: 'lokal geändert', tone: 'warn' };
-    if (n.accepted) return { text: 'Abweichung übernommen', tone: 'warn' };
-    if (!n.in_sync) return { text: n.kind === 'agent' ? 'wird abgeholt …' : 'nicht synchron', tone: 'warn' };
-    return { text: 'synchron', tone: '' };
+    if (n.last_apply_error) return { text: t('Fehler beim Laden'), tone: 'bad' };
+    if (n.drift) return { text: t('lokal geändert'), tone: 'warn' };
+    if (n.accepted) return { text: t('Abweichung übernommen'), tone: 'warn' };
+    if (!n.in_sync) return { text: n.kind === 'agent' ? t('wird abgeholt …') : t('nicht synchron'), tone: 'warn' };
+    return { text: t('synchron'), tone: '' };
   }
 
   function modules(n: NodeInfo): string {
-    if (n.modules === null) return 'noch nicht geprüft';
+    if (n.modules === null) return t('noch nicht geprüft');
     return n.modules.map((m) => MODULES[m] ?? m).join(', ') || 'keine';
   }
 
   function hostsLabel(n: NodeInfo): string {
     if (n.hosts === 0) return '0';
-    if (n.hosts_public === n.hosts) return `${n.hosts} (alle öffentlich)`;
-    if (n.hosts_public === 0) return `${n.hosts} (keiner öffentlich)`;
-    return `${n.hosts} (${n.hosts_public} öffentlich)`;
+    if (n.hosts_public === n.hosts) return t('{0} (alle öffentlich)', n.hosts);
+    if (n.hosts_public === 0) return t('{0} (keiner öffentlich)', n.hosts);
+    return t('{0} ({1} öffentlich)', n.hosts, n.hosts_public);
   }
 
   /** https://tesseract.example.org:8443/ → tesseract.example.org:8443 */
   const shortUrl = (u: string) => u.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
   const NETWORK: Record<string, { label: string; title: string }> = {
-    intern: { label: 'intern', title: 'Verbindung aus einem der internen Netze' },
-    privat: { label: 'privat', title: 'Verbindung aus einem privaten Adressbereich (LAN, VPN, CGNAT)' },
-    internet: { label: 'Internet', title: 'Verbindung über das Internet' }
+    intern: { label: t('intern'), title: t('Verbindung aus einem der internen Netze') },
+    privat: { label: t('privat'), title: t('Verbindung aus einem privaten Adressbereich (LAN, VPN, CGNAT)') },
+    internet: { label: t('Internet'), title: t('Verbindung über das Internet') }
   };
 
   // Beispielbefehl: Adresse, die schon ein Agent nutzt, sonst die der Oberfläche
@@ -245,18 +246,7 @@
 
   const compose = $derived(
     join
-      ? `services:
-  agent:
-    image: tesseract-agent
-    restart: unless-stopped
-    environment:
-      TESSERACT_AGENT_CONTROLLER: ${join.data.command.split('--controller ')[1]?.split(' ')[0] ?? ''}
-      TESSERACT_AGENT_JOIN_TOKEN: ${join.data.token}
-      TESSERACT_AGENT_CADDY_ADMIN_URL: http://caddy:2019
-      TESSERACT_AGENT_WAF_LOG: /var/log/tesseract/waf.log
-    volumes:
-      - agent-data:/data
-      - caddy-logs:/var/log/tesseract:ro`
+      ? t('services:\n  agent:\n    image: tesseract-agent\n    restart: unless-stopped\n    environment:\n      TESSERACT_AGENT_CONTROLLER: {0}\n      TESSERACT_AGENT_JOIN_TOKEN: {1}\n      TESSERACT_AGENT_CADDY_ADMIN_URL: http://caddy:2019\n      TESSERACT_AGENT_WAF_LOG: /var/log/tesseract/waf.log\n    volumes:\n      - agent-data:/data\n      - caddy-logs:/var/log/tesseract:ro', join.data.command.split('--controller ')[1]?.split(' ')[0] ?? '', join.data.token)
       : ''
   );
 </script>
@@ -265,24 +255,24 @@
 
 <AppShell active="nodes">
   <PageHeader
-    title="Nodes"
-    subtitle="Jeder weitere Node meldet sich per Agent beim Controller – ausgehend per mTLS, kein offener Admin-Port, auch hinter NAT."
-    primaryLabel="Node hinzufügen"
+    title={t('Nodes')}
+    subtitle={t('Jeder weitere Node meldet sich per Agent beim Controller – ausgehend per mTLS, kein offener Admin-Port, auch hinter NAT.')}
+    primaryLabel={t('Node hinzufügen')}
     onPrimary={() => ((adding = !adding), (formError = ''))}
   />
 
-  {#if error}<Alert tone="bad" title="Fehler" text={error} />{/if}
+  {#if error}<Alert tone="bad" title={t('Fehler')} text={error} />{/if}
 
   {#if adding}
     <form class="card" onsubmit={(e) => (e.preventDefault(), create())}>
-      <h2>Neuen Node anlegen</h2>
+      <h2>{t('Neuen Node anlegen')}</h2>
       <div class="form-grid">
-        <TextField label="Name" bind:value={newName} placeholder="pi-eltern" hint="a–z, 0–9 und Bindestrich" error={formError} />
-        <TextField label="Standort" bind:value={newLocation} placeholder="Elternhaus · hinter NAT" mono={false} />
+        <TextField label={t('Name')} bind:value={newName} placeholder={t('pi-eltern')} hint={t('a–z, 0–9 und Bindestrich')} error={formError} />
+        <TextField label={t('Standort')} bind:value={newLocation} placeholder={t('Elternhaus · hinter NAT')} mono={false} />
       </div>
       <div class="row">
-        <Button type="submit" label={busy === 'create' ? 'Legt an …' : 'Anlegen & Token erzeugen'} disabled={!newName.trim() || busy === 'create'} />
-        <Button variant="ghost" label="Abbrechen" onClick={() => (adding = false)} />
+        <Button type="submit" label={busy === 'create' ? t('Legt an …') : t('Anlegen & Token erzeugen')} disabled={!newName.trim() || busy === 'create'} />
+        <Button variant="ghost" label={t('Abbrechen')} onClick={() => (adding = false)} />
       </div>
     </form>
   {/if}
@@ -290,49 +280,49 @@
   {#if join}
     <section class="card join" aria-labelledby="join-title">
       <div class="row">
-        <h2 id="join-title">Beitritt für {join.node}</h2>
+        <h2 id="join-title">{t('Beitritt für {0}', join.node)}</h2>
         <span class="spacer"></span>
-        <StatusPill tone="neutral" label={`gültig bis ${new Date(join.data.expires_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`} />
-        <Button variant="ghost" size="sm" icon="close" label="Ausblenden" onClick={() => (join = null)} />
+        <StatusPill tone="neutral" label={t('gültig bis {0}', new Date(join.data.expires_at).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }))} />
+        <Button variant="ghost" size="sm" icon="close" label={t('Ausblenden')} onClick={() => (join = null)} />
       </div>
       <ol>
-        <li>Auf dem neuen Server (Linux mit Docker) diesen Befehl ausführen. Er richtet Caddy und Agent in <span class="mono">/opt/tesseract-node</span> ein und startet beide.</li>
-        <li>Das Skript zeigt am Ende den Fingerabdruck des Agent-Schlüssels.</li>
-        <li>Hier die Anfrage bestätigen, wenn der Fingerabdruck übereinstimmt. Danach holt der Agent die Config ab.</li>
+        <li>{t('Auf dem neuen Server (Linux mit Docker) diesen Befehl ausführen. Er richtet Caddy und Agent in')} <span class="mono">/opt/tesseract-node</span> {t('ein und startet beide.')}</li>
+        <li>{t('Das Skript zeigt am Ende den Fingerabdruck des Agent-Schlüssels.')}</li>
+        <li>{t('Hier die Anfrage bestätigen, wenn der Fingerabdruck übereinstimmt. Danach holt der Agent die Config ab.')}</li>
       </ol>
-      <div class="code-head"><span class="eyebrow">Installieren</span><Button variant="ghost" size="sm" icon="clipboard" label="Kopieren" onClick={() => copy(join!.data.install_command)} /></div>
+      <div class="code-head"><span class="eyebrow">{t('Installieren')}</span><Button variant="ghost" size="sm" icon="clipboard" label={t('Kopieren')} onClick={() => copy(join!.data.install_command)} /></div>
       <pre class="code">{join.data.install_command}</pre>
       <p class="muted small">
-        Ohne Docker auf dem Server: <span class="mono">--install-docker</span> anhängen. Sind die Images nicht öffentlich:
-        <span class="mono">--registry-token &lt;Token mit read:packages&gt;</span>. Skript vorher ansehen:
+        {t('Ohne Docker auf dem Server:')} <span class="mono">--install-docker</span> {t('anhängen. Sind die Images nicht öffentlich:')}
+        <span class="mono">{t('--registry-token <Token mit read:packages>')}</span>{t('. Skript vorher ansehen:')}
         <a href={join.data.install_command.match(/https?:\/\/\S+\/install\/node\.sh/)?.[0] ?? '#'} target="_blank" rel="noopener">node.sh</a>
-        · Prüfsumme <span class="mono sha">{join.data.install_sha256}</span>
+        {t('· Prüfsumme')} <span class="mono sha">{join.data.install_sha256}</span>
       </p>
       <details>
-        <summary class="small">Andere Wege: Docker Compose von Hand oder nur der Agent</summary>
-        <div class="code-head"><span class="eyebrow">Docker Compose (neben Caddy)</span><Button variant="ghost" size="sm" icon="clipboard" label="Kopieren" onClick={() => copy(compose)} /></div>
+        <summary class="small">{t('Andere Wege: Docker Compose von Hand oder nur der Agent')}</summary>
+        <div class="code-head"><span class="eyebrow">{t('Docker Compose (neben Caddy)')}</span><Button variant="ghost" size="sm" icon="clipboard" label={t('Kopieren')} onClick={() => copy(compose)} /></div>
         <pre class="code">{compose}</pre>
-        <div class="code-head"><span class="eyebrow">Agent per Kommandozeile</span><Button variant="ghost" size="sm" icon="clipboard" label="Kopieren" onClick={() => copy(join!.data.command)} /></div>
+        <div class="code-head"><span class="eyebrow">{t('Agent per Kommandozeile')}</span><Button variant="ghost" size="sm" icon="clipboard" label={t('Kopieren')} onClick={() => copy(join!.data.command)} /></div>
         <pre class="code">{join.data.command}</pre>
       </details>
-      <p class="muted small">Das Token ist 30 Minuten gültig und nur einmal verwendbar. Es wird nicht wieder angezeigt.</p>
+      <p class="muted small">{t('Das Token ist 30 Minuten gültig und nur einmal verwendbar. Es wird nicht wieder angezeigt.')}</p>
     </section>
   {/if}
 
   {#each requests as n (n.id)}
-    <section class="card request" aria-label={`Beitrittsanfrage ${n.name}`}>
+    <section class="card request" aria-label={t('Beitrittsanfrage {0}', n.name)}>
       <div class="row">
-        <h2>Agent möchte als <span class="mono">{n.name}</span> beitreten</h2>
+        <h2>{t('Agent möchte als')} <span class="mono">{n.name}</span> {t('beitreten')}</h2>
         <span class="spacer"></span>
-        <Button variant="secondary" label="Ablehnen" disabled={busy !== null} onClick={() => reject(n)} />
-        <Button label={busy === `approve-${n.id}` ? 'Bestätigt …' : 'Bestätigen'} icon="check" disabled={busy !== null} onClick={() => approve(n)} />
+        <Button variant="secondary" label={t('Ablehnen')} disabled={busy !== null} onClick={() => reject(n)} />
+        <Button label={busy === `approve-${n.id}` ? t('Bestätigt …') : t('Bestätigen')} icon="check" disabled={busy !== null} onClick={() => approve(n)} />
       </div>
       <dl class="facts">
-        <dt>Rechner</dt><dd class="mono">{n.join_hostname ?? '–'}</dd>
-        <dt>Angefragt</dt><dd>{formatAgo(n.join_requested_at)}</dd>
-        <dt>Schlüssel</dt><dd class="mono fp">{fp(n.join_key_fingerprint)}</dd>
+        <dt>{t('Rechner')}</dt><dd class="mono">{n.join_hostname ?? '–'}</dd>
+        <dt>{t('Angefragt')}</dt><dd>{formatAgo(n.join_requested_at)}</dd>
+        <dt>{t('Schlüssel')}</dt><dd class="mono fp">{fp(n.join_key_fingerprint)}</dd>
       </dl>
-      <p class="muted small">Nur bestätigen, wenn der Agent beim Start denselben Fingerabdruck angezeigt hat.</p>
+      <p class="muted small">{t('Nur bestätigen, wenn der Agent beim Start denselben Fingerabdruck angezeigt hat.')}</p>
     </section>
   {/each}
 
@@ -341,12 +331,12 @@
     <section class="card drift" aria-labelledby={`drift-${n.id}`}>
       <div class="row">
         <div class="titles">
-          <h2 id={`drift-${n.id}`}>Abweichung auf {n.name}</h2>
-          <span class="muted small">Die laufende Config unterscheidet sich vom Stand des Controllers (seit {formatAgo(d.since)}).</span>
+          <h2 id={`drift-${n.id}`}>{t('Abweichung auf {0}', n.name)}</h2>
+          <span class="muted small">{t('Die laufende Config unterscheidet sich vom Stand des Controllers (seit {0}).', formatAgo(d.since))}</span>
         </div>
         <span class="spacer"></span>
-        <Button variant="secondary" label="Änderung übernehmen" disabled={busy !== null} onClick={() => accept(n)} />
-        <Button label="Mit Controller überschreiben" disabled={busy !== null} onClick={() => overwrite(n)} />
+        <Button variant="secondary" label={t('Änderung übernehmen')} disabled={busy !== null} onClick={() => accept(n)} />
+        <Button label={t('Mit Controller überschreiben')} disabled={busy !== null} onClick={() => overwrite(n)} />
       </div>
       <div class="diff mono">
         {#each d.changes as c (c.path)}
@@ -354,17 +344,16 @@
           {#if c.kind !== 'added'}<div class="minus">- {formatValue(c.before)}</div>{/if}
           {#if c.kind !== 'removed'}<div class="plus">+ {formatValue(c.after)}</div>{/if}
         {:else}
-          <div class="muted">Keine Einzelheiten verfügbar.</div>
+          <div class="muted">{t('Keine Einzelheiten verfügbar.')}</div>
         {/each}
       </div>
       <p class="muted small">
-        „Übernehmen“ lässt die lokale Änderung laufen, bis der Controller die nächste Änderung an diesen Node überträgt.
-        Dauerhafte Änderungen gehören in den Controller.
+        {t('„Übernehmen“ lässt die lokale Änderung laufen, bis der Controller die nächste Änderung an diesen Node überträgt. Dauerhafte Änderungen gehören in den Controller.')}
       </p>
     </section>
   {/each}
 
-  <section aria-label="Alle Nodes" class="grid">
+  <section aria-label={t('Alle Nodes')} class="grid">
     {#each nodes as n (n.id)}
       {@const st = STATE[n.state]}
       {@const sync = syncLabel(n)}
@@ -379,21 +368,21 @@
         </div>
         {#if n.state === 'pending'}
           <p class="muted small">
-            {#if n.join_state === 'rejected'}Beitritt abgelehnt – für einen neuen Versuch ein neues Token erzeugen.
-            {:else if n.join_state === 'pending'}Anfrage liegt vor – oben bestätigen.
-            {:else if n.join_open}Token erzeugt, gültig bis {new Date(n.join_expires_at!).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}. Agent noch nicht gemeldet.
-            {:else}Token abgelaufen – neues erzeugen.{/if}
+            {#if n.join_state === 'rejected'}{t('Beitritt abgelehnt – für einen neuen Versuch ein neues Token erzeugen.')}
+            {:else if n.join_state === 'pending'}{t('Anfrage liegt vor – oben bestätigen.')}
+            {:else if n.join_open}{t('Token erzeugt, gültig bis {0}. Agent noch nicht gemeldet.', new Date(n.join_expires_at!).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }))}
+            {:else}{t('Token abgelaufen – neues erzeugen.')}{/if}
           </p>
         {:else}
           <dl class="stats">
-            <div><dt>Caddy</dt><dd>{n.caddy_version?.split(' ')[0] ?? '–'}</dd></div>
-            <div><dt>Hosts</dt><dd>{hostsLabel(n)}</dd></div>
-            <div><dt>Letzter Kontakt</dt><dd class:bad={n.state === 'offline'}>{formatAgo(n.last_seen_at)}</dd></div>
-            <div><dt>Konfiguration</dt><dd class={sync.tone}>{sync.text}</dd></div>
+            <div><dt>{t('Caddy')}</dt><dd>{n.caddy_version?.split(' ')[0] ?? '–'}</dd></div>
+            <div><dt>{t('Hosts')}</dt><dd>{hostsLabel(n)}</dd></div>
+            <div><dt>{t('Letzter Kontakt')}</dt><dd class:bad={n.state === 'offline'}>{formatAgo(n.last_seen_at)}</dd></div>
+            <div><dt>{t('Konfiguration')}</dt><dd class={sync.tone}>{sync.text}</dd></div>
             <div class="wide">
-              <dt>Verbindung zum Controller</dt>
+              <dt>{t('Verbindung zum Controller')}</dt>
               {#if n.kind === 'local'}
-                <dd>lokal (direkt)</dd>
+                <dd>{t('lokal (direkt)')}</dd>
               {:else}
                 <dd class="mono conn">{n.controller_url ? shortUrl(n.controller_url) : '–'}</dd>
                 {#if net}
@@ -402,59 +391,58 @@
               {/if}
             </div>
             {#if details[n.id]}
-              <div class="wide"><dt>Module</dt><dd>{modules(n)}</dd></div>
+              <div class="wide"><dt>{t('Module')}</dt><dd>{modules(n)}</dd></div>
               {#if n.kind === 'agent'}
-                <div><dt>Agent</dt><dd>{n.agent_version ?? '–'}</dd></div>
-                <div><dt>Zertifikat bis</dt><dd>{formatDay(n.cert_not_after)}</dd></div>
-                <div class="wide"><dt>IP der Verbindung</dt><dd class="mono">{n.agent_ip ?? '–'}</dd></div>
+                <div><dt>{t('Agent')}</dt><dd>{n.agent_version ?? '–'}</dd></div>
+                <div><dt>{t('Zertifikat bis')}</dt><dd>{formatDay(n.cert_not_after)}</dd></div>
+                <div class="wide"><dt>{t('IP der Verbindung')}</dt><dd class="mono">{n.agent_ip ?? '–'}</dd></div>
               {/if}
-              <div class="wide"><dt>Öffentliche IPs</dt><dd class="mono">{n.public_ips.join(', ') || '–'}</dd></div>
+              <div class="wide"><dt>{t('Öffentliche IPs')}</dt><dd class="mono">{n.public_ips.join(', ') || '–'}</dd></div>
             {/if}
           </dl>
           {#if missing(n).length}
-            <p class="warn small">Fehlt: {missing(n).map((m) => MODULES[m]).join(', ')} – Hosts mit WAF bzw. DNS-01 lassen sich auf diesem Node nicht laden.</p>
+            <p class="warn small">{t('Fehlt: {0} – Hosts mit WAF bzw. DNS-01 lassen sich auf diesem Node nicht laden.', missing(n).map((m) => MODULES[m]).join(', '))}</p>
           {/if}
           {#if n.last_apply_error}<p class="bad small">{n.last_apply_error}</p>{/if}
         {/if}
         {#if editing?.id === n.id}
           <form class="edit" onsubmit={saveEdit}>
             {#if n.kind === 'agent'}
-              <label class="field">Name<input class="input mono" bind:value={editing.name} maxlength="64" required /></label>
+              <label class="field">{t('Name')}<input class="input mono" bind:value={editing.name} maxlength="64" required /></label>
             {/if}
-            <label class="field">Standort<input class="input" bind:value={editing.location} maxlength="128" /></label>
+            <label class="field">{t('Standort')}<input class="input" bind:value={editing.location} maxlength="128" /></label>
             <label class="field">
-              Öffentliche IP(s)
-              <input class="input mono" placeholder="203.0.113.7, 2001:db8::7" bind:value={editing.ips} />
+              {t('Öffentliche IP(s)')}
+              <input class="input mono" placeholder={t('203.0.113.7, 2001:db8::7')} bind:value={editing.ips} />
               <span class="muted small">
-                Damit prüft „Host anlegen“, ob der DNS-Eintrag auf diesen Node zeigt. Bei wechselnder IP (DDNS) oder hinter dem
-                Cloudflare-Proxy leer lassen.
+                {t('Damit prüft „Host anlegen“, ob der DNS-Eintrag auf diesen Node zeigt. Bei wechselnder IP (DDNS) oder hinter dem Cloudflare-Proxy leer lassen.')}
               </span>
             </label>
             <div class="row">
-              <Button type="submit" size="sm" label={busy === `edit-${n.id}` ? 'Speichert …' : 'Speichern'} disabled={busy !== null} />
-              <Button variant="ghost" size="sm" label="Abbrechen" onClick={() => (editing = null)} />
+              <Button type="submit" size="sm" label={busy === `edit-${n.id}` ? t('Speichert …') : t('Speichern')} disabled={busy !== null} />
+              <Button variant="ghost" size="sm" label={t('Abbrechen')} onClick={() => (editing = null)} />
             </div>
           </form>
         {/if}
         <div class="actions">
           {#if n.state !== 'pending'}
             <div class="full">
-              <Button variant="secondary" size="sm" label={configOpen === n.id ? 'Config schließen' : 'Config ansehen'} onClick={() => toggleConfig(n)} />
+              <Button variant="secondary" size="sm" label={configOpen === n.id ? t('Config schließen') : t('Config ansehen')} onClick={() => toggleConfig(n)} />
             </div>
           {/if}
           <div class="row-actions">
             <div class="full">
               {#if n.state !== 'pending'}
-                <Button variant="secondary" size="sm" label={busy === `apply-${n.id}` ? 'Überträgt …' : 'Neu synchronisieren'} disabled={busy !== null} onClick={() => apply(n)} />
+                <Button variant="secondary" size="sm" label={busy === `apply-${n.id}` ? t('Überträgt …') : t('Neu synchronisieren')} disabled={busy !== null} onClick={() => apply(n)} />
               {:else}
-                <Button variant="secondary" size="sm" label="Neues Token" disabled={busy !== null} onClick={() => newToken(n)} />
+                <Button variant="secondary" size="sm" label={t('Neues Token')} disabled={busy !== null} onClick={() => newToken(n)} />
               {/if}
             </div>
             <div class="menu-wrap">
               <button
                 type="button"
                 class="more"
-                aria-label={`Weitere Aktionen für ${n.name}`}
+                aria-label={t('Weitere Aktionen für {0}', n.name)}
                 aria-haspopup="menu"
                 aria-expanded={menu === n.id}
                 onclick={(e) => {
@@ -464,13 +452,13 @@
               >
               {#if menu === n.id}
                 <div class="menu" role="menu">
-                  <button type="button" role="menuitem" onclick={() => menuAction(() => startEdit(n))}>Bearbeiten</button>
+                  <button type="button" role="menuitem" onclick={() => menuAction(() => startEdit(n))}>{t('Bearbeiten')}</button>
                   {#if n.state !== 'pending'}
                     <button type="button" role="menuitem" onclick={() => menuAction(() => (details[n.id] = !details[n.id]))}>
-                      {details[n.id] ? 'Details ausblenden' : 'Details anzeigen'}
+                      {details[n.id] ? t('Details ausblenden') : t('Details anzeigen')}
                     </button>
                     {#if n.kind === 'agent'}
-                      <button type="button" role="menuitem" disabled={busy !== null} onclick={() => menuAction(() => newToken(n))}>Neues Token</button>
+                      <button type="button" role="menuitem" disabled={busy !== null} onclick={() => menuAction(() => newToken(n))}>{t('Neues Token')}</button>
                     {/if}
                   {/if}
                   {#if n.kind === 'agent'}
@@ -479,8 +467,8 @@
                       role="menuitem"
                       class="danger"
                       disabled={busy !== null || n.hosts > 0}
-                      title={n.hosts > 0 ? 'Erst die Hosts auf andere Nodes verschieben' : undefined}
-                      onclick={() => menuAction(() => (remove = n))}>Löschen</button
+                      title={n.hosts > 0 ? t('Erst die Hosts auf andere Nodes verschieben') : undefined}
+                      onclick={() => menuAction(() => (remove = n))}>{t('Löschen')}</button
                     >
                   {/if}
                 </div>
@@ -495,43 +483,42 @@
   {#if configOpen !== null}
     <section class="card" aria-labelledby="config-title">
       <div class="row">
-        <h2 id="config-title">Config von <span class="mono">{nodes.find((x) => x.id === configOpen)?.name ?? ''}</span></h2>
+        <h2 id="config-title">{t('Config von')} <span class="mono">{nodes.find((x) => x.id === configOpen)?.name ?? ''}</span></h2>
         <span class="spacer"></span>
-        <Button variant="ghost" size="sm" icon="close" label="Schließen" onClick={() => (configOpen = null)} />
+        <Button variant="ghost" size="sm" icon="close" label={t('Schließen')} onClick={() => (configOpen = null)} />
       </div>
       <pre class="code config">{configText}</pre>
     </section>
   {/if}
 
   <section class="card connect" aria-labelledby="connect-title">
-    <h2 id="connect-title">Neuen Node verbinden</h2>
+    <h2 id="connect-title">{t('Neuen Node verbinden')}</h2>
     <ol>
-      <li>Node anlegen – dabei entsteht ein Beitritts-Token.</li>
+      <li>{t('Node anlegen – dabei entsteht ein Beitritts-Token.')}</li>
       <li>
-        Auf dem Server den Installationsbefehl ausführen. Er richtet Caddy mit den nötigen Modulen und den Agent ein – der
-        Agent erzeugt eigene Schlüssel und baut eine mTLS-Verbindung zum Controller auf.
+        {t('Auf dem Server den Installationsbefehl ausführen. Er richtet Caddy mit den nötigen Modulen und den Agent ein – der Agent erzeugt eigene Schlüssel und baut eine mTLS-Verbindung zum Controller auf.')}
       </li>
-      <li>Node hier bestätigen. Danach überträgt der Controller die Config.</li>
+      <li>{t('Node hier bestätigen. Danach überträgt der Controller die Config.')}</li>
     </ol>
     <pre class="code">{`tesseract-agent join \\\n  --controller ${controllerHint} \\\n  --token [BEITRITTS-TOKEN]`}</pre>
     <div class="row">
-      <Button label="Node hinzufügen" icon="plus" onClick={startAdd} />
-      <span class="muted small">Token ist 30 Minuten gültig und nur einmal verwendbar.</span>
+      <Button label={t('Node hinzufügen')} icon="plus" onClick={startAdd} />
+      <span class="muted small">{t('Token ist 30 Minuten gültig und nur einmal verwendbar.')}</span>
     </div>
   </section>
 
   {#if loaded && nodes.length === 1}
     <p class="muted small">
-      Bisher läuft nur der lokale Caddy. Weitere Server – z. B. ein Raspberry Pi im Elternhaus – kommen über „Node hinzufügen“ dazu.
+      {t('Bisher läuft nur der lokale Caddy. Weitere Server – z. B. ein Raspberry Pi im Elternhaus – kommen über „Node hinzufügen“ dazu.')}
     </p>
   {/if}
 
   {#if remove}
     <ConfirmDialog
-      title={`Node „${remove.name}“ löschen?`}
-      text="Das Node-Zertifikat verliert sofort seine Gültigkeit beim Controller. Caddy auf dem Server läuft mit dem letzten Stand weiter, bis er gestoppt wird."
+      title={t('Node „{0}“ löschen?', remove.name)}
+      text={t('Das Node-Zertifikat verliert sofort seine Gültigkeit beim Controller. Caddy auf dem Server läuft mit dem letzten Stand weiter, bis er gestoppt wird.')}
       word="löschen"
-      confirmLabel="Node löschen"
+      confirmLabel={t('Node löschen')}
       onConfirm={doRemove}
       onCancel={() => (remove = null)}
     />

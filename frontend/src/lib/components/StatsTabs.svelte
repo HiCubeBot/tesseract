@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../i18n';
   interface Props {
     current: string;
   }
@@ -6,18 +7,18 @@
   let { current }: Props = $props();
 
   const tabs = [
-    { href: '#/stats', label: 'Sicherheit' },
-    { href: '#/stats-traffic', label: 'Traffic & Leistung' },
-    { href: '#/stats-usage', label: 'Nutzung' },
-    { href: '#/stats-map', label: 'Karte' },
-    { href: '#/stats-ops', label: 'Betrieb' },
-    { href: '#/logs', label: 'Logs' }
+    { href: '#/stats', label: t('Sicherheit') },
+    { href: '#/stats-traffic', label: t('Traffic & Leistung') },
+    { href: '#/stats-usage', label: t('Nutzung') },
+    { href: '#/stats-map', label: t('Karte') },
+    { href: '#/stats-ops', label: t('Betrieb') },
+    { href: '#/logs', label: t('Logs') }
   ];
 </script>
 
-<nav class="tabs" aria-label="Statistik">
-  {#each tabs as t (t.href)}
-    <a href={t.href} aria-current={t.href === current ? 'page' : undefined}>{t.label}</a>
+<nav class="tabs" aria-label={t('Statistik')}>
+  {#each tabs as item (item.href)}
+    <a href={item.href} aria-current={item.href === current ? 'page' : undefined}>{item.label}</a>
   {/each}
 </nav>
 

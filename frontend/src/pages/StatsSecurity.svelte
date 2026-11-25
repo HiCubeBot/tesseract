@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n';
   import AppShell from '../lib/components/AppShell.svelte';
   import { session } from '../lib/session.svelte';
   import PageHeader from '../lib/components/PageHeader.svelte';
@@ -79,7 +80,7 @@
   const series = Object.entries(SERIES).map(([key, s]) => ({ key, ...s }));
   const buckets = $derived(data ? bucketize(data.hourly, RANGES[range], series.map((s) => s.key)) : []);
   const share = $derived(data && data.total ? Math.round((100 * data.denied) / data.total) : 0);
-  const rangeText = $derived(['in 24 Stunden', 'in 7 Tagen', 'in 30 Tagen'][range]);
+  const rangeText = $derived([t('in 24 Stunden'), t('in 7 Tagen'), t('in 30 Tagen')][range]);
   // Verlaufslinien der Kennzahlen
   const kpiBuckets = $derived(
     data ? bucketize(data.hourly_all, RANGES[range], ['total', 'denied', 'mtls', 'waf', 'ip', 'login_failed']) : []
@@ -96,9 +97,9 @@
   async function ban(ip: string) {
     banning = ip;
     try {
-      await api.post('/bans', { ip, hours: 24, reason: 'aus der Statistik' });
+      await api.post('/bans', { ip, hours: 24, reason: t('aus der Statistik') });
       banned = new Set([...banned, ip]);
-      toasts.show('ok', `${ip} ist für 24 Stunden gesperrt.`);
+      toasts.show('ok', t('{0} ist für 24 Stunden gesperrt.', ip));
     } catch (e) {
       toasts.show('bad', e instanceof Error ? e.message : String(e), 10000);
     } finally {
@@ -120,48 +121,48 @@
 </script>
 
 <AppShell active="stats">
-  <PageHeader title="Statistik" subtitle="Was abgewehrt wird – aus den Logs aller Nodes." />
+  <PageHeader title={t('Statistik')} subtitle={t('Was abgewehrt wird – aus den Logs aller Nodes.')} />
   <StatsTabs current="#/stats" />
 
   <div class="row">
-    <SegmentedControl groupLabel="Zeitraum" options={['Letzte 24 Stunden', '7 Tage', '30 Tage']} bind:selected={range} onChange={load} />
+    <SegmentedControl groupLabel={t('Zeitraum')} options={[t('Letzte 24 Stunden'), t('7 Tage'), t('30 Tage')]} bind:selected={range} onChange={load} />
     <label class="node-select">
-      <span>Node</span>
+      <span>{t('Node')}</span>
       <select class="input" bind:value={node} onchange={load}>
-        <option value="">Alle Nodes</option>
+        <option value="">{t('Alle Nodes')}</option>
         {#each nodes as n (n.id)}<option value={n.name}>{n.name}</option>{/each}
       </select>
     </label>
   </div>
 
-  {#if error}<Alert tone="bad" title="Fehler" text={error} />{/if}
+  {#if error}<Alert tone="bad" title={t('Fehler')} text={error} />{/if}
 
   {#if data}
     <div class="kpis">
-      <KpiCard label="Anfragen" value={fmt(data.total)} delta={delta(data.total, data.previous.total)} sub={rangeText} spark={spark('total')} sparkColor="#8A91A0" />
+      <KpiCard label={t('Anfragen')} value={fmt(data.total)} delta={delta(data.total, data.previous.total)} sub={rangeText} spark={spark('total')} sparkColor="#8A91A0" />
       <KpiCard
-        label="Abgelehnt gesamt"
+        label={t('Abgelehnt gesamt')}
         value={fmt(data.denied)}
         delta={delta(data.denied, data.previous.denied)}
         upIsBad
-        sub={`${share} % aller Anfragen`}
+        sub={t('{0} % aller Anfragen', share)}
         spark={spark('denied')}
         sparkColor="#8A91A0"
       />
-      <KpiCard label="Ohne Zertifikat" value={fmt(sumOf('mtls'))} sub="mTLS-Handshake abgelehnt" spark={spark('mtls')} sparkColor={SERIES.mtls.color} />
+      <KpiCard label={t('Ohne Zertifikat')} value={fmt(sumOf('mtls'))} sub={t('mTLS-Handshake abgelehnt')} spark={spark('mtls')} sparkColor={SERIES.mtls.color} />
       <KpiCard
-        label="Von Coraza blockiert"
+        label={t('Von Coraza blockiert')}
         value={fmt(data.waf_blocked)}
-        sub={data.waf_detected ? `${fmt(data.waf_detected)} nur erkannt` : data.attacks[0] ? `meist ${data.attacks[0].name}` : 'keine Angriffe'}
+        sub={data.waf_detected ? t('{0} nur erkannt', fmt(data.waf_detected)) : data.attacks[0] ? `meist ${data.attacks[0].name}` : t('keine Angriffe')}
         spark={spark('waf')}
         sparkColor={SERIES.waf.color}
       />
-      <KpiCard label="Vom IP-Filter" value={fmt(sumOf('ip'))} sub="eigene Einträge, Listen, Sperren" spark={spark('ip')} sparkColor={SERIES.ip.color} />
+      <KpiCard label={t('Vom IP-Filter')} value={fmt(sumOf('ip'))} sub={t('eigene Einträge, Listen, Sperren')} spark={spark('ip')} sparkColor={SERIES.ip.color} />
       <KpiCard
-        label="Fehlanmeldungen"
+        label={t('Fehlanmeldungen')}
         value={fmt(data.login_failed)}
         tone={data.login_failed >= 10 ? 'warn' : 'neutral'}
-        sub={data.login_failed ? 'an der Oberfläche' : 'keine am Controller'}
+        sub={data.login_failed ? t('an der Oberfläche') : t('keine am Controller')}
         spark={spark('login_failed')}
         sparkColor="#E5A443"
       />
@@ -170,18 +171,18 @@
     <div class="main-grid">
       <section class="card" aria-labelledby="denied-title">
         <div class="row">
-          <h2 id="denied-title">Abgelehnt pro {range === 0 ? 'Stunde' : range === 1 ? '6 Stunden' : 'Tag'}</h2>
+          <h2 id="denied-title">{t('Abgelehnt pro {0}', range === 0 ? t('Stunde') : range === 1 ? t('6 Stunden') : t('Tag'))}</h2>
           <span class="spacer"></span>
-          {#if data.waf_detected}<span class="muted small">{fmt(data.waf_detected)} nur erkannt (WAF protokolliert)</span>{/if}
+          {#if data.waf_detected}<span class="muted small">{t('{0} nur erkannt (WAF protokolliert)', fmt(data.waf_detected))}</span>{/if}
         </div>
-        <ColumnChart {buckets} {series} label="Abgelehnte Anfragen nach Grund" height={220} />
+        <ColumnChart {buckets} {series} label={t('Abgelehnte Anfragen nach Grund')} height={220} />
       </section>
 
       <section class="card" aria-labelledby="ips-title">
         <div class="row">
-          <h2 id="ips-title">Top abgelehnte IPs</h2>
+          <h2 id="ips-title">{t('Top abgelehnte IPs')}</h2>
           <span class="spacer"></span>
-          <label class="check small"><input type="checkbox" bind:checked={hideOwn} /> Eigene ausblenden</label>
+          <label class="check small"><input type="checkbox" bind:checked={hideOwn} /> {t('Eigene ausblenden')}</label>
         </div>
         {#if topIps.length}
           <ul class="ips">
@@ -191,8 +192,8 @@
                 <div class="ip-main">
                   <span class="ip-line">
                     <a class="mono" href={`#/logs?q=${encodeURIComponent('ip:' + i.ip)}`}>{i.ip}</a>
-                    {#if i.own}<span class="badge" title="Diese Adresse nutzt auch ein freigegebenes Gerät oder deine Sitzung">eigene</span>{/if}
-                    {#if i.internal}<span class="badge" title="Aus einem der internen Netze">intern</span>{/if}
+                    {#if i.own}<span class="badge" title={t('Diese Adresse nutzt auch ein freigegebenes Gerät oder deine Sitzung')}>{t('eigene')}</span>{/if}
+                    {#if i.internal}<span class="badge" title={t('Aus einem der internen Netze')}>{t('intern')}</span>{/if}
                   </span>
                   <span class="muted tiny ellipsis">
                     {[LOG_REASONS[i.reason]?.label, i.city, i.country ? countryName(i.country) : ''].filter(Boolean).join(' · ')}
@@ -200,28 +201,28 @@
                 </div>
                 <span class="num">{fmt(i.count)}</span>
                 {#if i.own || i.internal}
-                  <a class="act" href={`#/logs?q=${encodeURIComponent('ip:' + i.ip)}&filter=denied`} title="Welche Dienste wurden abgelehnt?">Wohin?</a>
+                  <a class="act" href={`#/logs?q=${encodeURIComponent('ip:' + i.ip)}&filter=denied`} title={t('Welche Dienste wurden abgelehnt?')}>{t('Wohin?')}</a>
                 {:else if session.isAdmin}
                   <button type="button" class="act" disabled={banning !== null || banned.has(i.ip)} onclick={() => ban(i.ip)}>
-                    {banned.has(i.ip) ? 'Gesperrt' : 'Sperren'}
+                    {banned.has(i.ip) ? t('Gesperrt') : t('Sperren')}
                   </button>
                 {/if}
               </li>
             {/each}
           </ul>
         {:else}
-          <p class="muted small">Nichts abgelehnt im Zeitraum.</p>
+          <p class="muted small">{t('Nichts abgelehnt im Zeitraum.')}</p>
         {/if}
       </section>
     </div>
 
     <section class="card" aria-labelledby="geo-title">
       <div class="row geo-head">
-        <h2 id="geo-title">Herkunft der Anfragen</h2>
-        <a class="small" href="#/stats-map">Karte öffnen</a>
+        <h2 id="geo-title">{t('Herkunft der Anfragen')}</h2>
+        <a class="small" href="#/stats-map">{t('Karte öffnen')}</a>
         <span class="spacer"></span>
         {#if data.geoip}
-          <SegmentedControl groupLabel="Welche Anfragen" options={WHICH_LABELS} bind:selected={which} onChange={loadGeo} />
+          <SegmentedControl groupLabel={t('Welche Anfragen')} options={WHICH_LABELS} bind:selected={which} onChange={loadGeo} />
         {/if}
       </div>
       {#if data.geoip}
@@ -231,24 +232,23 @@
           <WorldMap
             {items}
             color={WHICH_COLORS[which]}
-            label={`Weltkarte: ${WHICH_LABELS[which].toLowerCase()} Anfragen nach Herkunftsland`}
+            label={t('Weltkarte: {0} Anfragen nach Herkunftsland', WHICH_LABELS[which].toLowerCase())}
           />
           <BarList
             color={WHICH_COLORS[which]}
             items={items.slice(0, 8).map((c) => ({ label: countryName(c.country), value: c.count, href: `#/stats-map?country=${c.country}` }))}
-            empty={`Keine ${which === 1 ? 'abgelehnten' : which === 2 ? 'angenommenen' : ''} Anfragen mit bekanntem Land im Zeitraum. Private und lokale Adressen (z. B. 127.0.0.1, 192.168.…) haben kein Land.`}
+            empty={t('Keine {0} Anfragen mit bekanntem Land im Zeitraum. Private und lokale Adressen (z. B. 127.0.0.1, 192.168.…) haben kein Land.', which === 1 ? 'abgelehnten' : which === 2 ? 'angenommenen' : '')}
           />
         </div>
         {#if geo?.unknown}
-          <p class="muted tiny">{fmt(geo.unknown)} weitere ohne Land (private oder lokale Adressen)</p>
+          <p class="muted tiny">{t('{0} weitere ohne Land (private oder lokale Adressen)', fmt(geo.unknown))}</p>
         {/if}
         {#if data.geoip_attribution}
           <p class="muted tiny"><a href="https://db-ip.com" rel="noopener noreferrer" target="_blank">{data.geoip_attribution}</a></p>
         {/if}
       {:else}
         <p class="muted small">
-          Für die Karte eine GeoIP-Datenbank hinterlegen: automatisch mit <span class="mono">TESSERACT_GEOIP_AUTO=dbip</span> (holt DB-IP Lite
-          monatlich selbst) oder als Datei mit <span class="mono">TESSERACT_GEOIP_DB</span> – siehe docs/deployment.md › GeoIP.
+          {t('Für die Karte eine GeoIP-Datenbank hinterlegen: automatisch mit')} <span class="mono">TESSERACT_GEOIP_AUTO=dbip</span> {t('(holt DB-IP Lite monatlich selbst) oder als Datei mit')} <span class="mono">{t('TESSERACT_GEOIP_DB')}</span> {t('– siehe docs/deployment.md › GeoIP.')}
         </p>
       {/if}
     </section>
@@ -256,21 +256,21 @@
     <div class="cols">
       <section class="card" aria-labelledby="attack-title">
         <div class="row">
-          <h2 id="attack-title">Coraza · Angriffsarten</h2>
+          <h2 id="attack-title">{t('Coraza · Angriffsarten')}</h2>
           <span class="spacer"></span>
-          <a class="small" href="#/logs?q=reason:waf">Treffer in den Logs ansehen</a>
+          <a class="small" href="#/logs?q=reason:waf">{t('Treffer in den Logs ansehen')}</a>
         </div>
-        <BarList color="#14A399" items={data.attacks.map((a) => ({ label: a.name, value: a.count }))} empty="Keine blockierten Angriffe im Zeitraum." />
+        <BarList color="#14A399" items={data.attacks.map((a) => ({ label: a.name, value: a.count }))} empty={t('Keine blockierten Angriffe im Zeitraum.')} />
         {#if data.top_rules.length}
           <p class="muted small">
-            Häufigste Regeln:
+            {t('Häufigste Regeln:')}
             {#each data.top_rules.slice(0, 5) as r, i (r.rule)}{i ? ', ' : ''}<a class="mono" href={`#/logs?q=rule:${r.rule}`}>{r.rule}</a> ({fmt(r.count)}){/each}
           </p>
         {/if}
       </section>
 
       <section class="card" aria-labelledby="host-title">
-        <h2 id="host-title">Am meisten abgelehnt · nach Host</h2>
+        <h2 id="host-title">{t('Am meisten abgelehnt · nach Host')}</h2>
         {#if data.by_host.length}
           <ul class="hosts">
             {#each data.by_host as h (h.host)}
@@ -279,7 +279,7 @@
                   <a href={`#/logs?q=${encodeURIComponent('host:' + h.host)}&filter=denied`}>{h.host}</a>
                   <span>{fmt(h.total)}</span>
                 </div>
-                <div class="stack" role="img" aria-label={`${h.host}: ${h.mtls} ohne Zertifikat, ${h.waf} WAF, ${h.ip} IP-Filter, ${h.other} sonstige`}>
+                <div class="stack" role="img" aria-label={t('{0}: {1} ohne Zertifikat, {2} WAF, {3} IP-Filter, {4} sonstige', h.host, h.mtls, h.waf, h.ip, h.other)}>
                   {#each series as s (s.key)}
                     {@const v = h[s.key as 'mtls' | 'waf' | 'ip' | 'other']}
                     {#if v}<span style:flex-grow={v} style:background={s.color} title={`${s.label}: ${fmt(v)}`}></span>{/if}
@@ -289,10 +289,10 @@
             {/each}
           </ul>
           {#if privateOnlyCert.length}
-            <p class="muted small">{privateOnlyCert.join(', ')}: fast nur am fehlenden Zertifikat abgewiesen – der private Dienst wirkt.</p>
+            <p class="muted small">{t('{0}: fast nur am fehlenden Zertifikat abgewiesen – der private Dienst wirkt.', privateOnlyCert.join(', '))}</p>
           {/if}
         {:else}
-          <p class="muted small">Nichts abgelehnt im Zeitraum.</p>
+          <p class="muted small">{t('Nichts abgelehnt im Zeitraum.')}</p>
         {/if}
       </section>
     </div>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n';
   /**
    * Öffentliche Einladungsseite (/e/<token>) – der einzige Teil von Tesseract,
    * der ohne Zertifikat und ohne Anmeldung erreichbar ist.
@@ -49,7 +50,7 @@
       referrerPolicy: 'no-referrer'
     });
     const data = await res.json().catch(() => null);
-    if (!res.ok) throw new ApiError(res.status, data?.detail && typeof data.detail === 'string' ? data.detail : `Fehler ${res.status}`);
+    if (!res.ok) throw new ApiError(res.status, data?.detail && typeof data.detail === 'string' ? data.detail : t('Fehler {0}', res.status));
     return data as T;
   }
 
@@ -129,8 +130,8 @@
   // Während der Wartezeit alle 4 Sekunden nachsehen
   $effect(() => {
     if (stage !== 'waiting') return;
-    const t = setInterval(poll, 4000);
-    return () => clearInterval(t);
+    const timer = setInterval(poll, 4000);
+    return () => clearInterval(timer);
   });
 
   async function fetchCertificate() {
@@ -171,115 +172,114 @@
     <div class="logo">
       <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" style="stroke: var(--bg)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3z"></path><path d="M8 8h8v8H8z"></path><path d="M3 3l5 5M21 3l-5 5M3 21l5-5M21 21l-5-5"></path></svg>
     </div>
-    <span class="brand-name">Tesseract</span>
+    <span class="brand-name">{t('Tesseract')}</span>
   </header>
 
   <main class="card">
     {#if stage === 'loading'}
-      <p class="muted">Lade Einladung …</p>
+      <p class="muted">{t('Lade Einladung …')}</p>
     {:else if stage === 'invalid'}
-      <h1>Einladung nicht gültig</h1>
-      <p class="muted">Der Link ist abgelaufen, wurde widerrufen oder ist falsch. Bitte frag nach einer neuen Einladung.</p>
+      <h1>{t('Einladung nicht gültig')}</h1>
+      <p class="muted">{t('Der Link ist abgelaufen, wurde widerrufen oder ist falsch. Bitte frag nach einer neuen Einladung.')}</p>
     {:else if info}
       {#if stage === 'register'}
-        <span class="eyebrow">Schritt 1 von 2 · Gerät registrieren</span>
-        <h1>Hallo {info.person_name.split(/\s+/)[0]},<br />du wurdest eingeladen.</h1>
+        <span class="eyebrow">{t('Schritt 1 von 2 · Gerät registrieren')}</span>
+        <h1>{t('Hallo {0},', info.person_name.split(/\s+/)[0])}<br />{t('du wurdest eingeladen.')}</h1>
         <p class="muted">
-          Diese Dienste sind privat und nur von freigeschalteten Geräten aus erreichbar. Dafür bekommt dein Gerät
-          gleich ein eigenes Zertifikat – wie ein Schlüssel, den nur es selbst hat.
+          {t('Diese Dienste sind privat und nur von freigeschalteten Geräten aus erreichbar. Dafür bekommt dein Gerät gleich ein eigenes Zertifikat – wie ein Schlüssel, den nur es selbst hat.')}
         </p>
         {#if services.length}
           <div class="services">
-            <span class="muted small">Danach kommst du auf:</span>
+            <span class="muted small">{t('Danach kommst du auf:')}</span>
             <ul>{#each services as s (s)}<li class="mono">{s}</li>{/each}</ul>
           </div>
         {/if}
         <form onsubmit={register}>
           <label class="field">
-            Name dieses Geräts
+            {t('Name dieses Geräts')}
             <input class="input" required maxlength="64" bind:value={deviceName} />
           </label>
           <label class="field">
-            Gerät
+            {t('Gerät')}
             <select class="input" bind:value={platform}>
               {#each Object.entries(PLATFORMS) as [k, v] (k)}<option value={k}>{v}</option>{/each}
             </select>
-            <span class="muted small">automatisch erkannt</span>
+            <span class="muted small">{t('automatisch erkannt')}</span>
           </label>
           <label class="field">
-            Bestätigungscode
+            {t('Bestätigungscode')}
             <input class="input mono code" required inputmode="numeric" autocomplete="one-time-code" placeholder="123 456" maxlength="16" bind:value={code} />
-            <span class="muted small">Den Code hast du separat bekommen (z. B. am Telefon).</span>
+            <span class="muted small">{t('Den Code hast du separat bekommen (z. B. am Telefon).')}</span>
           </label>
           {#if error}<p class="error" role="alert">{error}</p>{/if}
-          <button type="submit" class="primary" disabled={busy}>{busy ? 'Sende …' : 'Gerät registrieren'}</button>
+          <button type="submit" class="primary" disabled={busy}>{busy ? t('Sende …') : t('Gerät registrieren')}</button>
         </form>
-        <p class="muted small">Noch {info.slots_left} von {info.max_devices} Geräten frei · Einladung gültig bis {formatDay(info.expires_at)}</p>
+        <p class="muted small">{t('Noch {0} von {1} Geräten frei · Einladung gültig bis {2}', info.slots_left, info.max_devices, formatDay(info.expires_at))}</p>
       {:else if stage === 'waiting'}
-        <span class="eyebrow">Schritt 1 von 2 · Gerät registrieren</span>
-        <h1>Fast geschafft</h1>
+        <span class="eyebrow">{t('Schritt 1 von 2 · Gerät registrieren')}</span>
+        <h1>{t('Fast geschafft')}</h1>
         <div class="wait" aria-live="polite">
           <span class="spinner" aria-hidden="true"></span>
-          <p>Deine Anfrage ist angekommen. Sobald sie freigegeben ist, geht es hier automatisch weiter.</p>
+          <p>{t('Deine Anfrage ist angekommen. Sobald sie freigegeben ist, geht es hier automatisch weiter.')}</p>
         </div>
-        <p class="muted small">Du kannst diese Seite offen lassen.</p>
+        <p class="muted small">{t('Du kannst diese Seite offen lassen.')}</p>
       {:else if stage === 'rejected'}
-        <h1>Anfrage abgelehnt</h1>
-        <p class="muted">Dein Gerät wurde nicht freigegeben. Bei Fragen wende dich an die Person, die dich eingeladen hat.</p>
-        <button type="button" class="secondary" onclick={() => (stage = 'register')}>Noch einmal versuchen</button>
+        <h1>{t('Anfrage abgelehnt')}</h1>
+        <p class="muted">{t('Dein Gerät wurde nicht freigegeben. Bei Fragen wende dich an die Person, die dich eingeladen hat.')}</p>
+        <button type="button" class="secondary" onclick={() => (stage = 'register')}>{t('Noch einmal versuchen')}</button>
       {:else if stage === 'install' || stage === 'done'}
-        <span class="eyebrow">Schritt 2 von 2 · Zertifikat installieren</span>
+        <span class="eyebrow">{t('Schritt 2 von 2 · Zertifikat installieren')}</span>
         {#if stage === 'done' && !cert}
-          <h1>Zertifikat bereits abgeholt</h1>
-          <p class="muted">Für dieses Gerät wurde das Zertifikat schon heruntergeladen. Ist es verloren gegangen, registriere das Gerät einfach neu.</p>
+          <h1>{t('Zertifikat bereits abgeholt')}</h1>
+          <p class="muted">{t('Für dieses Gerät wurde das Zertifikat schon heruntergeladen. Ist es verloren gegangen, registriere das Gerät einfach neu.')}</p>
         {:else if !cert}
-          <h1>Dein Gerät ist freigegeben</h1>
-          <p class="muted">Lade jetzt dein persönliches Zertifikat. Es wird nur einmal ausgegeben – also am besten direkt installieren.</p>
+          <h1>{t('Dein Gerät ist freigegeben')}</h1>
+          <p class="muted">{t('Lade jetzt dein persönliches Zertifikat. Es wird nur einmal ausgegeben – also am besten direkt installieren.')}</p>
           {#if error}<p class="error" role="alert">{error}</p>{/if}
           <button type="button" class="primary" disabled={busy} onclick={fetchCertificate}>
-            <Icon name="download" size={16} strokeWidth={2} /> {busy ? 'Erzeuge …' : 'Zertifikat herunterladen'}
+            <Icon name="download" size={16} strokeWidth={2} /> {busy ? t('Erzeuge …') : t('Zertifikat herunterladen')}
           </button>
         {:else}
-          <h1>Zertifikat installieren</h1>
+          <h1>{t('Zertifikat installieren')}</h1>
           <div class="pw">
-            <span class="muted small">Passwort für die Installation</span>
+            <span class="muted small">{t('Passwort für die Installation')}</span>
             <code class="mono">{cert.password}</code>
           </div>
           <button type="button" class="secondary" onclick={download}>
-            <Icon name="download" size={16} strokeWidth={2} /> Erneut herunterladen
+            <Icon name="download" size={16} strokeWidth={2} /> {t('Erneut herunterladen')}
           </button>
 
           <section class="guide" aria-labelledby="guide-title">
             <label class="field">
-              Anleitung für
+              {t('Anleitung für')}
               <select class="input" bind:value={platform}>
                 {#each Object.entries(INSTALL_STEPS) as [k, v] (k)}<option value={k}>{v.title}</option>{/each}
               </select>
             </label>
-            <h2 id="guide-title" class="visually-hidden">Anleitung</h2>
+            <h2 id="guide-title" class="visually-hidden">{t('Anleitung')}</h2>
             <ol>{#each guide.steps as step, i (i)}<li>{step}</li>{/each}</ol>
             {#if guide.browser}<p class="muted small">{guide.browser}</p>{/if}
           </section>
 
           {#if services.length}
             <section class="services">
-              <span class="muted small">Hat es geklappt? Nach der Installation hier testen:</span>
+              <span class="muted small">{t('Hat es geklappt? Nach der Installation hier testen:')}</span>
               <ul>
                 {#each services as s (s)}
-                  <li><a class="mono" href={`https://${s}`} target="_blank" rel="noopener">{s} öffnen</a></li>
+                  <li><a class="mono" href={`https://${s}`} target="_blank" rel="noopener">{t('{0} öffnen', s)}</a></li>
                 {/each}
               </ul>
             </section>
           {/if}
 
           <p class="muted small">
-            Das Zertifikat gilt bis {formatDay(cert.not_after)}.
-            {#if cert.slots_left > 0}Noch ein Gerät? Öffne denselben Link auf dem anderen Gerät – {cert.slots_left} Platz/Plätze frei.{/if}
+            {t('Das Zertifikat gilt bis {0}.', formatDay(cert.not_after))}
+            {#if cert.slots_left > 0}{t('Noch ein Gerät? Öffne denselben Link auf dem anderen Gerät – {0} Platz/Plätze frei.', cert.slots_left)}{/if}
           </p>
           {#if cert.renew_url}
             <p class="muted small">
-              Kurz vor Ablauf kannst du das Zertifikat selbst verlängern: öffne dann auf diesem Gerät
-              <a class="mono" href={cert.renew_url}>{cert.renew_url}</a> – am besten jetzt als Lesezeichen speichern.
+              {t('Kurz vor Ablauf kannst du das Zertifikat selbst verlängern: öffne dann auf diesem Gerät')}
+              <a class="mono" href={cert.renew_url}>{cert.renew_url}</a> {t('– am besten jetzt als Lesezeichen speichern.')}
             </p>
           {/if}
         {/if}

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, tApi } from '../i18n';
   /** robots.txt eines Hosts: Vorlage wählen, anpassen, Vorschau mit Syntaxprüfung. */
   import Button from './Button.svelte';
   import ChipInput from './ChipInput.svelte';
@@ -68,34 +69,34 @@
 
 <div class="robots">
   <label class="field">
-    Vorlage
+    {t('Vorlage')}
     <select class="input" value={mode} onchange={(e) => choose((e.currentTarget as HTMLSelectElement).value as RobotsMode)}>
       {#each modes as m (m)}<option value={m}>{ROBOTS_MODES[m]}</option>{/each}
     </select>
   </label>
 
   {#if mode === 'paths'}
-    <ChipInput label="Gesperrte Pfade" bind:values={value.robots_paths} placeholder="/admin, /api …" />
+    <ChipInput label={t('Gesperrte Pfade')} bind:values={value.robots_paths} placeholder={t('/admin, /api …')} />
   {/if}
 
   {#if mode === 'custom'}
     <label class="field">
-      Eigener Text
+      {t('Eigener Text')}
       <textarea class="input mono" rows="10" spellcheck="false" bind:value={value.robots_text}></textarea>
     </label>
   {/if}
 
   {#if mode !== 'off' && mode !== 'custom'}
     <label class="field">
-      <span>Sitemap <span class="muted">(optional)</span></span>
+      <span>{t('Sitemap')} <span class="muted">{t('(optional)')}</span></span>
       <input class="input mono" bind:value={value.robots_sitemap} placeholder="https://{value.domain || 'example.org'}/sitemap.xml" />
     </label>
   {/if}
 
   {#if hostId}
     <div class="row">
-      <Button variant="secondary" size="sm" label={loading ? 'Lädt …' : 'robots.txt des Dienstes übernehmen'} disabled={loading} onClick={loadUpstream} />
-      <span class="muted small">lädt die Datei vom Ziel als eigenen Text zum Anpassen</span>
+      <Button variant="secondary" size="sm" label={loading ? t('Lädt …') : t('robots.txt des Dienstes übernehmen')} disabled={loading} onClick={loadUpstream} />
+      <span class="muted small">{t('lädt die Datei vom Ziel als eigenen Text zum Anpassen')}</span>
     </div>
     {#if upstreamError}<p class="field-error">{upstreamError}</p>{/if}
   {/if}
@@ -105,16 +106,16 @@
       <div class="preview">
         <span class="muted small">
           {preview.from_settings
-            ? 'Vorschau – kommt aus den Einstellungen (mTLS-Hosts: alles verbieten)'
-            : `Vorschau – Caddy liefert https://${value.domain || '…'}/robots.txt so aus`}
+            ? t('Vorschau – kommt aus den Einstellungen (mTLS-Hosts: alles verbieten)')
+            : t('Vorschau – Caddy liefert https://{0}/robots.txt so aus', value.domain || '…')}
         </span>
         <pre class="mono">{preview.text}</pre>
       </div>
     {:else}
-      <p class="muted small">Caddy liefert keine eigene robots.txt aus – Anfragen gehen an den Dienst.</p>
+      <p class="muted small">{t('Caddy liefert keine eigene robots.txt aus – Anfragen gehen an den Dienst.')}</p>
     {/if}
-    {#each preview.errors as e (e)}<p class="field-error">{e}</p>{/each}
-    {#each preview.warnings as w (w)}<p class="warn small">{w}</p>{/each}
+    {#each preview.errors as e (e)}<p class="field-error">{tApi(e)}</p>{/each}
+    {#each preview.warnings as w (w)}<p class="warn small">{tApi(w)}</p>{/each}
   {/if}
 </div>
 

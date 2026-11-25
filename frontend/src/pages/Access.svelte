@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n';
   import AppShell from '../lib/components/AppShell.svelte';
   import PageHeader from '../lib/components/PageHeader.svelte';
   import Button from '../lib/components/Button.svelte';
@@ -53,8 +54,8 @@
         return { host_id: Number(h), kind, id: Number(id) };
       });
       const r = await api.put<{ changed: string[]; ok: boolean; error: string | null }>('/access', { grants });
-      if (r.ok) toasts.show('ok', `Übertragen: ${r.changed.join(', ') || 'keine Änderung'}.`);
-      else toasts.show('warn', `Gespeichert, aber nicht übertragen: ${r.error}`, 12000);
+      if (r.ok) toasts.show('ok', t('Übertragen: {0}.', r.changed.join(', ') || t('keine Änderung')));
+      else toasts.show('warn', t('Gespeichert, aber nicht übertragen: {0}', r.error), 12000);
       await load();
     } catch (e) {
       toasts.show('bad', e instanceof Error ? e.message : String(e));
@@ -66,36 +67,36 @@
 
 <AppShell active="access">
   <PageHeader
-    title="Zugriffsmatrix"
-    subtitle="Rechte vergibst du an Gruppen oder Personen – sie gelten automatisch für alle Geräte dieser Person."
+    title={t('Zugriffsmatrix')}
+    subtitle={t('Rechte vergibst du an Gruppen oder Personen – sie gelten automatisch für alle Geräte dieser Person.')}
   />
 
-  {#if error}<Alert tone="bad" title="Fehler" text={error} />{/if}
+  {#if error}<Alert tone="bad" title={t('Fehler')} text={error} />{/if}
 
   {#if matrix && matrix.hosts.length === 0}
     <EmptyState
       icon="hosts"
-      title="Noch keine geschützten Hosts"
-      text="Stelle einen Host auf „Nur mit Zertifikat“ oder schütze einzelne Pfade – dann erscheint er hier."
-      actionLabel="Zu den Hosts"
+      title={t('Noch keine geschützten Hosts')}
+      text={t('Stelle einen Host auf „Nur mit Zertifikat“ oder schütze einzelne Pfade – dann erscheint er hier.')}
+      actionLabel={t('Zu den Hosts')}
       actionHref="#/hosts"
     />
   {:else if matrix}
     <div class="legend muted">
-      <span><span class="box on"><Icon name="check" size={12} strokeWidth={3} /></span> direkt erlaubt</span>
-      <span><span class="box via"><Icon name="check" size={12} strokeWidth={3} /></span> über Gruppe</span>
-      <span><span class="box"></span> kein Zugriff</span>
+      <span><span class="box on"><Icon name="check" size={12} strokeWidth={3} /></span> {t('direkt erlaubt')}</span>
+      <span><span class="box via"><Icon name="check" size={12} strokeWidth={3} /></span> {t('über Gruppe')}</span>
+      <span><span class="box"></span> {t('kein Zugriff')}</span>
     </div>
 
     <div class="table-wrap">
       <table class="table matrix">
         <thead>
           <tr>
-            <th scope="col">Gruppe / Person</th>
+            <th scope="col">{t('Gruppe / Person')}</th>
             {#each matrix.hosts as h (h.id)}
               <th scope="col" class="host">
                 <span class="mono">{h.domain}</span>
-                {#if h.paths.length}<span class="tiny">{h.access === 'mtls' ? 'mit öffentl. Pfaden' : 'nur ' + h.paths.join(', ')}</span>{/if}
+                {#if h.paths.length}<span class="tiny">{h.access === 'mtls' ? t('mit öffentl. Pfaden') : 'nur ' + h.paths.join(', ')}</span>{/if}
               </th>
             {/each}
           </tr>
@@ -103,7 +104,7 @@
         <tbody>
           {#each matrix.groups as g (g.id)}
             <tr>
-              <th scope="row"><Icon name="users" size={14} /> Gruppe {g.name} <span class="muted tiny">{g.members.length}</span></th>
+              <th scope="row"><Icon name="users" size={14} /> {t('Gruppe {0}', g.name)} <span class="muted tiny">{g.members.length}</span></th>
               {#each matrix.hosts as h (h.id)}
                 {@const on = cells.has(key(h.id, 'group', g.id))}
                 <td class="cell">
@@ -112,7 +113,7 @@
                     class="box"
                     class:on
                     aria-pressed={on}
-                    aria-label={`Gruppe ${g.name} auf ${h.domain} ${on ? 'entziehen' : 'erlauben'}`}
+                    aria-label={t('Gruppe {0} auf {1} {2}', g.name, h.domain, on ? 'entziehen' : 'erlauben')}
                     onclick={() => toggle(h.id, 'group', g.id)}
                   >
                     {#if on}<Icon name="check" size={12} strokeWidth={3} />{/if}
@@ -123,7 +124,7 @@
           {/each}
           {#each matrix.persons as p (p.id)}
             <tr class:disabled={p.disabled}>
-              <th scope="row"><Icon name="person" size={14} /> {p.name}{#if p.disabled} <span class="muted tiny">gesperrt</span>{/if}</th>
+              <th scope="row"><Icon name="person" size={14} /> {p.name}{#if p.disabled} <span class="muted tiny">{t('gesperrt')}</span>{/if}</th>
               {#each matrix.hosts as h (h.id)}
                 {@const on = cells.has(key(h.id, 'person', p.id))}
                 {@const via = !on && viaGroup(h.id, p.group_ids)}
@@ -134,7 +135,7 @@
                     class:on
                     class:via
                     aria-pressed={on}
-                    aria-label={`${p.name} auf ${h.domain} ${on ? 'entziehen' : 'direkt erlauben'}${via ? ' (bereits über Gruppe)' : ''}`}
+                    aria-label={`${p.name} auf ${h.domain} ${on ? 'entziehen' : t('direkt erlauben')}${via ? t(' (bereits über Gruppe)') : ''}`}
                     onclick={() => toggle(h.id, 'person', p.id)}
                   >
                     {#if on || via}<Icon name="check" size={12} strokeWidth={3} />{/if}
@@ -148,9 +149,9 @@
     </div>
 
     <div class="row">
-      <Button label={saving ? 'Überträgt …' : 'Übertragen'} disabled={!dirty || saving} onClick={save} />
-      <Button variant="secondary" label="Verwerfen" disabled={!dirty || saving} onClick={() => (cells = new Set(original))} />
-      {#if dirty}<span class="muted small">Ungespeicherte Änderungen</span>{/if}
+      <Button label={saving ? t('Überträgt …') : t('Übertragen')} disabled={!dirty || saving} onClick={save} />
+      <Button variant="secondary" label={t('Verwerfen')} disabled={!dirty || saving} onClick={() => (cells = new Set(original))} />
+      {#if dirty}<span class="muted small">{t('Ungespeicherte Änderungen')}</span>{/if}
     </div>
   {/if}
 </AppShell>

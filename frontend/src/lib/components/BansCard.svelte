@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../i18n';
   import Button from './Button.svelte';
   import { api, formatAgo, formatDate, type Ban } from '../api';
   import { toasts } from '../toast.svelte';
@@ -55,8 +56,8 @@
 
 <section class="card" aria-labelledby="bans-title">
   <div class="row">
-    <h2 id="bans-title" class="card-title">Gesperrte IPs</h2>
-    <span class="muted small">{bans.length} aktiv</span>
+    <h2 id="bans-title" class="card-title">{t('Gesperrte IPs')}</h2>
+    <span class="muted small">{t('{0} aktiv', bans.length)}</span>
   </div>
   {#if bans.length}
     <ul>
@@ -70,28 +71,28 @@
             </span>
           </span>
           <span class="spacer"></span>
-          <Button variant="ghost" size="sm" label="Entsperren" onClick={() => lift(b)} />
+          <Button variant="ghost" size="sm" label={t('Entsperren')} onClick={() => lift(b)} />
         </li>
       {/each}
     </ul>
   {:else}
-    <p class="muted small">Keine IP gesperrt.</p>
+    <p class="muted small">{t('Keine IP gesperrt.')}</p>
   {/if}
 
   {#if !compact}
     <form class="row" onsubmit={add}>
-      <input class="input mono ip" placeholder="IP oder Netz" required bind:value={ip} aria-label="IP oder Netz sperren" />
-      <select class="input hours" bind:value={hours} aria-label="Dauer">
-        <option value={1}>1 Stunde</option>
-        <option value={24}>24 Stunden</option>
-        <option value={168}>7 Tage</option>
-        <option value={720}>30 Tage</option>
-        <option value={2160}>90 Tage</option>
-        <option value={8760}>1 Jahr</option>
-        <option value={0}>Für immer</option>
+      <input class="input mono ip" placeholder={t('IP oder Netz')} required bind:value={ip} aria-label={t('IP oder Netz sperren')} />
+      <select class="input hours" bind:value={hours} aria-label={t('Dauer')}>
+        <option value={1}>{t('1 Stunde')}</option>
+        <option value={24}>{t('24 Stunden')}</option>
+        <option value={168}>{t('7 Tage')}</option>
+        <option value={720}>{t('30 Tage')}</option>
+        <option value={2160}>{t('90 Tage')}</option>
+        <option value={8760}>{t('1 Jahr')}</option>
+        <option value={0}>{t('Für immer')}</option>
       </select>
-      <input class="input grow" placeholder="Grund (optional)" maxlength="255" bind:value={reason} aria-label="Grund" />
-      <Button type="submit" variant="secondary" label={busy ? 'Sperrt …' : 'Sperren'} disabled={busy} />
+      <input class="input grow" placeholder={t('Grund (optional)')} maxlength="255" bind:value={reason} aria-label={t('Grund')} />
+      <Button type="submit" variant="secondary" label={busy ? t('Sperrt …') : t('Sperren')} disabled={busy} />
     </form>
   {/if}
 </section>

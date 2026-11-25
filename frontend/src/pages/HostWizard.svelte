@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n';
   import AppShell from '../lib/components/AppShell.svelte';
   import Button from '../lib/components/Button.svelte';
   import Alert from '../lib/components/Alert.svelte';
@@ -66,11 +67,11 @@
   });
 
   const grantNames = $derived([
-    ...groups.filter((g) => host.grant_group_ids.includes(g.id)).map((g) => `Gruppe ${g.name}`),
+    ...groups.filter((g) => host.grant_group_ids.includes(g.id)).map((g) => t('Gruppe {0}', g.name)),
     ...persons.filter((p) => host.grant_person_ids.includes(p.id)).map((p) => p.name)
   ]);
 
-  const steps = ['Domain & Ziel', 'Zugriff', 'Prüfen & übertragen'];
+  const steps = [t('Domain & Ziel'), 'Zugriff', t('Prüfen & übertragen')];
 
   // Prüfungen automatisch, kurz nach der letzten Eingabe
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -155,10 +156,10 @@
 <AppShell active="hosts">
   <header class="head">
     <div class="titles">
-      <a href="#/hosts" class="crumb">← Proxy-Hosts</a>
-      <h1>Host anlegen</h1>
+      <a href="#/hosts" class="crumb">{t('← Proxy-Hosts')}</a>
+      <h1>{t('Host anlegen')}</h1>
     </div>
-    <ol aria-label="Schritte" class="steps">
+    <ol aria-label={t('Schritte')} class="steps">
       {#each steps as label, i (label)}
         {@const n = i + 1}
         <li aria-current={n === step ? 'step' : undefined} class:on={n === step} class:done={n < step}>
@@ -168,71 +169,71 @@
     </ol>
   </header>
 
-  {#if error}<Alert tone="bad" title="Das hat nicht geklappt" text={error} />{/if}
+  {#if error}<Alert tone="bad" title={t('Das hat nicht geklappt')} text={error} />{/if}
 
   {#if step === 1}
     <div class="layout">
-      <section class="card main" aria-label="Domain und Ziel">
+      <section class="card main" aria-label={t('Domain und Ziel')}>
         <HostForm bind:value={host} {nodes} {dnsAvailable} {wildcards} {customCerts} {dnsZones} />
       </section>
-      <aside class="card side" aria-label="Automatische Prüfungen">
-        <h2>Vorab geprüft</h2>
+      <aside class="card side" aria-label={t('Automatische Prüfungen')}>
+        <h2>{t('Vorab geprüft')}</h2>
         <CheckList {checks} busy={checking} />
       </aside>
     </div>
     <footer class="row">
-      <Button variant="secondary" label="Abbrechen" href="#/hosts" />
+      <Button variant="secondary" label={t('Abbrechen')} href="#/hosts" />
       <span class="spacer"></span>
-      <Button label="Weiter: Zugriff" disabled={!step1Valid} onClick={() => goTo(2)} />
+      <Button label={t('Weiter: Zugriff')} disabled={!step1Valid} onClick={() => goTo(2)} />
     </footer>
   {:else if step === 2}
     <section class="card" aria-labelledby="access-title">
-      <h2 id="access-title">Wer darf zugreifen?</h2>
+      <h2 id="access-title">{t('Wer darf zugreifen?')}</h2>
       <AccessForm bind:value={host} {groups} {persons} {caConfigured} {internalAvailable} />
     </section>
     <footer class="row">
-      <Button variant="secondary" label="Zurück" onClick={() => goTo(1)} />
+      <Button variant="secondary" label={t('Zurück')} onClick={() => goTo(1)} />
       <span class="spacer"></span>
-      <Button label="Weiter: Prüfen" onClick={() => goTo(3)} />
+      <Button label={t('Weiter: Prüfen')} onClick={() => goTo(3)} />
     </footer>
   {:else}
     <div class="layout">
       <section class="card main" aria-labelledby="sum-title">
-        <h2 id="sum-title">Zusammenfassung</h2>
+        <h2 id="sum-title">{t('Zusammenfassung')}</h2>
         <dl class="summary">
-          <dt>Domain</dt><dd class="mono">{domain}</dd>
-          <dt>Ziel</dt><dd class="mono">{upstreamLabel(host)}</dd>
-          <dt>Node</dt><dd>{nodeName}</dd>
-          <dt>Zertifikat</dt>
+          <dt>{t('Domain')}</dt><dd class="mono">{domain}</dd>
+          <dt>{t('Ziel')}</dt><dd class="mono">{upstreamLabel(host)}</dd>
+          <dt>{t('Node')}</dt><dd>{nodeName}</dd>
+          <dt>{t('Zertifikat')}</dt>
           <dd>
-            {#if localName}lokales Zertifikat von Caddy
-            {:else if dnsAvailable && coveringWildcard(host.domain, wildcards)}geteiltes Wildcard-Zertifikat {coveringWildcard(host.domain, wildcards)}
-            {:else}Let's Encrypt · {host.tls_challenge === 'dns' ? 'DNS-01 (Cloudflare)' : 'HTTP-01'}{/if}
+            {#if localName}{t('lokales Zertifikat von Caddy')}
+            {:else if dnsAvailable && coveringWildcard(host.domain, wildcards)}{t('geteiltes Wildcard-Zertifikat {0}', coveringWildcard(host.domain, wildcards))}
+            {:else}{t('Let\'s Encrypt · {0}', host.tls_challenge === 'dns' ? t('DNS-01 (Cloudflare)') : 'HTTP-01')}{/if}
           </dd>
-          <dt>Zugriff</dt>
+          <dt>{t('Zugriff')}</dt>
           <dd>
-            {host.internal ? 'Nur intern · ' : ''}{host.access === 'mtls' ? 'Nur mit Zertifikat' : host.internal ? 'ohne Zertifikat' : 'Öffentlich'}
+            {host.internal ? t('Nur intern · ') : ''}{host.access === 'mtls' ? t('Nur mit Zertifikat') : host.internal ? t('ohne Zertifikat') : t('Öffentlich')}
             {#if host.paths.length}
-              · {host.access === 'mtls' ? 'öffentlich' : 'geschützt'}: <span class="mono">{host.paths.join(', ')}</span>
+              · {host.access === 'mtls' ? t('öffentlich') : t('geschützt')}: <span class="mono">{host.paths.join(', ')}</span>
             {/if}
           </dd>
           {#if host.access === 'mtls' || host.paths.length}
-            <dt>Freigegeben für</dt><dd>{grantNames.join(', ') || 'niemand'}</dd>
-            <dt>Ohne Zertifikat</dt><dd>{host.no_cert_action === 'hint' ? 'Hinweisseite' : 'Verbindung ablehnen'}</dd>
+            <dt>{t('Freigegeben für')}</dt><dd>{grantNames.join(', ') || 'niemand'}</dd>
+            <dt>{t('Ohne Zertifikat')}</dt><dd>{host.no_cert_action === 'hint' ? t('Hinweisseite') : t('Verbindung ablehnen')}</dd>
           {/if}
-          <dt>DNS-Eintrag</dt>
+          <dt>{t('DNS-Eintrag')}</dt>
           <dd>
             {#if host.dns_type}
-              {host.dns_type === 'cname' ? 'CNAME' : 'A/AAAA'} bei Cloudflare{host.dns_target ? ` → ${host.dns_target}` : ' (Standard der Domain)'}{host.dns_proxied
-                ? ' · über den Proxy'
-                : ''}
-            {:else}nicht automatisch{/if}
+              {t('{0} bei Cloudflare{1}{2}', host.dns_type === 'cname' ? 'CNAME' : 'A/AAAA', host.dns_target ? ` → ${host.dns_target}` : t(' (Standard der Domain)'), host.dns_proxied
+                ? t(' · über den Proxy')
+                : '')}
+            {:else}{t('nicht automatisch')}{/if}
           </dd>
-          <dt>Optionen</dt>
+          <dt>{t('Optionen')}</dt>
           <dd>
             {[
-              host.force_https && 'HTTP → HTTPS',
-              host.websockets ? 'WebSockets' : 'keine WebSockets',
+              host.force_https && t('HTTP → HTTPS'),
+              host.websockets ? t('WebSockets') : t('keine WebSockets'),
               host.compression && 'Kompression'
             ]
               .filter(Boolean)
@@ -240,21 +241,21 @@
           </dd>
         </dl>
         <button type="button" class="link" onclick={() => (showJson = !showJson)} aria-expanded={showJson}>
-          {showJson ? 'Caddy-Route ausblenden' : 'Als JSON (Caddy-Route) ansehen'}
+          {showJson ? t('Caddy-Route ausblenden') : t('Als JSON (Caddy-Route) ansehen')}
         </button>
         {#if showJson}<pre class="code">{JSON.stringify(preview, null, 2)}</pre>{/if}
       </section>
-      <aside class="card side" aria-label="Prüfungen">
-        <h2>Prüfungen</h2>
+      <aside class="card side" aria-label={t('Prüfungen')}>
+        <h2>{t('Prüfungen')}</h2>
         <CheckList {checks} busy={checking} />
-        <p class="muted small">Wird an <strong>{nodeName}</strong> übertragen.</p>
+        <p class="muted small">{t('Wird an')} <strong>{nodeName}</strong> {t('übertragen.')}</p>
       </aside>
     </div>
     <footer class="row">
-      <Button variant="secondary" label="Zurück" onClick={() => goTo(2)} />
+      <Button variant="secondary" label={t('Zurück')} onClick={() => goTo(2)} />
       <span class="spacer"></span>
-      <Button variant="secondary" label="Als Entwurf speichern" disabled={saving || blocking} onClick={() => create(true)} />
-      <Button label={saving ? 'Überträgt …' : 'Anlegen & übertragen'} disabled={saving || blocking} onClick={() => create(false)} />
+      <Button variant="secondary" label={t('Als Entwurf speichern')} disabled={saving || blocking} onClick={() => create(true)} />
+      <Button label={saving ? t('Überträgt …') : t('Anlegen & übertragen')} disabled={saving || blocking} onClick={() => create(false)} />
     </footer>
   {/if}
 </AppShell>

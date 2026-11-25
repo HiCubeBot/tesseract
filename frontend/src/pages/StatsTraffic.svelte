@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { locale, t } from '../lib/i18n';
   import AppShell from '../lib/components/AppShell.svelte';
   import PageHeader from '../lib/components/PageHeader.svelte';
   import StatsTabs from '../lib/components/StatsTabs.svelte';
@@ -67,7 +68,7 @@
   }
 
   const RANGES = ['24h', '7d', '30d', 'all'] as const;
-  const RANGE_TEXT = ['zum Vortag', 'zur Vorwoche', 'zum Vormonat', ''];
+  const RANGE_TEXT = [t('zum Vortag'), t('zur Vorwoche'), t('zum Vormonat'), ''];
   let range = $state(0);
   let node = $state('');
   let nodes = $state<NodeInfo[]>([]);
@@ -108,8 +109,8 @@
           const d = new Date(`${m.t}T00:00:00`);
           return {
             start: d,
-            label: d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }),
-            title: d.toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }),
+            label: d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit' }),
+            title: d.toLocaleDateString(locale, { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }),
             values: { requests: m.requests, bytes: m.bytes, errors: m.errors }
           };
         })
@@ -117,8 +118,8 @@
       const d = new Date(`${m.t}-01T00:00:00`);
       return {
         start: d,
-        label: d.toLocaleDateString('de-DE', { month: 'short', year: '2-digit' }),
-        title: d.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' }),
+        label: d.toLocaleDateString(locale, { month: 'short', year: '2-digit' }),
+        title: d.toLocaleDateString(locale, { month: 'long', year: 'numeric' }),
             values: { requests: m.requests, bytes: m.bytes, errors: m.errors }
           };
         })
@@ -126,10 +127,10 @@
 
   const chartMetric = $derived(isAll && (metric === 'visitors' || metric === 'latency') ? 'requests' : metric);
   const METRIC = {
-    requests: { label: 'Anfragen', format: fmt },
-    visitors: { label: 'Besucher', format: fmt },
-    bytes: { label: 'Daten', format: formatBytes },
-    latency: { label: 'Antwortzeit (Median)', format: (n: number) => `${n.toLocaleString('de-DE')} ms` }
+    requests: { label: t('Anfragen'), format: fmt },
+    visitors: { label: t('Besucher'), format: fmt },
+    bytes: { label: t('Daten'), format: formatBytes },
+    latency: { label: t('Antwortzeit (Median)'), format: (n: number) => `${n.toLocaleString(locale)} ms` }
   } as const;
 
   // Antwortzeit je Bucket: Median der Stundenwerte im Bucket
@@ -142,9 +143,9 @@
     const step = r === '24h' ? 3600e3 : r === '7d' ? 6 * 3600e3 : 24 * 3600e3;
     for (const s of data.series) {
       if (s.latency == null) continue;
-      const t = new Date(s.t).getTime();
+      const ts = new Date(s.t).getTime();
       for (const [start, i] of idx) {
-        if (t >= start && t < start + step) {
+        if (ts >= start && ts < start + step) {
           groups[i].push(s.latency);
           break;
         }
@@ -160,80 +161,80 @@
   const chartSeries = $derived(
     chartMetric === 'requests' && !isAll
       ? [
-          { key: 'requests', label: 'Anfragen', color: '#8B7CF6' },
-          { key: 'previous', label: 'Vorzeitraum', color: '#8A91A0', dashed: true }
+          { key: 'requests', label: t('Anfragen'), color: '#8B7CF6' },
+          { key: 'previous', label: t('Vorzeitraum'), color: '#8A91A0', dashed: true }
         ]
       : [{ key: chartMetric, label: METRIC[chartMetric].label, color: '#8B7CF6' }]
   );
-  const unit = $derived(isAll ? (byDay ? 'Tag' : 'Monat') : range === 0 ? 'Stunde' : range === 1 ? '6 Stunden' : 'Tag');
+  const unit = $derived(isAll ? (byDay ? t('Tag') : t('Monat')) : range === 0 ? t('Stunde') : range === 1 ? t('6 Stunden') : t('Tag'));
 
   const spark = (key: string) => hourBuckets.map((b) => b.values[key] ?? 0);
   const monthSpark = (key: 'requests' | 'bytes' | 'errors') => monthBuckets.map((b) => b.values[key] ?? 0);
 
   const MIX_ROWS: { group: string; key: keyof Mix; items: [string, string][] }[] = [
-    { group: 'Statuscodes', key: 'status', items: [['2', '2xx erfolgreich'], ['3', '3xx weiterg.'], ['4', '4xx abgelehnt'], ['5', '5xx Fehler']] },
+    { group: 'Statuscodes', key: 'status', items: [['2', t('2xx erfolgreich')], ['3', t('3xx weiterg.')], ['4', t('4xx abgelehnt')], ['5', t('5xx Fehler')]] },
     { group: 'Protokoll', key: 'proto', items: [['3', 'HTTP/3'], ['2', 'HTTP/2'], ['1.1', 'HTTP/1.1']] },
-    { group: 'Clients', key: 'clients', items: [['browser', 'Browser'], ['app', 'Apps & API'], ['bot', 'Bots/Crawler']] }
+    { group: 'Clients', key: 'clients', items: [['browser', 'Browser'], ['app', t('Apps & API')], ['bot', 'Bots/Crawler']] }
   ];
-  const KIND_LABEL = { browser: 'Browser', app: 'App', bot: 'Bot' } as const;
-  const pct = (v: number | undefined) => `${(v ?? 0).toLocaleString('de-DE', { maximumFractionDigits: 1 })} %`;
+  const KIND_LABEL = { browser: t('Browser'), app: t('App'), bot: t('Bot') } as const;
+  const pct = (v: number | undefined) => `${(v ?? 0).toLocaleString(locale, { maximumFractionDigits: 1 })} %`;
 
   const paths = $derived(pathTab === 0 ? (data?.paths_top ?? []) : (data?.paths_errors ?? []));
   const maxPath = $derived(Math.max(1, ...paths.map((p) => (pathTab === 0 ? p.count : p.errors + p.client_errors))));
   const maxClient = $derived(Math.max(1, ...(data?.clients ?? []).map((c) => c.count)));
   const maxCode = $derived(Math.max(1, ...(data?.status_codes ?? []).map((c) => c.count)));
   const short = (h: string) => h.split('.')[0];
-  const ms = (v: number | null) => (v === null ? '–' : `${v.toLocaleString('de-DE')} ms`);
+  const ms = (v: number | null) => (v === null ? '–' : `${v.toLocaleString(locale)} ms`);
   const sinceText = $derived(
-    data?.since ? new Date(`${data.since}T00:00:00`).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' }) : ''
+    data?.since ? new Date(`${data.since}T00:00:00`).toLocaleDateString(locale, { month: 'long', year: 'numeric' }) : ''
   );
 </script>
 
 <AppShell active="stats">
-  <PageHeader title="Statistik" subtitle="Wie viel durch die Nodes geht und wie schnell die Dienste antworten." />
+  <PageHeader title={t('Statistik')} subtitle={t('Wie viel durch die Nodes geht und wie schnell die Dienste antworten.')} />
   <StatsTabs current="#/stats-traffic" />
 
   <div class="row">
     <SegmentedControl
-      groupLabel="Zeitraum"
-      options={['Letzte 24 Stunden', '7 Tage', '30 Tage', 'Gesamter Zeitraum']}
+      groupLabel={t('Zeitraum')}
+      options={[t('Letzte 24 Stunden'), t('7 Tage'), t('30 Tage'), t('Gesamter Zeitraum')]}
       bind:selected={range}
       onChange={load}
     />
     <label class="node-select">
-      <span>Node</span>
+      <span>{t('Node')}</span>
       <select class="input" bind:value={node} onchange={load}>
-        <option value="">Alle Nodes</option>
+        <option value="">{t('Alle Nodes')}</option>
         {#each nodes as n (n.id)}<option value={n.name}>{n.name}</option>{/each}
       </select>
     </label>
-    {#if loading}<span class="muted small">lädt …</span>{/if}
+    {#if loading}<span class="muted small">{t('lädt …')}</span>{/if}
   </div>
 
-  {#if error}<Alert tone="bad" title="Fehler" text={error} />{/if}
+  {#if error}<Alert tone="bad" title={t('Fehler')} text={error} />{/if}
 
   {#if data && k}
     <div class="kpis">
       <KpiCard
-        label="Anfragen"
+        label={t('Anfragen')}
         value={compact(k.requests)}
         delta={isAll ? null : delta(k.requests, k.requests_prev)}
-        sub={isAll ? (sinceText ? `seit ${sinceText}` : 'seit Beginn der Aufzeichnung') : RANGE_TEXT[range]}
+        sub={isAll ? (sinceText ? `seit ${sinceText}` : t('seit Beginn der Aufzeichnung')) : RANGE_TEXT[range]}
         spark={isAll ? monthSpark('requests') : spark('requests')}
         selected={metric === 'requests'}
         onclick={() => (metric = 'requests')}
       />
       <KpiCard
-        label="Besucher"
+        label={t('Besucher')}
         value={fmt(k.visitors ?? 0)}
         delta={isAll ? null : delta(k.visitors, k.visitors_prev)}
-        sub="verschiedene Adressen, ohne Bots"
+        sub={t('verschiedene Adressen, ohne Bots')}
         spark={isAll ? [] : spark('visitors')}
         selected={metric === 'visitors' && !isAll}
         onclick={isAll ? undefined : () => (metric = 'visitors')}
       />
       <KpiCard
-        label="Daten ausgeliefert"
+        label={t('Daten ausgeliefert')}
         value={formatBytes(k.bytes_out ?? 0)}
         delta={isAll ? null : delta(k.bytes_out, k.bytes_out_prev)}
         sub={`${formatBytes(k.bytes_in ?? 0)} empfangen`}
@@ -242,49 +243,49 @@
         onclick={() => (metric = 'bytes')}
       />
       <KpiCard
-        label="Antwortzeit (Median)"
+        label={t('Antwortzeit (Median)')}
         value={k.latency == null ? '–' : `${fmt(k.latency)} ms`}
         delta={isAll ? null : delta(k.latency, k.latency_prev)}
         upIsBad
-        sub={k.latency_p95 == null ? (isAll ? 'Median der Tageswerte' : 'keine Anfragen') : `95 % unter ${fmt(Math.ceil(k.latency_p95))} ms`}
+        sub={k.latency_p95 == null ? (isAll ? t('Median der Tageswerte') : t('keine Anfragen')) : t('95 % unter {0} ms', fmt(Math.ceil(k.latency_p95)))}
         spark={isAll ? [] : latencyHourly}
         selected={metric === 'latency' && !isAll}
         onclick={isAll ? undefined : () => (metric = 'latency')}
       />
       <KpiCard
-        label="Serverfehler (5xx)"
+        label={t('Serverfehler (5xx)')}
         value={pct(k.errors_share)}
         tone={(k.errors_share ?? 0) >= 5 ? 'bad' : (k.errors_share ?? 0) >= 1 ? 'warn' : 'neutral'}
-        sub={k.errors ? `${fmt(k.errors)} Anfragen${k.errors_top_host ? ` · meist ${short(k.errors_top_host)}` : ''}` : 'keine Serverfehler'}
+        sub={k.errors ? t('{0} Anfragen{1}', fmt(k.errors), k.errors_top_host ? t(' · meist {0}', short(k.errors_top_host)) : '') : t('keine Serverfehler')}
         spark={isAll ? monthSpark('errors') : spark('errors')}
         sparkColor="#D95926"
       />
       <KpiCard
-        label="Komprimiert ausgeliefert"
+        label={t('Komprimiert ausgeliefert')}
         value={k.compressed_share == null ? '–' : pct(k.compressed_share)}
-        sub={k.encodings?.length ? k.encodings.join(' & ') : 'Anteil der 200-Antworten'}
+        sub={k.encodings?.length ? k.encodings.join(' & ') : t('Anteil der 200-Antworten')}
       />
     </div>
 
     <div class="main-grid">
       <section class="card" aria-labelledby="req-title">
-        <h2 id="req-title">{METRIC[chartMetric].label} pro {unit}</h2>
+        <h2 id="req-title">{t('{0} pro {1}', METRIC[chartMetric].label, unit)}</h2>
         {#if chartBuckets.length}
           <LineChart buckets={chartBuckets} series={chartSeries} height={240} label={`${METRIC[chartMetric].label} pro ${unit}`} format={METRIC[chartMetric].format} />
         {:else}
-          <p class="muted small">Noch keine Daten.</p>
+          <p class="muted small">{t('Noch keine Daten.')}</p>
         {/if}
         {#if isAll}
           <p class="muted small">
-            Aus den Tageswerten, die Tesseract dauerhaft aufhebt – auch wenn die Einzeleinträge nach der Aufbewahrungszeit gelöscht sind.
-            {#if data.days}{fmt(data.days)} Tage erfasst.{/if}
+            {t('Aus den Tageswerten, die Tesseract dauerhaft aufhebt – auch wenn die Einzeleinträge nach der Aufbewahrungszeit gelöscht sind.')}
+            {#if data.days}{t('{0} Tage erfasst.', fmt(data.days))}{/if}
           </p>
         {/if}
       </section>
 
       {#if data.mix}
         <section class="card" aria-labelledby="mix-title">
-          <h2 id="mix-title">Zusammensetzung</h2>
+          <h2 id="mix-title">{t('Zusammensetzung')}</h2>
           {#each MIX_ROWS as g (g.group)}
             <div class="mix-group">
               <span class="eyebrow">{g.group}</span>
@@ -306,9 +307,9 @@
       {#if !isAll}
         <section class="card" aria-labelledby="paths-title">
           <div class="row">
-            <h2 id="paths-title">Pfade</h2>
+            <h2 id="paths-title">{t('Pfade')}</h2>
             <span class="spacer"></span>
-            <SegmentedControl groupLabel="Pfade" options={['Aufgerufen', 'Mit Fehler']} bind:selected={pathTab} />
+            <SegmentedControl groupLabel={t('Pfade')} options={['Aufgerufen', t('Mit Fehler')]} bind:selected={pathTab} />
           </div>
           {#if paths.length}
             <ul class="bars">
@@ -320,8 +321,8 @@
                       >{p.path} <span class="muted host">{short(p.host)}</span></a
                     >
                     <span class="val">
-                      {#if p.errors}<span class="warn-text">{fmt(p.errors)} Fehler</span>{/if}
-                      {#if pathTab === 1 && p.client_errors}<span class="muted">{fmt(p.client_errors)} × 4xx</span>{/if}
+                      {#if p.errors}<span class="warn-text">{t('{0} Fehler', fmt(p.errors))}</span>{/if}
+                      {#if pathTab === 1 && p.client_errors}<span class="muted">{t('{0} × 4xx', fmt(p.client_errors))}</span>{/if}
                       {compact(v)}
                     </span>
                   </div>
@@ -330,13 +331,13 @@
               {/each}
             </ul>
           {:else}
-            <p class="muted small">{pathTab === 0 ? 'Keine Anfragen im Zeitraum.' : 'Keine Fehler im Zeitraum.'}</p>
+            <p class="muted small">{pathTab === 0 ? t('Keine Anfragen im Zeitraum.') : t('Keine Fehler im Zeitraum.')}</p>
           {/if}
         </section>
       {/if}
 
       <section class="card" aria-labelledby="clients-title">
-        <h2 id="clients-title">Browser, Apps und Bots</h2>
+        <h2 id="clients-title">{t('Browser, Apps und Bots')}</h2>
         {#if data.clients?.length}
           <ul class="bars">
             {#each data.clients as c (c.name + c.kind)}
@@ -350,12 +351,12 @@
             {/each}
           </ul>
         {:else}
-          <p class="muted small">Keine Anfragen im Zeitraum.</p>
+          <p class="muted small">{t('Keine Anfragen im Zeitraum.')}</p>
         {/if}
       </section>
 
       <section class="card" aria-labelledby="codes-title">
-        <h2 id="codes-title">Statuscodes</h2>
+        <h2 id="codes-title">{t('Statuscodes')}</h2>
         {#if data.status_codes?.length}
           <ul class="bars">
             {#each data.status_codes as c (c.code)}
@@ -369,33 +370,33 @@
             {/each}
           </ul>
         {:else}
-          <p class="muted small">Keine Anfragen im Zeitraum.</p>
+          <p class="muted small">{t('Keine Anfragen im Zeitraum.')}</p>
         {/if}
       </section>
     </div>
 
     {#if data.hosts}
       <section class="card" aria-labelledby="hosts-title">
-        <h2 id="hosts-title">Hosts im Vergleich</h2>
-        <p class="muted small">Antwortzeit = Zeit bis zur Antwort des Dienstes, gemessen am Node (nur durchgelassene Anfragen).</p>
+        <h2 id="hosts-title">{t('Hosts im Vergleich')}</h2>
+        <p class="muted small">{t('Antwortzeit = Zeit bis zur Antwort des Dienstes, gemessen am Node (nur durchgelassene Anfragen).')}</p>
         <div class="table-wrap">
           <table class="table">
             <thead>
               <tr>
-                <th scope="col">Host</th>
-                <th scope="col" class="num">Anfragen</th>
-                <th scope="col" class="num">Daten raus</th>
-                <th scope="col" class="num">Median</th>
-                <th scope="col" class="num">95 % schneller als</th>
-                <th scope="col" class="num">Fehler (5xx)</th>
-                <th scope="col" class="num">Erreichbar</th>
+                <th scope="col">{t('Host')}</th>
+                <th scope="col" class="num">{t('Anfragen')}</th>
+                <th scope="col" class="num">{t('Daten raus')}</th>
+                <th scope="col" class="num">{t('Median')}</th>
+                <th scope="col" class="num">{t('95 % schneller als')}</th>
+                <th scope="col" class="num">{t('Fehler (5xx)')}</th>
+                <th scope="col" class="num">{t('Erreichbar')}</th>
               </tr>
             </thead>
             <tbody>
               {#each data.hosts as h (h.host)}
                 <tr>
                   <td><a href={`#/logs?q=${encodeURIComponent('host:' + h.host)}`}>{h.host}</a></td>
-                  <td class="num">{fmt(h.requests)}{#if h.denied} <span class="muted small">({fmt(h.denied)} abgelehnt)</span>{/if}</td>
+                  <td class="num">{fmt(h.requests)}{#if h.denied} <span class="muted small">{t('({0} abgelehnt)', fmt(h.denied))}</span>{/if}</td>
                   <td class="num">{formatBytes(h.bytes)}</td>
                   <td class="num">{ms(h.median_ms)}</td>
                   <td class="num">{ms(h.p95_ms)}</td>
@@ -403,11 +404,11 @@
                     {#if h.errors}<a href={`#/logs?q=${encodeURIComponent(`host:${h.host} status:5xx`)}`}>{fmt(h.errors)}</a>{:else}0{/if}
                   </td>
                   <td class="num" class:bad={h.availability !== null && h.availability < 99}>
-                    {h.availability === null ? '–' : `${h.availability.toLocaleString('de-DE')} %`}
+                    {h.availability === null ? '–' : `${h.availability.toLocaleString(locale)} %`}
                   </td>
                 </tr>
               {:else}
-                <tr><td colspan="7" class="muted">Keine Anfragen im Zeitraum.</td></tr>
+                <tr><td colspan="7" class="muted">{t('Keine Anfragen im Zeitraum.')}</td></tr>
               {/each}
             </tbody>
           </table>

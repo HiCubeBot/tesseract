@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, tApi } from './lib/i18n';
   import { router } from './lib/router.svelte';
   import { session } from './lib/session.svelte';
   import { routes, aliases, matchPage } from './routes';
@@ -28,7 +29,8 @@
     match ? undefined : routes.find((r) => r.path === (designPath ?? path))
   );
   const needsLogin = $derived(session.checked && !session.user && !match?.page.public);
-  const title = $derived(match?.page.title ?? prototype?.title ?? 'Screens');
+  // Seitentitel aus routes.ts übersetzen (Wörterbuch en.api.json)
+  const title = $derived(tApi(match?.page.title ?? prototype?.title ?? 'Screens'));
 
   // „Eigene Dienste“ starten in der Hostliste statt auf der (gesperrten) Übersicht
   $effect(() => {
@@ -37,12 +39,12 @@
 
   $effect(() => {
     document.title = statusPage
-      ? 'Status'
+      ? t('Status')
       : enrollToken
-        ? 'Einladung – Tesseract'
+        ? t('Einladung – Tesseract')
         : renewPage
-          ? 'Gerät verlängern – Tesseract'
-          : (needsLogin ? 'Anmelden' : title) + ' – Tesseract';
+          ? t('Gerät verlängern – Tesseract')
+          : (needsLogin ? t('Anmelden') : title) + t(' – Tesseract');
   });
 </script>
 
@@ -53,13 +55,13 @@
 {:else if renewPage}
   <RenewPage />
 {:else if !session.checked}
-  <div class="loading" aria-busy="true">Lade …</div>
+  <div class="loading" aria-busy="true">{t('Lade …')}</div>
 {:else if needsLogin}
   <LoginPage />
 {:else if match && session.user && !pageAllowed(session.user.role, match.page.pattern)}
   <div class="loading denied" role="alert">
-    <p>Diese Seite ist für deine Rolle nicht freigegeben.</p>
-    <a href={homeFor(session.user.role)}>Zur Startseite</a>
+    <p>{t('Diese Seite ist für deine Rolle nicht freigegeben.')}</p>
+    <a href={homeFor(session.user.role)}>{t('Zur Startseite')}</a>
   </div>
 {:else if match}
   {#key path}
@@ -67,8 +69,8 @@
   {/key}
 {:else if prototype}
   <div class="proto-banner" role="note">
-    Prototyp aus dem Design – zeigt Beispieldaten, noch ohne Funktion.
-    <a href="#/screens">Alle Screens</a>
+    {t('Prototyp aus dem Design – zeigt Beispieldaten, noch ohne Funktion.')}
+    <a href="#/screens">{t('Alle Screens')}</a>
   </div>
   {#key prototype.path}
     <prototype.component />

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n';
   import AppShell from '../lib/components/AppShell.svelte';
   import PageHeader from '../lib/components/PageHeader.svelte';
   import Button from '../lib/components/Button.svelte';
@@ -24,7 +25,7 @@
     statusBusy = true;
     try {
       fill(await api.put<GeneralSettings>('/settings/general', { status_page_enabled: enabled }));
-      toasts.show('ok', enabled ? 'Die Statusseite ist jetzt öffentlich erreichbar.' : 'Statusseite ausgeschaltet.');
+      toasts.show('ok', enabled ? t('Die Statusseite ist jetzt öffentlich erreichbar.') : t('Statusseite ausgeschaltet.'));
     } catch (err) {
       toasts.show('bad', err instanceof Error ? err.message : String(err));
     } finally {
@@ -50,7 +51,7 @@
           robots_ai_bots: reset ? [] : aiBots
         })
       );
-      toasts.show('ok', 'robots.txt-Einstellungen gespeichert.');
+      toasts.show('ok', t('robots.txt-Einstellungen gespeichert.'));
     } catch (err) {
       toasts.show('bad', err instanceof Error ? err.message : String(err));
     } finally {
@@ -72,11 +73,11 @@
     accessBusy = true;
     try {
       access = await api.put<AdminAccess>('/settings/admin-access', { enabled });
-      if (access.apply_error) toasts.show('warn', `Gespeichert, aber nicht übertragen: ${access.apply_error}`, 12000);
+      if (access.apply_error) toasts.show('warn', t('Gespeichert, aber nicht übertragen: {0}', access.apply_error), 12000);
       else
         toasts.show(
           'ok',
-          enabled ? 'Die Oberfläche ist jetzt nur noch mit Admin-Zertifikat erreichbar.' : 'Admin-Zertifikat abgeschaltet.'
+          enabled ? t('Die Oberfläche ist jetzt nur noch mit Admin-Zertifikat erreichbar.') : t('Admin-Zertifikat abgeschaltet.')
         );
     } catch (err) {
       toasts.show('bad', err instanceof Error ? err.message : String(err));
@@ -109,7 +110,7 @@
     try {
       const body = { acme_email: email.trim() || null };
       fill(await api.put<GeneralSettings>('/settings/general', body));
-      toasts.show('ok', 'Einstellungen gespeichert.');
+      toasts.show('ok', t('Einstellungen gespeichert.'));
     } catch (err) {
       error = err instanceof Error ? err.message : String(err);
     } finally {
@@ -121,13 +122,13 @@
     e.preventDefault();
     pwError = '';
     if (newPw !== newPw2) {
-      pwError = 'Die neuen Passwörter stimmen nicht überein.';
+      pwError = t('Die neuen Passwörter stimmen nicht überein.');
       return;
     }
     pwSaving = true;
     try {
       await api.post('/auth/password', { current_password: currentPw, new_password: newPw });
-      toasts.show('ok', 'Passwort geändert. Bitte neu anmelden.');
+      toasts.show('ok', t('Passwort geändert. Bitte neu anmelden.'));
       session.user = null;
     } catch (err) {
       pwError = err instanceof Error ? err.message : String(err);
@@ -138,100 +139,98 @@
 </script>
 
 <AppShell active="settings">
-  <PageHeader title="Einstellungen" subtitle="Gilt für den Controller und als Standard für alle Nodes." />
+  <PageHeader title={t('Einstellungen')} subtitle={t('Gilt für den Controller und als Standard für alle Nodes.')} />
 
   <SettingsTabs current="#/settings" />
   {#if general?.env_managed.length}
     <Alert
       tone="info"
-      title="Teilweise über die .env festgelegt"
-      text={`${general.env_managed.join(', ')} – kommt aus der Umgebung und wird bei jedem Start gesetzt. Änderungen hier gelten nur bis zum nächsten Neustart.`}
+      title={t('Teilweise über die .env festgelegt')}
+      text={t('{0} – kommt aus der Umgebung und wird bei jedem Start gesetzt. Änderungen hier gelten nur bis zum nächsten Neustart.', general.env_managed.join(', '))}
     />
   {/if}
 
-  {#if error}<Alert tone="bad" title="Fehler" text={error} />{/if}
+  {#if error}<Alert tone="bad" title={t('Fehler')} text={error} />{/if}
 
   <div class="grid">
     <form class="card" onsubmit={save} aria-labelledby="le-title">
-      <h2 id="le-title">Let's Encrypt</h2>
+      <h2 id="le-title">{t('Let\'s Encrypt')}</h2>
       <label class="field">
-        E-Mail für Ablauf-Warnungen
+        {t('E-Mail für Ablauf-Warnungen')}
         <input class="input" type="email" autocomplete="email" placeholder="admin@beispiel.de" bind:value={email} />
-        <span class="muted small">Leer lassen geht auch – dann ohne Benachrichtigung von Let's Encrypt.</span>
+        <span class="muted small">{t('Leer lassen geht auch – dann ohne Benachrichtigung von Let\'s Encrypt.')}</span>
       </label>
       <p class="muted small">
-        Öffentliche IPs stehen jetzt bei jedem Node einzeln (<a href="#/nodes">Nodes</a> › Bearbeiten) – damit prüft „Host anlegen“, ob der
-        DNS-Eintrag auf den gewählten Node zeigt.
+        {t('Öffentliche IPs stehen jetzt bei jedem Node einzeln (')}<a href="#/nodes">{t('Nodes')}</a> {t('› Bearbeiten) – damit prüft „Host anlegen“, ob der DNS-Eintrag auf den gewählten Node zeigt.')}
       </p>
-      <div class="row"><Button type="submit" label={saving ? 'Speichert …' : 'Speichern'} disabled={saving} /></div>
+      <div class="row"><Button type="submit" label={saving ? t('Speichert …') : t('Speichern')} disabled={saving} /></div>
     </form>
 
     <section class="card" aria-labelledby="ctl-title">
-      <h2 id="ctl-title">Controller</h2>
+      <h2 id="ctl-title">{t('Controller')}</h2>
       <dl>
-        <dt>Domain der Oberfläche</dt>
+        <dt>{t('Domain der Oberfläche')}</dt>
         <dd class="mono">{general?.controller_domain || '–'}</dd>
-        <dt>Version</dt>
+        <dt>{t('Version')}</dt>
         <dd class="mono">{general?.version ?? '–'}</dd>
       </dl>
       <p class="muted small">
-        Die Domain kommt aus <code>TESSERACT_CONTROLLER_DOMAIN</code> (Compose: <code>TESSERACT_DOMAIN</code>) –
-        so kann sich der Controller nicht versehentlich aussperren.
+        {t('Die Domain kommt aus')} <code>TESSERACT_CONTROLLER_DOMAIN</code> {t('(Compose:')} <code>TESSERACT_DOMAIN</code>{t(') – so kann sich der Controller nicht versehentlich aussperren.')}
       </p>
     </section>
 
     <section class="card" aria-labelledby="access-title">
-      <h2 id="access-title">Zugang zur Oberfläche</h2>
+      <h2 id="access-title">{t('Zugang zur Oberfläche')}</h2>
       {#if access}
         <Toggle
-          label="Nur mit Admin-Zertifikat"
-          description="Ohne Zertifikat eines Geräts aus der Gruppe „Admin“ ist die Oberfläche nicht erreichbar. Die Einladungsseite bleibt öffentlich."
+          label={t('Nur mit Admin-Zertifikat')}
+          description={t('Ohne Zertifikat eines Geräts aus der Gruppe „Admin“ ist die Oberfläche nicht erreichbar. Die Einladungsseite bleibt öffentlich.')}
           checked={access.enabled}
           onChange={(v) => setAccess(v)}
         />
         <dl>
-          <dt>Dieses Gerät</dt>
-          <dd>{access.current_device ?? 'kein Admin-Zertifikat erkannt'}</dd>
-          <dt>Admin-Geräte</dt>
-          <dd>{access.admin_devices} · <a href="#/users">verwalten</a></dd>
-          <dt>Erreichbar aus</dt>
+          <dt>{t('Dieses Gerät')}</dt>
+          <dd>{access.current_device ?? t('kein Admin-Zertifikat erkannt')}</dd>
+          <dt>{t('Admin-Geräte')}</dt>
+          <dd>{access.admin_devices} · <a href="#/users">{t('verwalten')}</a></dd>
+          <dt>{t('Erreichbar aus')}</dt>
           <dd>
-            {#if !general || general.admin_networks_open}allen Netzen{:else}<span class="mono">{general.admin_networks.join(', ')}</span>{/if}
-            <span class="muted small">· <code>TESSERACT_ADMIN_NETWORKS</code> in der <code>.env</code></span>
+            {#if !general || general.admin_networks_open}{t('allen Netzen')}{:else}<span class="mono">{general.admin_networks.join(', ')}</span>{/if}
+            <span class="muted small">· <code>TESSERACT_ADMIN_NETWORKS</code> {t('in der')} <code>.env</code></span>
           </dd>
           {#if general && !general.admin_networks_open}
-            <dt>Nodes</dt>
+            <dt>{t('Nodes')}</dt>
             <dd>
-              {general.agent_api_public ? 'aus allen Netzen (Schnittstelle ausgenommen)' : 'nur aus diesen Netzen'}
+              {general.agent_api_public ? t('aus allen Netzen (Schnittstelle ausgenommen)') : t('nur aus diesen Netzen')}
               <span class="muted small">· <code>TESSERACT_AGENT_API_PUBLIC</code></span>
             </dd>
           {/if}
         </dl>
         {#if !access.enabled && access.reason}
-          <p class="muted small">Zum Einschalten: {access.reason}.</p>
+          <p class="muted small">{t('Zum Einschalten: {0}.', access.reason)}</p>
         {/if}
         <p class="muted small">
-          Notausgang, falls das Gerät verloren ist – auf dem Controller: <code>tesseract admin mtls off</code>
+          {t('Notausgang, falls das Gerät verloren ist – auf dem Controller:')} <code>tesseract admin mtls off</code>
         </p>
-        {#if accessBusy}<p class="muted small" aria-live="polite">Überträgt …</p>{/if}
+        {#if accessBusy}<p class="muted small" aria-live="polite">{t('Überträgt …')}</p>{/if}
       {/if}
     </section>
 
     <section class="card" aria-labelledby="status-title">
-      <h2 id="status-title">Öffentliche Statusseite</h2>
+      <h2 id="status-title">{t('Öffentliche Statusseite')}</h2>
       {#if general}
         <Toggle
-          label="Statusseite einschalten"
-          description="Zeigt ohne Anmeldung, ob die ausgewählten Dienste laufen – nur Name, Stand und Erreichbarkeit der letzten 90 Tage, keine Domains oder Adressen. Auch bei TESSERACT_ADMIN_NETWORKS von überall erreichbar."
+          label={t('Statusseite einschalten')}
+          description={t('Zeigt ohne Anmeldung, ob die ausgewählten Dienste laufen – nur Name, Stand und Erreichbarkeit der letzten 90 Tage, keine Domains oder Adressen. Auch bei TESSERACT_ADMIN_NETWORKS von überall erreichbar.')}
           checked={general.status_page_enabled}
           onChange={(v) => setStatusPage(v)}
         />
-        {#if statusBusy}<p class="muted small" aria-live="polite">Überträgt …</p>{/if}
+        {#if statusBusy}<p class="muted small" aria-live="polite">{t('Überträgt …')}</p>{/if}
         {#if general.status_page_enabled}
           <p class="small"><a class="mono" href={general.status_page_url} target="_blank" rel="noopener">{general.status_page_url}</a></p>
         {/if}
         <p class="muted small">
-          Welche Dienste dort stehen, legst du je Host fest: Allgemein › Überwachung › „Auf der öffentlichen Statusseite zeigen“.
+          {t('Welche Dienste dort stehen, legst du je Host fest: Allgemein › Überwachung › „Auf der öffentlichen Statusseite zeigen“.')}
         </p>
       {/if}
     </section>
@@ -240,52 +239,52 @@
       <h2 id="robots-title">robots.txt</h2>
       {#if general}
         <label class="field">
-          Standard für neue Hosts
+          {t('Standard für neue Hosts')}
           <select class="input" bind:value={robotsDefault}>
             {#each robotsDefaults as m (m)}<option value={m}>{ROBOTS_MODES[m]}</option>{/each}
           </select>
         </label>
         <Toggle
-          label="Hosts nur mit Zertifikat: alles verbieten"
-          description="mTLS-Hosts ohne eigene robots.txt-Einstellung bekommen automatisch „Disallow: /“."
+          label={t('Hosts nur mit Zertifikat: alles verbieten')}
+          description={t('mTLS-Hosts ohne eigene robots.txt-Einstellung bekommen automatisch „Disallow: /“.')}
           bind:checked={robotsMtls}
         />
-        <ChipInput label="KI-Crawler (für „KI-Crawler verbieten“)" bind:values={aiBots} placeholder="GPTBot, ClaudeBot …" />
+        <ChipInput label={t('KI-Crawler (für „KI-Crawler verbieten“)')} bind:values={aiBots} placeholder={t('GPTBot, ClaudeBot …')} />
         <div class="row">
-          <Button label={robotsBusy ? 'Speichert …' : 'Speichern'} disabled={robotsBusy} onClick={() => saveRobots()} />
-          <Button variant="ghost" label="Liste zurücksetzen" disabled={robotsBusy} onClick={() => saveRobots(true)} />
+          <Button label={robotsBusy ? t('Speichert …') : t('Speichern')} disabled={robotsBusy} onClick={() => saveRobots()} />
+          <Button variant="ghost" label={t('Liste zurücksetzen')} disabled={robotsBusy} onClick={() => saveRobots(true)} />
         </div>
-        <p class="muted small">Pro Host unter Hosts › Sicherheit › robots.txt; per Docker-Label <code>tesseract.robots=deny-ai</code>.</p>
+        <p class="muted small">{t('Pro Host unter Hosts › Sicherheit › robots.txt; per Docker-Label')} <code>tesseract.robots=deny-ai</code>.</p>
       {/if}
     </section>
 
     {#if pwFromEnv}
     <section class="card" aria-labelledby="pw-title">
-      <h2 id="pw-title">Passwort</h2>
+      <h2 id="pw-title">{t('Passwort')}</h2>
       <p class="muted small">
-        Das Passwort ist in der Umgebung festgelegt (<span class="mono">TESSERACT_ADMIN_PASSWORD</span> in der
-        <span class="mono">.env</span>). Zum Ändern dort anpassen und den Controller neu starten.
+        {t('Das Passwort ist in der Umgebung festgelegt (')}<span class="mono">{t('TESSERACT_ADMIN_PASSWORD')}</span> {t('in der')}
+        <span class="mono">.env</span>{t('). Zum Ändern dort anpassen und den Controller neu starten.')}
       </p>
     </section>
     {:else}
     <form class="card" onsubmit={changePassword} aria-labelledby="pw-title">
-      <h2 id="pw-title">Passwort ändern</h2>
+      <h2 id="pw-title">{t('Passwort ändern')}</h2>
       <input type="text" autocomplete="username" value={session.user?.username ?? ''} hidden readonly />
       <label class="field">
-        Aktuelles Passwort
+        {t('Aktuelles Passwort')}
         <input class="input" type="password" autocomplete="current-password" required bind:value={currentPw} />
       </label>
       <label class="field">
-        Neues Passwort (mind. 12 Zeichen)
+        {t('Neues Passwort (mind. 12 Zeichen)')}
         <input class="input" type="password" autocomplete="new-password" minlength="12" required bind:value={newPw} />
       </label>
       <label class="field">
-        Neues Passwort wiederholen
+        {t('Neues Passwort wiederholen')}
         <input class="input" type="password" autocomplete="new-password" minlength="12" required bind:value={newPw2} />
       </label>
       {#if pwError}<p class="field-error" role="alert">{pwError}</p>{/if}
-      <p class="muted small">Danach werden alle Sitzungen beendet – auch diese.</p>
-      <div class="row"><Button type="submit" label={pwSaving ? 'Ändert …' : 'Passwort ändern'} disabled={pwSaving} /></div>
+      <p class="muted small">{t('Danach werden alle Sitzungen beendet – auch diese.')}</p>
+      <div class="row"><Button type="submit" label={pwSaving ? t('Ändert …') : t('Passwort ändern')} disabled={pwSaving} /></div>
     </form>
     {/if}
   </div>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { locale, t } from '../lib/i18n';
   import AppShell from '../lib/components/AppShell.svelte';
   import PageHeader from '../lib/components/PageHeader.svelte';
   import { session } from '../lib/session.svelte';
@@ -71,49 +72,49 @@
 
 <AppShell active="hosts">
   <PageHeader
-    title="Proxy-Hosts"
-    subtitle="Öffentlich mit Let's Encrypt – oder nur für freigegebene Geräte (mTLS)."
-    primaryLabel={session.isAdmin ? 'Host anlegen' : undefined}
+    title={t('Proxy-Hosts')}
+    subtitle={t('Öffentlich mit Let\'s Encrypt – oder nur für freigegebene Geräte (mTLS).')}
+    primaryLabel={session.isAdmin ? t('Host anlegen') : undefined}
     primaryHref={session.isAdmin ? '#/hosts/new' : undefined}
   />
 
-  {#if loadError}<Alert tone="bad" title="Hosts konnten nicht geladen werden" text={loadError} />{/if}
+  {#if loadError}<Alert tone="bad" title={t('Hosts konnten nicht geladen werden')} text={loadError} />{/if}
 
   <div class="row">
     <SegmentedControl
-      groupLabel="Status filtern"
+      groupLabel={t('Status filtern')}
       options={[
-        `Alle · ${counts.all}`,
-        `Aktiv · ${counts.live}`,
-        `mTLS · ${counts.mtls}`,
-        `Deaktiviert · ${counts.off}`,
-        `Entwürfe · ${counts.draft}`
+        t('Alle · {0}', counts.all),
+        t('Aktiv · {0}', counts.live),
+        t('mTLS · {0}', counts.mtls),
+        t('Deaktiviert · {0}', counts.off),
+        t('Entwürfe · {0}', counts.draft)
       ]}
       bind:selected={filter}
     />
     <label class="search">
       <Icon name="search" size={16} strokeWidth={2} />
-      <span class="visually-hidden">Hosts durchsuchen</span>
-      <input type="search" placeholder="Domain oder Ziel suchen" bind:value={query} />
+      <span class="visually-hidden">{t('Hosts durchsuchen')}</span>
+      <input type="search" placeholder={t('Domain oder Ziel suchen')} bind:value={query} />
     </label>
     {#if nodes.length > 1}
       <label class="field inline">
-        Node
+        {t('Node')}
         <select class="input" bind:value={nodeFilter}>
-          <option value={0}>Alle Nodes</option>
+          <option value={0}>{t('Alle Nodes')}</option>
           {#each nodes as n (n.id)}<option value={n.id}>{n.name}</option>{/each}
         </select>
       </label>
     {/if}
   </div>
 
-  <section aria-label="Host-Liste">
+  <section aria-label={t('Host-Liste')}>
     {#if loaded && hosts.length === 0}
       <EmptyState
         icon="hosts"
-        title="Noch keine Hosts"
-        text="Lege den ersten Proxy-Host an – Caddy holt das Zertifikat automatisch."
-        actionLabel={session.isAdmin ? 'Host anlegen' : undefined}
+        title={t('Noch keine Hosts')}
+        text={t('Lege den ersten Proxy-Host an – Caddy holt das Zertifikat automatisch.')}
+        actionLabel={session.isAdmin ? t('Host anlegen') : undefined}
         actionHref={session.isAdmin ? '#/hosts/new' : undefined}
       />
     {:else}
@@ -121,14 +122,14 @@
         <table class="table">
           <thead>
             <tr>
-              <th scope="col">Domain</th>
-              <th scope="col">Ziel</th>
-              <th scope="col">Node</th>
-              <th scope="col">Zugriff</th>
-              <th scope="col">Schutz</th>
-              <th scope="col" class="num">Anfragen · 24 h</th>
-              <th scope="col">Status</th>
-              <th scope="col"><span class="visually-hidden">Aktiv</span></th>
+              <th scope="col">{t('Domain')}</th>
+              <th scope="col">{t('Ziel')}</th>
+              <th scope="col">{t('Node')}</th>
+              <th scope="col">{t('Zugriff')}</th>
+              <th scope="col">{t('Schutz')}</th>
+              <th scope="col" class="num">{t('Anfragen · 24 h')}</th>
+              <th scope="col">{t('Status')}</th>
+              <th scope="col"><span class="visually-hidden">{t('Aktiv')}</span></th>
             </tr>
           </thead>
           <tbody>
@@ -137,17 +138,17 @@
               <tr class:off={!h.draft && !h.enabled}>
                 <td>
                   <a class="mono domain" href={hostHref(session.role, h.id)}>{h.domain}</a>
-                  {#if h.source === 'docker'}<span class="src" title={`aus den Docker-Labels von ${h.source_ref?.split(':').slice(1).join(':')}`}>Docker</span>{/if}
+                  {#if h.source === 'docker'}<span class="src" title={t('aus den Docker-Labels von {0}', h.source_ref?.split(':').slice(1).join(':'))}>{t('Docker')}</span>{/if}
                 </td>
                 <td class="mono muted small">{upstreamLabel(h)}</td>
                 <td class="muted">{h.node.name}</td>
                 <td>
                   {#if h.internal}
-                    <span class="access internal"><Icon name="server" size={13} strokeWidth={2.2} />Intern{h.access === 'mtls' ? ' + mTLS' : ''}</span>
+                    <span class="access internal"><Icon name="server" size={13} strokeWidth={2.2} />{t('Intern{0}', h.access === 'mtls' ? t(' + mTLS') : '')}</span>
                   {:else if h.access === 'mtls'}
-                    <span class="access mtls"><Icon name="lock" size={13} strokeWidth={2.2} />mTLS</span>
+                    <span class="access mtls"><Icon name="lock" size={13} strokeWidth={2.2} />{t('mTLS')}</span>
                   {:else}
-                    <span class="access"><Icon name="globe" size={13} strokeWidth={2.2} />Öffentlich</span>
+                    <span class="access"><Icon name="globe" size={13} strokeWidth={2.2} />{t('Öffentlich')}</span>
                   {/if}
                   <span class="muted tiny block">{accessLabel(h)}</span>
                 </td>
@@ -161,9 +162,9 @@
                 <td class="activity">
                   {#if activity[h.domain]}
                     {@const a = activity[h.domain]}
-                    <a class="plain act" href={`#/hosts/${h.id}/stats`} title="Statistik öffnen">
-                      <span class="num-val">{a.total.toLocaleString('de-DE')}</span>
-                      <Sparkline values={a.hourly} label={`Anfragen der letzten 24 Stunden: ${a.total}`} />
+                    <a class="plain act" href={`#/hosts/${h.id}/stats`} title={t('Statistik öffnen')}>
+                      <span class="num-val">{a.total.toLocaleString(locale)}</span>
+                      <Sparkline values={a.hourly} label={t('Anfragen der letzten 24 Stunden: {0}', a.total)} />
                     </a>
                   {:else}
                     <span class="muted num-val">0</span>
@@ -182,7 +183,7 @@
                 </td>
               </tr>
             {:else}
-              <tr><td colspan="8" class="muted">Keine Treffer.</td></tr>
+              <tr><td colspan="8" class="muted">{t('Keine Treffer.')}</td></tr>
             {/each}
           </tbody>
         </table>

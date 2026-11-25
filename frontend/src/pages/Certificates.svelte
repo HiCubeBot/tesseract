@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n';
   import AppShell from '../lib/components/AppShell.svelte';
   import PageHeader from '../lib/components/PageHeader.svelte';
   import SegmentedControl from '../lib/components/SegmentedControl.svelte';
@@ -30,15 +31,15 @@
   load();
 
   const STATUS = {
-    ok: { tone: 'ok', label: 'gültig' },
-    soon: { tone: 'warn', label: 'läuft bald ab' },
-    expired: { tone: 'bad', label: 'abgelaufen' }
+    ok: { tone: 'ok', label: t('gültig') },
+    soon: { tone: 'warn', label: t('läuft bald ab') },
+    expired: { tone: 'bad', label: t('abgelaufen') }
   } as const;
   const SOURCE: Record<string, string> = {
     'http-01': 'HTTP-01',
     'dns-01': 'DNS-01',
-    wildcard: 'Wildcard (DNS-01)',
-    lokal: 'Caddy-CA',
+    wildcard: t('Wildcard (DNS-01)'),
+    lokal: t('Caddy-CA'),
     eigenes: 'hochgeladen',
     unbekannt: '–'
   };
@@ -60,49 +61,49 @@
 
 <AppShell active="certificates">
   <PageHeader
-    title="Zertifikate"
-    subtitle={data ? `Stand ${formatAgo(data.checked_at)} · direkt bei Caddy ausgelesen` : 'Alle Zertifikate, die Caddy ausliefert.'}
-    primaryLabel={loading ? 'Prüft …' : 'Neu prüfen'}
+    title={t('Zertifikate')}
+    subtitle={data ? t('Stand {0} · direkt bei Caddy ausgelesen', formatAgo(data.checked_at)) : t('Alle Zertifikate, die Caddy ausliefert.')}
+    primaryLabel={loading ? t('Prüft …') : t('Neu prüfen')}
     primaryIcon="refresh"
     onPrimary={() => !loading && load(true)}
   />
 
-  {#if error}<Alert tone="bad" title="Fehler" text={error} />{/if}
+  {#if error}<Alert tone="bad" title={t('Fehler')} text={error} />{/if}
 
   {#if data?.errors.length}
     <Alert
       tone="warn"
-      title={`${data.errors.length} Name(n) ohne Zertifikat`}
+      title={t('{0} Name(n) ohne Zertifikat', data.errors.length)}
       text={data.errors.map((e) => `${e.name}: ${e.error}`).join(' · ')}
     />
   {/if}
 
   <div class="row">
     <SegmentedControl
-      groupLabel="Filter"
-      options={[`Alle · ${counts.all}`, `Achtung · ${counts.attention}`, `Wildcard · ${counts.wild}`]}
+      groupLabel={t('Filter')}
+      options={[t('Alle · {0}', counts.all), t('Achtung · {0}', counts.attention), t('Wildcard · {0}', counts.wild)]}
       bind:selected={filter}
     />
     <label class="search">
       <Icon name="search" size={16} strokeWidth={2} />
-      <span class="visually-hidden">Zertifikate durchsuchen</span>
-      <input type="search" placeholder="Name, Host oder Aussteller" bind:value={query} />
+      <span class="visually-hidden">{t('Zertifikate durchsuchen')}</span>
+      <input type="search" placeholder={t('Name, Host oder Aussteller')} bind:value={query} />
     </label>
   </div>
 
   {#if data && data.certificates.length === 0}
-    <EmptyState icon="hosts" title="Noch keine Zertifikate" text="Sobald Hosts angelegt sind, erscheinen ihre Zertifikate hier." />
+    <EmptyState icon="hosts" title={t('Noch keine Zertifikate')} text={t('Sobald Hosts angelegt sind, erscheinen ihre Zertifikate hier.')} />
   {:else if data}
     <div class="table-wrap">
       <table class="table">
         <thead>
           <tr>
-            <th scope="col">Name</th>
-            <th scope="col">Aussteller</th>
-            <th scope="col">Prüfung</th>
-            <th scope="col">Gültig bis</th>
-            <th scope="col">Hosts</th>
-            <th scope="col">Status</th>
+            <th scope="col">{t('Name')}</th>
+            <th scope="col">{t('Aussteller')}</th>
+            <th scope="col">{t('Prüfung')}</th>
+            <th scope="col">{t('Gültig bis')}</th>
+            <th scope="col">{t('Hosts')}</th>
+            <th scope="col">{t('Status')}</th>
           </tr>
         </thead>
         <tbody>
@@ -116,34 +117,33 @@
               </td>
               <td>{c.issuer}</td>
               <td class="muted">{SOURCE[c.source]}</td>
-              <td class="nowrap">{formatDay(c.not_after)} <span class="muted small">· {c.days_left} Tage</span></td>
-              <td class="small">{c.hosts.length} {c.hosts.length === 1 ? 'Host' : 'Hosts'}</td>
+              <td class="nowrap">{formatDay(c.not_after)} <span class="muted small">{t('· {0} Tage', c.days_left)}</span></td>
+              <td class="small">{c.hosts.length} {c.hosts.length === 1 ? t('Host') : t('Hosts')}</td>
               <td><StatusPill tone={st.tone} label={st.label} /></td>
             </tr>
             {#if open === c.fingerprint}
               <tr class="details">
                 <td colspan="6">
                   <dl>
-                    <dt>Namen im Zertifikat</dt><dd class="mono">{c.names.join(', ')}</dd>
-                    <dt>Genutzt von</dt>
-                    <dd class="mono">{c.hosts.join(', ') || '– (nur vorgehalten)'}</dd>
-                    <dt>Aussteller</dt><dd>{c.issuer_raw}</dd>
-                    <dt>Gültig</dt><dd>{formatDay(c.not_before)} – {formatDay(c.not_after)}</dd>
-                    <dt>Node</dt><dd>{c.node}</dd>
-                    <dt>Fingerabdruck</dt><dd class="mono fp">{c.fingerprint}</dd>
+                    <dt>{t('Namen im Zertifikat')}</dt><dd class="mono">{c.names.join(', ')}</dd>
+                    <dt>{t('Genutzt von')}</dt>
+                    <dd class="mono">{c.hosts.join(', ') || t('– (nur vorgehalten)')}</dd>
+                    <dt>{t('Aussteller')}</dt><dd>{c.issuer_raw}</dd>
+                    <dt>{t('Gültig')}</dt><dd>{formatDay(c.not_before)} – {formatDay(c.not_after)}</dd>
+                    <dt>{t('Node')}</dt><dd>{c.node}</dd>
+                    <dt>{t('Fingerabdruck')}</dt><dd class="mono fp">{c.fingerprint}</dd>
                   </dl>
                 </td>
               </tr>
             {/if}
           {:else}
-            <tr><td colspan="6" class="muted">Keine Treffer.</td></tr>
+            <tr><td colspan="6" class="muted">{t('Keine Treffer.')}</td></tr>
           {/each}
         </tbody>
       </table>
     </div>
     <p class="muted small">
-      Caddy erneuert Let's-Encrypt-Zertifikate automatisch rund 30 Tage vor Ablauf. „Läuft bald ab“ (unter 21 Tagen) heißt meist:
-      die Erneuerung klappt nicht – Port 80, DNS oder Cloudflare-Token prüfen.
+      {t('Caddy erneuert Let\'s-Encrypt-Zertifikate automatisch rund 30 Tage vor Ablauf. „Läuft bald ab“ (unter 21 Tagen) heißt meist: die Erneuerung klappt nicht – Port 80, DNS oder Cloudflare-Token prüfen.')}
     </p>
   {/if}
 

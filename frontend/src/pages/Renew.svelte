@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n';
   /**
    * Öffentliche Seite /v – Gäste verlängern ihr Gerät selbst. Ausweis ist das noch gültige
    * Gerätezertifikat, das der Browser beim Aufruf vorzeigt.
@@ -36,7 +37,7 @@
   async function call<T>(method: string): Promise<T> {
     const res = await fetchRetry('/api/renew', { method, credentials: 'omit', referrerPolicy: 'no-referrer' });
     const data = await res.json().catch(() => null);
-    if (!res.ok) throw new ApiError(res.status, typeof data?.detail === 'string' ? data.detail : `Fehler ${res.status}`);
+    if (!res.ok) throw new ApiError(res.status, typeof data?.detail === 'string' ? data.detail : t('Fehler {0}', res.status));
     return data as T;
   }
 
@@ -84,70 +85,68 @@
     <div class="logo">
       <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" style="stroke: var(--bg)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3z"></path><path d="M8 8h8v8H8z"></path><path d="M3 3l5 5M21 3l-5 5M3 21l5-5M21 21l-5-5"></path></svg>
     </div>
-    <span class="brand-name">Tesseract</span>
+    <span class="brand-name">{t('Tesseract')}</span>
   </header>
 
   <main class="card">
     {#if !status && !error}
-      <p class="muted">Prüfe dein Gerät …</p>
+      <p class="muted">{t('Prüfe dein Gerät …')}</p>
     {:else if cert}
-      <span class="eyebrow">Gerät verlängert</span>
-      <h1>Neues Zertifikat installieren</h1>
+      <span class="eyebrow">{t('Gerät verlängert')}</span>
+      <h1>{t('Neues Zertifikat installieren')}</h1>
       <p class="muted">
-        Das alte Zertifikat gilt ab sofort nicht mehr. Installiere das neue jetzt – es wird nur einmal ausgegeben.
-        Das alte kannst du danach aus dem Gerät löschen.
+        {t('Das alte Zertifikat gilt ab sofort nicht mehr. Installiere das neue jetzt – es wird nur einmal ausgegeben. Das alte kannst du danach aus dem Gerät löschen.')}
       </p>
       <div class="pw">
-        <span class="muted small">Passwort für die Installation</span>
+        <span class="muted small">{t('Passwort für die Installation')}</span>
         <code class="mono">{cert.password}</code>
       </div>
       <button type="button" class="secondary" onclick={download}>
-        <Icon name="download" size={16} strokeWidth={2} /> Erneut herunterladen
+        <Icon name="download" size={16} strokeWidth={2} /> {t('Erneut herunterladen')}
       </button>
       <section class="guide" aria-labelledby="guide-title">
         <label class="field">
-          Anleitung für
+          {t('Anleitung für')}
           <select class="input" bind:value={platform}>
             {#each Object.entries(INSTALL_STEPS) as [k, v] (k)}<option value={k}>{v.title}</option>{/each}
           </select>
         </label>
-        <h2 id="guide-title" class="visually-hidden">Anleitung</h2>
+        <h2 id="guide-title" class="visually-hidden">{t('Anleitung')}</h2>
         <ol>{#each guide.steps as step, i (i)}<li>{step}</li>{/each}</ol>
         {#if guide.browser}<p class="muted small">{guide.browser}</p>{/if}
       </section>
-      <p class="muted small">Das neue Zertifikat gilt bis {formatDay(cert.not_after)}.</p>
+      <p class="muted small">{t('Das neue Zertifikat gilt bis {0}.', formatDay(cert.not_after))}</p>
     {:else if status}
-      <span class="eyebrow">Gerät verlängern</span>
+      <span class="eyebrow">{t('Gerät verlängern')}</span>
       {#if status.recognized && status.device}
         <h1>{status.device}</h1>
         <p class="muted">
-          {status.person} · gültig bis {formatDay(status.not_after ?? '')}
-          {#if status.days_left !== null}· noch {status.days_left} Tag{status.days_left === 1 ? '' : 'e'}{/if}
+          {t('{0} · gültig bis {1}', status.person, formatDay(status.not_after ?? ''))}
+          {#if status.days_left !== null}{status.days_left === 1 ? t('· noch 1 Tag') : t('· noch {0} Tage', status.days_left)}{/if}
         </p>
       {:else}
-        <h1>Gerät nicht erkannt</h1>
+        <h1>{t('Gerät nicht erkannt')}</h1>
       {/if}
 
       {#if status.can_renew}
-        <p>Mit einem Klick bekommst du ein neues Zertifikat für dieses Gerät. Deine Freigaben bleiben gleich.</p>
+        <p>{t('Mit einem Klick bekommst du ein neues Zertifikat für dieses Gerät. Deine Freigaben bleiben gleich.')}</p>
         {#if error}<p class="error" role="alert">{error}</p>{/if}
         <button type="button" class="primary" disabled={busy} onclick={renew}>
-          <Icon name="refresh" size={16} strokeWidth={2} /> {busy ? 'Erzeuge …' : 'Jetzt verlängern'}
+          <Icon name="refresh" size={16} strokeWidth={2} /> {busy ? t('Erzeuge …') : t('Jetzt verlängern')}
         </button>
       {:else}
         <p class="info">
           {status.reason}
-          {#if status.opens_at}Das ist ab {formatDay(status.opens_at)} möglich – öffne diesen Link dann einfach noch einmal.{/if}
+          {#if status.opens_at}{t('Das ist ab {0} möglich – öffne diesen Link dann einfach noch einmal.', formatDay(status.opens_at))}{/if}
         </p>
         {#if !status.recognized && status.enabled}
           <p class="muted small">
-            Hat der Browser nicht nach einem Zertifikat gefragt? Dann ist das Zertifikat auf diesem Gerät nicht (mehr) installiert
-            oder schon abgelaufen. In dem Fall bitte an die Person wenden, die dich eingeladen hat.
+            {t('Hat der Browser nicht nach einem Zertifikat gefragt? Dann ist das Zertifikat auf diesem Gerät nicht (mehr) installiert oder schon abgelaufen. In dem Fall bitte an die Person wenden, die dich eingeladen hat.')}
           </p>
         {/if}
       {/if}
     {:else}
-      <h1>Fehler</h1>
+      <h1>{t('Fehler')}</h1>
       <p class="error" role="alert">{error}</p>
     {/if}
   </main>

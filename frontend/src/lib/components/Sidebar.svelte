@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { locale, t } from '../i18n';
   import Icon from './Icon.svelte';
+  import LangSwitch from './LangSwitch.svelte';
   import { icons } from '../icons';
   import { session } from '../session.svelte';
   import { theme, THEME_LABELS } from '../theme.svelte';
@@ -49,21 +51,21 @@
   function countFor(id: NavId): string | undefined {
     const key = COUNT_OF[id];
     const v = key && counts.value ? counts.value[key] : undefined;
-    return v === undefined ? undefined : v.toLocaleString('de-DE');
+    return v === undefined ? undefined : v.toLocaleString(locale);
   }
 
   const nav: { id: NavId; label: string; href: string; d: string }[] = [
-    { id: 'main', label: 'Übersicht', href: '#/', d: icons.grid },
-    { id: 'hosts', label: 'Proxy-Hosts', href: '#/hosts', d: icons.globe },
-    { id: 'certificates', label: 'Zertifikate', href: '#/certificates', d: icons.okCircle },
-    { id: 'users', label: 'Nutzer', href: '#/users', d: icons.users },
-    { id: 'devices', label: 'Geräte', href: '#/devices', d: icons.device },
-    { id: 'access', label: 'Zugriff', href: '#/access', d: icons.lock },
-    { id: 'nodes', label: 'Nodes', href: '#/nodes', d: icons.server },
-    { id: 'stats', label: 'Statistik', href: '#/stats', d: icons.chart },
-    { id: 'audit', label: 'Audit-Log', href: '#/audit', d: icons.clipboard },
-    { id: 'settings', label: 'Einstellungen', href: '#/settings', d: icons.sliders },
-    { id: 'me', label: 'Mein Zugang', href: '#/me', d: icons.device }
+    { id: 'main', label: t('Übersicht'), href: '#/', d: icons.grid },
+    { id: 'hosts', label: t('Proxy-Hosts'), href: '#/hosts', d: icons.globe },
+    { id: 'certificates', label: t('Zertifikate'), href: '#/certificates', d: icons.okCircle },
+    { id: 'users', label: t('Nutzer'), href: '#/users', d: icons.users },
+    { id: 'devices', label: t('Geräte'), href: '#/devices', d: icons.device },
+    { id: 'access', label: t('Zugriff'), href: '#/access', d: icons.lock },
+    { id: 'nodes', label: t('Nodes'), href: '#/nodes', d: icons.server },
+    { id: 'stats', label: t('Statistik'), href: '#/stats', d: icons.chart },
+    { id: 'audit', label: t('Audit-Log'), href: '#/audit', d: icons.clipboard },
+    { id: 'settings', label: t('Einstellungen'), href: '#/settings', d: icons.sliders },
+    { id: 'me', label: t('Mein Zugang'), href: '#/me', d: icons.device }
   ];
   // Personen per Zertifikat sehen nur, was ihre Rolle erlaubt; „Mein Zugang“ nur sie
   const shown = $derived(
@@ -75,14 +77,14 @@
   );
 </script>
 
-<nav aria-label="Hauptnavigation" class="sidebar">
+<nav aria-label={t('Hauptnavigation')} class="sidebar">
   <div class="brand">
     <div class="logo">
       <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" style="stroke: var(--bg)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3z"></path><path d="M8 8h8v8H8z"></path><path d="M3 3l5 5M21 3l-5 5M3 21l5-5M21 21l-5-5"></path></svg>
     </div>
     <div class="stack">
-      <span class="brand-name">Tesseract</span>
-      <span class="muted small">Caddy-Verwaltung</span>
+      <span class="brand-name">{t('Tesseract')}</span>
+      <span class="muted small">{t('Caddy-Verwaltung')}</span>
     </div>
   </div>
 
@@ -99,22 +101,23 @@
   <div class="brand user">
     <div class="avatar">{(session.user?.username ?? '?').slice(0, 2).toUpperCase()}</div>
     <div class="stack grow">
-      <span class="user-name">{session.user?.username ?? 'nicht angemeldet'}</span>
+      <span class="user-name">{session.user?.username ?? t('nicht angemeldet')}</span>
       <span class="muted small">
-        {session.viaCert ? `${session.user?.device ?? ''} · ${UI_ROLES[session.role]}` : 'Controller'}
+        {session.viaCert ? `${session.user?.device ?? ''} · ${UI_ROLES[session.role]}` : t('Controller')}
       </span>
     </div>
     <button
       type="button"
       class="logout"
       onclick={() => theme.next()}
-      aria-label={`Farbschema: ${THEME_LABELS[theme.choice]} – umschalten`}
-      title={`Farbschema: ${THEME_LABELS[theme.choice]}`}
+      aria-label={t('Farbschema: {0} – umschalten', THEME_LABELS[theme.choice])}
+      title={t('Farbschema: {0}', THEME_LABELS[theme.choice])}
     >
       <Icon d={THEME_ICONS[theme.choice]} />
     </button>
+    <LangSwitch />
     {#if session.user && !session.viaCert}
-      <button type="button" class="logout" onclick={() => session.logout()} aria-label="Abmelden" title="Abmelden">
+      <button type="button" class="logout" onclick={() => session.logout()} aria-label={t('Abmelden')} title={t('Abmelden')}>
         <Icon d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10" />
       </button>
     {/if}

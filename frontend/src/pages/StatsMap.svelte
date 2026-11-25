@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n';
   // Statistik › Karte: zoombare Herkunftskarte mit Ländern, Städten und Netzbetreibern.
   import AppShell from '../lib/components/AppShell.svelte';
   import PageHeader from '../lib/components/PageHeader.svelte';
@@ -109,7 +110,7 @@
     return data.countries.map((c) => ({ key: c.country, label: countryName(c.country), country: c.country, count: c.count }));
   });
 
-  const TABS = ['Länder', 'Städte', 'Netzbetreiber'];
+  const TABS = [t('Länder'), t('Städte'), 'Netzbetreiber'];
   const list = $derived.by((): { key: string; label: string; note?: string; count: number; code?: string }[] => {
     if (!data) return [];
     if (tab === 0)
@@ -132,80 +133,80 @@
 <svelte:window onhashchange={onHash} />
 
 <AppShell active="stats">
-  <PageHeader title="Statistik" subtitle="Woher die Anfragen kommen – nach Land, Stadt und Netzbetreiber." />
+  <PageHeader title={t('Statistik')} subtitle={t('Woher die Anfragen kommen – nach Land, Stadt und Netzbetreiber.')} />
   <StatsTabs current="#/stats-map" />
 
   <div class="row">
-    <SegmentedControl groupLabel="Zeitraum" options={['Letzte 24 Stunden', '7 Tage', '30 Tage']} bind:selected={range} onChange={load} />
-    <SegmentedControl groupLabel="Welche Anfragen" options={WHICH_LABELS} bind:selected={which} onChange={load} />
+    <SegmentedControl groupLabel={t('Zeitraum')} options={[t('Letzte 24 Stunden'), t('7 Tage'), t('30 Tage')]} bind:selected={range} onChange={load} />
+    <SegmentedControl groupLabel={t('Welche Anfragen')} options={WHICH_LABELS} bind:selected={which} onChange={load} />
     <label class="node-select">
-      <span>Node</span>
+      <span>{t('Node')}</span>
       <select class="input" bind:value={node} onchange={load}>
-        <option value="">Alle Nodes</option>
+        <option value="">{t('Alle Nodes')}</option>
         {#each nodes as n (n.id)}<option value={n.name}>{n.name}</option>{/each}
       </select>
     </label>
-    {#if loading}<span class="muted small">lädt …</span>{/if}
+    {#if loading}<span class="muted small">{t('lädt …')}</span>{/if}
   </div>
 
-  {#if error}<Alert tone="bad" title="Fehler" text={error} />{/if}
+  {#if error}<Alert tone="bad" title={t('Fehler')} text={error} />{/if}
 
   {#if data && !data.geoip}
     <Alert
       tone="info"
-      title="Keine GeoIP-Datenbank"
-      text="Für die Karte eine Datenbank hinterlegen: TESSERACT_GEOIP_AUTO=dbip (Länder), dbip-city (mit Städten), jeweils wahlweise +asn (Netzbetreiber) – oder eine Datei mit TESSERACT_GEOIP_DB."
+      title={t('Keine GeoIP-Datenbank')}
+      text={t('Für die Karte eine Datenbank hinterlegen: TESSERACT_GEOIP_AUTO=dbip (Länder), dbip-city (mit Städten), jeweils wahlweise +asn (Netzbetreiber) – oder eine Datei mit TESSERACT_GEOIP_DB.')}
     />
   {/if}
 
   {#if data}
     <div class="layout">
-      <section class="card map-card" aria-label="Karte">
+      <section class="card map-card" aria-label={t('Karte')}>
         <ZoomMap
           {points}
           color={WHICH_COLORS[which]}
           {unit}
           selected={country}
           onSelect={select}
-          label={`Weltkarte: ${WHICH_LABELS[which].toLowerCase()} Anfragen nach Herkunft`}
+          label={t('Weltkarte: {0} Anfragen nach Herkunft', WHICH_LABELS[which].toLowerCase())}
         />
         <p class="muted tiny">
-          {fmt(total)} {unit} mit bekannter Herkunft{#if data.unknown} · {fmt(data.unknown)} ohne (private oder lokale Adressen){/if}
-          {#if data.geoip && !data.cities_db} · Städte mit <span class="mono">TESSERACT_GEOIP_AUTO=dbip-city</span>{/if}
+          {t('{0} {1} mit bekannter Herkunft', fmt(total), unit)}{#if data.unknown} {t('· {0} ohne (private oder lokale Adressen)', fmt(data.unknown))}{/if}
+          {#if data.geoip && !data.cities_db} {t('· Städte mit')} <span class="mono">TESSERACT_GEOIP_AUTO=dbip-city</span>{/if}
           {#if data.geoip_attribution} · <a href="https://db-ip.com" rel="noopener noreferrer" target="_blank">{data.geoip_attribution}</a>{/if}
         </p>
       </section>
 
-      <section class="card side" aria-label="Rangliste">
+      <section class="card side" aria-label={t('Rangliste')}>
         {#if country}
           <div class="detail">
             <div class="detail-head">
               <h2>{countryName(country)}</h2>
-              <button type="button" class="clear" onclick={() => select(null)} aria-label="Auswahl aufheben" title="Alle Länder">×</button>
+              <button type="button" class="clear" onclick={() => select(null)} aria-label={t('Auswahl aufheben')} title={t('Alle Länder')}>×</button>
             </div>
             {#if sel}
               <dl>
-                <div><dt>Anfragen</dt><dd>{fmt(sel.requests)}</dd></div>
+                <div><dt>{t('Anfragen')}</dt><dd>{fmt(sel.requests)}</dd></div>
                 <div>
-                  <dt>Abgelehnt</dt>
+                  <dt>{t('Abgelehnt')}</dt>
                   <dd class:warn={sel.denied > 0}>{fmt(sel.denied)}{sel.requests ? ` (${Math.round((100 * sel.denied) / sel.requests)} %)` : ''}</dd>
                 </div>
               </dl>
               {#if sel.hosts.length}
-                <span class="eyebrow">Häufigste Ziele</span>
+                <span class="eyebrow">{t('Häufigste Ziele')}</span>
                 <ul class="hosts">
                   {#each sel.hosts as h (h.host)}
-                    <li><span class="mono ellipsis">{h.host === '-' ? 'ohne Host' : h.host}</span><span class="val">{fmt(h.count)}</span></li>
+                    <li><span class="mono ellipsis">{h.host === '-' ? t('ohne Host') : h.host}</span><span class="val">{fmt(h.count)}</span></li>
                   {/each}
                 </ul>
               {/if}
-              <a class="small" href={`#/logs?q=${encodeURIComponent(`country:${country}`)}${which === 1 ? '&filter=denied' : ''}`}>Einträge in den Logs</a>
+              <a class="small" href={`#/logs?q=${encodeURIComponent(`country:${country}`)}${which === 1 ? '&filter=denied' : ''}`}>{t('Einträge in den Logs')}</a>
             {:else}
-              <p class="muted small">Lädt …</p>
+              <p class="muted small">{t('Lädt …')}</p>
             {/if}
           </div>
         {/if}
-        <SegmentedControl groupLabel="Liste" options={TABS} bind:selected={tab} />
+        <SegmentedControl groupLabel={t('Liste')} options={TABS} bind:selected={tab} />
         {#if list.length}
           <ul class="bars">
             {#each list as i (i.key)}
@@ -231,10 +232,10 @@
           </ul>
         {:else}
           <p class="muted small">
-            {#if tab === 1 && !data.cities_db && !data.cities.length}Städte gibt es nur mit einer Stadt-Datenbank (<span class="mono">TESSERACT_GEOIP_AUTO=dbip-city</span>).
-            {:else if tab === 2 && !data.asn_db && !data.asns.length}Netzbetreiber gibt es nur mit einer ASN-Datenbank (<span class="mono">TESSERACT_GEOIP_AUTO=dbip+asn</span>).
-            {:else if country && tab > 0}Keine {tab === 1 ? 'Städte' : 'Netzbetreiber'} für {countryName(country)} im Zeitraum.
-            {:else}Keine Anfragen mit bekannter Herkunft im Zeitraum.{/if}
+            {#if tab === 1 && !data.cities_db && !data.cities.length}{t('Städte gibt es nur mit einer Stadt-Datenbank (')}<span class="mono">TESSERACT_GEOIP_AUTO=dbip-city</span>).
+            {:else if tab === 2 && !data.asn_db && !data.asns.length}{t('Netzbetreiber gibt es nur mit einer ASN-Datenbank (')}<span class="mono">TESSERACT_GEOIP_AUTO=dbip+asn</span>).
+            {:else if country && tab > 0}{t('Keine {0} für {1} im Zeitraum.', tab === 1 ? t('Städte') : t('Netzbetreiber'), countryName(country))}
+            {:else}{t('Keine Anfragen mit bekannter Herkunft im Zeitraum.')}{/if}
           </p>
         {/if}
       </section>

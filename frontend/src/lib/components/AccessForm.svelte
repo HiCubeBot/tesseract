@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../i18n';
   import Icon from './Icon.svelte';
   import Alert from './Alert.svelte';
   import type { HostInput, Group, Person } from '../api';
@@ -53,47 +54,46 @@
 </script>
 
 <div class="access" class:compact>
-  <div class="modes" role="radiogroup" aria-label="Zugriff">
+  <div class="modes" role="radiogroup" aria-label={t('Zugriff')}>
     <label class="mode" class:on={value.access === 'public'}>
       <span class="mode-head">
         <Icon name="globe" size={18} />
-        <strong>Öffentlich</strong>
+        <strong>{t('Öffentlich')}</strong>
         <input type="radio" name="{id}-access" value="public" bind:group={value.access} />
       </span>
-      {#if !compact}<span class="muted">Jeder mit der Adresse. Einzelne Pfade lassen sich trotzdem schützen.</span>{/if}
+      {#if !compact}<span class="muted">{t('Jeder mit der Adresse. Einzelne Pfade lassen sich trotzdem schützen.')}</span>{/if}
     </label>
     <label class="mode" class:on={value.access === 'mtls'} class:disabled={!caConfigured}>
       <span class="mode-head">
         <Icon name="lock" size={18} />
-        <strong>Nur mit Zertifikat</strong>
+        <strong>{t('Nur mit Zertifikat')}</strong>
         <input type="radio" name="{id}-access" value="mtls" disabled={!caConfigured} bind:group={value.access} />
       </span>
-      {#if !compact}<span class="muted">Nur freigegebene Geräte (mTLS). Kein VPN nötig.</span>{/if}
+      {#if !compact}<span class="muted">{t('Nur freigegebene Geräte (mTLS). Kein VPN nötig.')}</span>{/if}
     </label>
   </div>
 
   <label class="internal" class:on={value.internal} class:disabled={!internalAvailable && !value.internal}>
     <input type="checkbox" bind:checked={value.internal} disabled={!internalAvailable && !value.internal} />
     <span class="stack">
-      <strong>Nur aus internen Netzen</strong>
+      <strong>{t('Nur aus internen Netzen')}</strong>
       <span class="muted small">
         {#if internalAvailable}
-          Wie hinter einem VPN: nur aus LAN/VPN erreichbar, alle anderen sehen nichts (Verbindung wird abgebrochen).
-          Kombinierbar mit „Nur mit Zertifikat“ als zweite Hürde. Zertifikat per DNS-01 oder interner Name (.lan).
+          {t('Wie hinter einem VPN: nur aus LAN/VPN erreichbar, alle anderen sehen nichts (Verbindung wird abgebrochen). Kombinierbar mit „Nur mit Zertifikat“ als zweite Hürde. Zertifikat per DNS-01 oder interner Name (.lan).')}
         {:else}
-          Erst unter <a href="#/settings-integrations">Einstellungen › Integrationen</a> die internen Netze festlegen.
+          {t('Erst unter')} <a href="#/settings-integrations">{t('Einstellungen › Integrationen')}</a> {t('die internen Netze festlegen.')}
         {/if}
       </span>
     </span>
   </label>
 
   {#if !caConfigured}
-    <Alert tone="info" title="Erst die Zertifizierungsstelle einrichten" text="Ohne CA gibt es keine Gerätezertifikate." actionLabel="CA einrichten" actionHref="#/settings-ca" />
+    <Alert tone="info" title={t('Erst die Zertifizierungsstelle einrichten')} text={t('Ohne CA gibt es keine Gerätezertifikate.')} actionLabel={t('CA einrichten')} actionHref="#/settings-ca" />
   {/if}
 
   <fieldset class="paths">
     <legend>
-      {value.access === 'mtls' ? 'Öffentliche Ausnahmen (ohne Zertifikat erreichbar)' : 'Geschützte Pfade (nur mit Zertifikat)'}
+      {value.access === 'mtls' ? t('Öffentliche Ausnahmen (ohne Zertifikat erreichbar)') : t('Geschützte Pfade (nur mit Zertifikat)')}
     </legend>
     {#if value.paths.length}
       <ul>
@@ -102,7 +102,7 @@
             <code class="mono">{p}</code>
             <button
               type="button"
-              aria-label={`Pfad ${p} entfernen`}
+              aria-label={t('Pfad {0} entfernen', p)}
               onclick={() => (value.paths = value.paths.filter((_, j) => j !== i))}
             >
               <Icon name="close" size={12} strokeWidth={2.5} />
@@ -115,25 +115,25 @@
       <input
         class="input mono grow"
         placeholder={value.access === 'mtls' ? '/api' : '/admin'}
-        aria-label="Pfad hinzufügen"
+        aria-label={t('Pfad hinzufügen')}
         disabled={value.access === 'public' && !caConfigured}
         bind:value={newPath}
         onkeydown={onPathKey}
       />
-      <button type="button" class="add" onclick={addPath} disabled={!newPath.trim()}>+ Pfad</button>
+      <button type="button" class="add" onclick={addPath} disabled={!newPath.trim()}>{t('+ Pfad')}</button>
     </div>
     <span class="muted small">
-      <code>/admin</code> gilt auch für alles darunter. Groß-/Kleinschreibung spielt keine Rolle.
+      <code>/admin</code> {t('gilt auch für alles darunter. Groß-/Kleinschreibung spielt keine Rolle.')}
     </span>
   </fieldset>
 
   {#if usesCert}
     <fieldset>
-      <legend>Freigegeben für</legend>
+      <legend>{t('Freigegeben für')}</legend>
       <div class="chips">
         {#each groups as g (g.id)}
           <label class="chip group" class:on={value.grant_group_ids.includes(g.id)}>
-            <input type="checkbox" value={g.id} bind:group={value.grant_group_ids} />Gruppe {g.name}
+            <input type="checkbox" value={g.id} bind:group={value.grant_group_ids} />{t('Gruppe {0}', g.name)}
           </label>
         {/each}
         {#each persons as p (p.id)}
@@ -143,29 +143,28 @@
         {/each}
       </div>
       <div class="reach">
-        <span><strong>{reach.persons}</strong> <span class="muted">Personen</span></span>
-        <span><strong>{reach.devices}</strong> <span class="muted">Geräte mit gültigem Zertifikat</span></span>
+        <span><strong>{reach.persons}</strong> <span class="muted">{t('Personen')}</span></span>
+        <span><strong>{reach.devices}</strong> <span class="muted">{t('Geräte mit gültigem Zertifikat')}</span></span>
       </div>
     </fieldset>
 
     <label class="field" for="{id}-nocert">
-      Ohne passendes Zertifikat
+      {t('Ohne passendes Zertifikat')}
       <select id="{id}-nocert" class="input" bind:value={value.no_cert_action}>
-        <option value="reject">Verbindung ablehnen (TLS-Handshake schlägt fehl)</option>
-        <option value="hint">Hinweisseite „Kein Zugang“ anzeigen</option>
+        <option value="reject">{t('Verbindung ablehnen (TLS-Handshake schlägt fehl)')}</option>
+        <option value="hint">{t('Hinweisseite „Kein Zugang“ anzeigen')}</option>
       </select>
       {#if value.paths.length && value.no_cert_action === 'reject'}
-        <span class="muted small">Mit Pfad-Regeln wird statt eines Abbruchs „403 Kein Zugang“ gesendet – der Pfad ist beim Handshake noch unbekannt.</span>
+        <span class="muted small">{t('Mit Pfad-Regeln wird statt eines Abbruchs „403 Kein Zugang“ gesendet – der Pfad ist beim Handshake noch unbekannt.')}</span>
       {/if}
     </label>
 
     <label class="internal" class:on={value.allow_controller}>
       <input type="checkbox" bind:checked={value.allow_controller} />
       <span class="stack">
-        <strong>Tesseract selbst darf zugreifen</strong>
+        <strong>{t('Tesseract selbst darf zugreifen')}</strong>
         <span class="muted small">
-          Tesseract meldet sich mit einem eigenen Zertifikat aus der Zertifizierungsstelle – unabhängig von IP und Docker-Netz. Nötig, wenn z. B. ntfy
-          oder ein Webhook-Ziel hinter diesem Host liegt und Tesseract dorthin Benachrichtigungen schickt.
+          {t('Tesseract meldet sich mit einem eigenen Zertifikat aus der Zertifizierungsstelle – unabhängig von IP und Docker-Netz. Nötig, wenn z. B. ntfy oder ein Webhook-Ziel hinter diesem Host liegt und Tesseract dorthin Benachrichtigungen schickt.')}
         </span>
       </span>
     </label>
@@ -173,13 +172,12 @@
     <label class="internal" class:on={value.internal_no_cert} class:disabled={!internalAvailable && !value.internal_no_cert}>
       <input type="checkbox" bind:checked={value.internal_no_cert} disabled={!internalAvailable && !value.internal_no_cert} />
       <span class="stack">
-        <strong>Aus internen Netzen ohne Zertifikat</strong>
+        <strong>{t('Aus internen Netzen ohne Zertifikat')}</strong>
         <span class="muted small">
           {#if internalAvailable}
-            Geräte im LAN/VPN kommen ohne Zertifikat durch, von außen gilt die Zertifikatspflicht weiter. Praktisch für Fernseher, Drucker oder
-            Apps ohne mTLS. Ohne Zertifikat wird dann statt eines Handshake-Abbruchs „403 Kein Zugang“ gesendet.
+            {t('Geräte im LAN/VPN kommen ohne Zertifikat durch, von außen gilt die Zertifikatspflicht weiter. Praktisch für Fernseher, Drucker oder Apps ohne mTLS. Ohne Zertifikat wird dann statt eines Handshake-Abbruchs „403 Kein Zugang“ gesendet.')}
           {:else}
-            Erst unter <a href="#/settings-integrations">Einstellungen › Integrationen</a> die internen Netze festlegen.
+            {t('Erst unter')} <a href="#/settings-integrations">{t('Einstellungen › Integrationen')}</a> {t('die internen Netze festlegen.')}
           {/if}
         </span>
       </span>

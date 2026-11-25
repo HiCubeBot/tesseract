@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../i18n';
   import Button from './Button.svelte';
   import StatusPill from './StatusPill.svelte';
   import { api, formatDay, type CustomCert } from '../api';
@@ -51,7 +52,7 @@
       const body = { name, certificate, key };
       if (editId === 'new') await api.post('/custom-certs', body);
       else await api.put(`/custom-certs/${editId}`, body);
-      toasts.show('ok', `Zertifikat „${name}“ gespeichert.`);
+      toasts.show('ok', t('Zertifikat „{0}“ gespeichert.', name));
       editId = null;
       certificate = key = '';
       await load();
@@ -64,7 +65,7 @@
   }
 
   async function remove(c: CustomCert) {
-    if (!confirm(`Zertifikat „${c.name}“ löschen?`)) return;
+    if (!confirm(t('Zertifikat „{0}“ löschen?', c.name))) return;
     try {
       await api.del(`/custom-certs/${c.id}`);
       await load();
@@ -78,11 +79,9 @@
 </script>
 
 <section class="card" aria-labelledby="custom-title">
-  <h2 id="custom-title" class="card-title">Eigene Zertifikate</h2>
+  <h2 id="custom-title" class="card-title">{t('Eigene Zertifikate')}</h2>
   <p class="muted small">
-    Zertifikat und Schlüssel hochladen (z. B. von einer Firmen-CA) und im Host unter „Zertifikat“ auswählen.
-    Der Schlüssel wird verschlüsselt gespeichert. Eigene Zertifikate erneuert niemand automatisch – vor Ablauf hier
-    das neue einspielen.
+    {t('Zertifikat und Schlüssel hochladen (z. B. von einer Firmen-CA) und im Host unter „Zertifikat“ auswählen. Der Schlüssel wird verschlüsselt gespeichert. Eigene Zertifikate erneuert niemand automatisch – vor Ablauf hier das neue einspielen.')}
   </p>
 
   {#if certs.length}
@@ -94,13 +93,13 @@
             <strong>{c.name}</strong>
             <span class="muted small mono">{c.names.join(', ')}</span>
             <span class="muted small">
-              {c.issuer} · bis {formatDay(c.not_after)} · {c.used_by.length ? `genutzt von ${c.used_by.join(', ')}` : 'nicht genutzt'}
+              {t('{0} · bis {1} · {2}', c.issuer, formatDay(c.not_after), c.used_by.length ? t('genutzt von {0}', c.used_by.join(', ')) : t('nicht genutzt'))}
             </span>
           </span>
           <span class="spacer"></span>
-          <StatusPill tone={d < 0 ? 'bad' : d < 21 ? 'warn' : 'ok'} label={d < 0 ? 'abgelaufen' : `${d} Tage`} />
-          <Button variant="ghost" size="sm" label="Erneuern" onClick={() => open(c)} />
-          <Button variant="ghost" size="sm" label="Löschen" disabled={c.used_by.length > 0} onClick={() => remove(c)} />
+          <StatusPill tone={d < 0 ? 'bad' : d < 21 ? 'warn' : 'ok'} label={d < 0 ? 'abgelaufen' : t('{0} Tage', d)} />
+          <Button variant="ghost" size="sm" label={t('Erneuern')} onClick={() => open(c)} />
+          <Button variant="ghost" size="sm" label={t('Löschen')} disabled={c.used_by.length > 0} onClick={() => remove(c)} />
         </li>
       {/each}
     </ul>
@@ -108,27 +107,27 @@
 
   {#if editId !== null}
     <form class="editor" onsubmit={save}>
-      <label class="field">Name<input class="input" required maxlength="64" bind:value={name} placeholder="Firmen-CA Intranet" /></label>
+      <label class="field">{t('Name')}<input class="input" required maxlength="64" bind:value={name} placeholder={t('Firmen-CA Intranet')} /></label>
       <div class="grid">
         <label class="field">
-          Zertifikat (PEM, mit Zwischenzertifikaten)
+          {t('Zertifikat (PEM, mit Zwischenzertifikaten)')}
           <input type="file" accept=".pem,.crt,.cer" onchange={(e) => readFile(e, 'certificate')} />
           <textarea class="input mono" rows="5" required bind:value={certificate} placeholder="-----BEGIN CERTIFICATE-----"></textarea>
         </label>
         <label class="field">
-          Privater Schlüssel (PEM, unverschlüsselt)
+          {t('Privater Schlüssel (PEM, unverschlüsselt)')}
           <input type="file" accept=".pem,.key" onchange={(e) => readFile(e, 'key')} />
           <textarea class="input mono" rows="5" required bind:value={key} placeholder="-----BEGIN PRIVATE KEY-----"></textarea>
         </label>
       </div>
       {#if error}<p class="field-error" role="alert">{error}</p>{/if}
       <div class="row">
-        <Button type="submit" label={busy ? 'Prüft …' : editId === 'new' ? 'Hochladen' : 'Erneuern & übertragen'} disabled={busy} />
-        <Button variant="ghost" label="Abbrechen" onClick={() => (editId = null)} />
+        <Button type="submit" label={busy ? t('Prüft …') : editId === 'new' ? t('Hochladen') : t('Erneuern & übertragen')} disabled={busy} />
+        <Button variant="ghost" label={t('Abbrechen')} onClick={() => (editId = null)} />
       </div>
     </form>
   {:else}
-    <div class="row"><Button variant="secondary" size="sm" icon="plus" label="Zertifikat hochladen" onClick={() => open(null)} /></div>
+    <div class="row"><Button variant="secondary" size="sm" icon="plus" label={t('Zertifikat hochladen')} onClick={() => open(null)} /></div>
   {/if}
 </section>
 

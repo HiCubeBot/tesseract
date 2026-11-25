@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../i18n';
   import { fmt } from '../stats';
 
   interface Item {
@@ -16,7 +17,7 @@
     empty?: string;
   }
 
-  let { items, color = '#8B7CF6', empty = 'Keine Daten im Zeitraum.' }: Props = $props();
+  let { items, color = '#8B7CF6', empty = t('Keine Daten im Zeitraum.') }: Props = $props();
   const max = $derived(Math.max(1, ...items.map((i) => i.value)));
 </script>
 

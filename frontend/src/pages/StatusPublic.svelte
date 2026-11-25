@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { locale, t } from '../lib/i18n';
   // Öffentliche Statusseite (/status): ohne Anmeldung, nur freigegebene Dienste mit Namen und
   // Erreichbarkeit der letzten 90 Tage. Lädt jede Minute neu.
   import { onDestroy } from 'svelte';
@@ -24,8 +25,8 @@
   async function load() {
     try {
       const r = await fetchRetry('/api/status', { headers: { Accept: 'application/json' } });
-      if (r.status === 404) throw new Error('Diese Statusseite ist nicht eingeschaltet.');
-      if (!r.ok) throw new Error(`Status nicht abrufbar (${r.status})`);
+      if (r.status === 404) throw new Error(t('Diese Statusseite ist nicht eingeschaltet.'));
+      if (!r.ok) throw new Error(t('Status nicht abrufbar ({0})', r.status));
       data = await r.json();
       error = '';
     } catch (e) {
@@ -37,14 +38,14 @@
   onDestroy(() => clearInterval(timer));
 
   const OVERALL = {
-    ok: { text: 'Alle Dienste laufen', tone: 'ok' },
-    partial: { text: 'Einzelne Dienste sind gestört', tone: 'warn' },
-    down: { text: 'Alle Dienste sind gestört', tone: 'bad' },
-    none: { text: 'Keine Dienste freigegeben', tone: 'none' },
-    pending: { text: 'Noch nicht geprüft', tone: 'none' }
+    ok: { text: t('Alle Dienste laufen'), tone: 'ok' },
+    partial: { text: t('Einzelne Dienste sind gestört'), tone: 'warn' },
+    down: { text: t('Alle Dienste sind gestört'), tone: 'bad' },
+    none: { text: t('Keine Dienste freigegeben'), tone: 'none' },
+    pending: { text: t('Noch nicht geprüft'), tone: 'none' }
   } as const;
-  const LABEL = { up: 'läuft', down: 'gestört', unknown: 'unbekannt', paused: 'pausiert' } as const;
-  const pct = (v: number | null) => (v === null ? '–' : `${v.toLocaleString('de-DE', { maximumFractionDigits: 2 })} %`);
+  const LABEL = { up: t('läuft'), down: t('gestört'), unknown: 'unbekannt', paused: 'pausiert' } as const;
+  const pct = (v: number | null) => (v === null ? '–' : `${v.toLocaleString(locale, { maximumFractionDigits: 2 })} %`);
 </script>
 
 <div class="page">
@@ -55,7 +56,7 @@
           ><path d="M3 3h18v18H3z"></path><path d="M8 8h8v8H8z"></path><path d="M3 3l5 5M21 3l-5 5M3 21l5-5M21 21l-5-5"></path></svg
         >
       </div>
-      <h1>Status</h1>
+      <h1>{t('Status')}</h1>
     </header>
 
     {#if error}
@@ -70,20 +71,20 @@
               <span class="name">{s.name}</span>
               <span class="state {s.status}">{LABEL[s.status]}</span>
             </div>
-            <UptimeBars days={s.days} label={`Erreichbarkeit von ${s.name} in den letzten 90 Tagen`} height={28} />
+            <UptimeBars days={s.days} label={t('Erreichbarkeit von {0} in den letzten 90 Tagen', s.name)} height={28} />
             <div class="bottom">
-              <span>vor 90 Tagen</span>
-              <span>{pct(s.pct)} erreichbar</span>
-              <span>heute</span>
+              <span>{t('vor 90 Tagen')}</span>
+              <span>{t('{0} erreichbar', pct(s.pct))}</span>
+              <span>{t('heute')}</span>
             </div>
           </li>
         {/each}
       </ul>
       <p class="foot">
-        Zuletzt geprüft {new Date(data.checked_at).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })} · aktualisiert sich jede Minute
+        {t('Zuletzt geprüft {0} · aktualisiert sich jede Minute', new Date(data.checked_at).toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' }))}
       </p>
     {:else}
-      <p class="foot">Lädt …</p>
+      <p class="foot">{t('Lädt …')}</p>
     {/if}
   </main>
 </div>

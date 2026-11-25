@@ -1,6 +1,7 @@
 import { api, type Host, type HostInput, type HostSaved } from './api';
 import { reportApply } from './nodes';
 import { toasts } from './toast.svelte';
+import { t } from './i18n';
 
 /** Tabs der Host-Seite */
 export type HostTab = 'general' | 'access' | 'security' | 'stats' | 'history';
@@ -11,7 +12,7 @@ export async function setEnabled(h: Host, enabled: boolean): Promise<Host | null
     const r = await api.put<HostSaved>(`/hosts/${h.id}`, {
       ...toInput(h),
       enabled,
-      comment: enabled ? 'Aktiviert' : 'Deaktiviert'
+      comment: enabled ? t('Aktiviert') : t('Deaktiviert')
     });
     reportApply(r.apply, `${r.host.domain} (${enabled ? 'aktiviert' : 'deaktiviert'})`, r.dns);
     return r.host;
@@ -115,9 +116,9 @@ export function upstreamLabel(h: Pick<Host, 'upstream_scheme' | 'upstream_host' 
 }
 
 export function hostStatus(h: Host): { tone: 'ok' | 'warn' | 'neutral'; label: string } {
-  if (h.draft) return { tone: 'warn', label: 'Entwurf' };
-  if (!h.enabled) return { tone: 'neutral', label: 'deaktiviert' };
-  return { tone: 'ok', label: 'aktiv' };
+  if (h.draft) return { tone: 'warn', label: t('Entwurf') };
+  if (!h.enabled) return { tone: 'neutral', label: t('deaktiviert') };
+  return { tone: 'ok', label: t('aktiv') };
 }
 
 /** Schutz-Kurzfassung für Listen, z. B. „WAF“ oder „WAF (Log)“ */
@@ -126,17 +127,17 @@ export function protectionLabel(h: Host): string {
   if (h.internal) parts.push('Intern');
   if (h.ip_mode !== 'off') parts.push('IP');
   if (h.waf_mode === 'block') parts.push('WAF');
-  if (h.waf_mode === 'detect') parts.push('WAF (Log)');
+  if (h.waf_mode === 'detect') parts.push(t('WAF (Log)'));
   if (h.authelia) parts.push('Authelia');
   return parts.join(' · ') || '–';
 }
 
 /** Kurzbeschreibung des Zugriffs für Listen */
 export function accessLabel(h: Host): string {
-  const lan = h.internal_no_cert ? ' · intern ohne Zertifikat' : '';
+  const lan = h.internal_no_cert ? t(' · intern ohne Zertifikat') : '';
   if (h.access === 'mtls') {
-    const base = `${h.granted_persons} Personen · ${h.allowed_devices} Geräte`;
-    return (h.paths.length ? `${base} · ${h.paths.length} Pfad(e) öffentlich` : base) + lan;
+    const base = t('{0} Personen · {1} Geräte', h.granted_persons, h.allowed_devices);
+    return (h.paths.length ? t('{0} · {1} Pfad(e) öffentlich', base, h.paths.length) : base) + lan;
   }
-  return h.paths.length ? `${h.paths.length} Pfad(e) nur mit Zertifikat${lan}` : 'Öffentlich';
+  return h.paths.length ? t('{0} Pfad(e) nur mit Zertifikat{1}', h.paths.length, lan) : t('Öffentlich');
 }

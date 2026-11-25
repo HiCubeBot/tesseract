@@ -264,3 +264,23 @@ def test_ntfy_errors_and_basic_auth() -> None:
         s._ntfy({"url": "https://proxy.example.org/t", "token_enc": tok}, msg)
     except NotifyError as e:
         assert "nicht von ntfy" in str(e)
+
+
+def test_messages_in_english() -> None:
+    """Sprache der Benachrichtigungen: Titel und Text auf Englisch."""
+    from tesseract.db.models import AuditEntry
+    from tesseract.i18n import tr
+    from tesseract.notify import EVENTS, Message, describe
+
+    e = AuditEntry(action="host_down", target="fotos.example.org", details={"error": None})
+    assert describe(e) == "fotos.example.org: Ziel antwortet nicht (keine Verbindung)"
+    assert describe(e, "en") == "fotos.example.org: target not answering (no connection)"
+    assert tr("en", EVENTS["host_down"][0]) == "Service unreachable"
+    ban = AuditEntry(action="ip_banned", target="198.51.100.7", details={"hits": 20, "hours": 24})
+    assert describe(ban, "en") == "198.51.100.7 banned (20 WAF hits on ?), 24 h"
+    m = Message("x", "info", "T", [f"Zeile {i}" for i in range(12)], lang="en")
+    assert m.text.endswith("… and 2 more")
+    # alle Ereignisse haben eine englische Fassung
+    assert all(
+        tr("en", title) != title or title == "Node offline" for title, _, _ in EVENTS.values()
+    )

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n';
   import AppShell from '../lib/components/AppShell.svelte';
   import PageHeader from '../lib/components/PageHeader.svelte';
   import Button from '../lib/components/Button.svelte';
@@ -156,7 +157,7 @@
         router.go(`users/${p.id}`);
       } else if (selected) {
         await api.put<Person>(`/persons/${selected.id}`, body);
-        toasts.show('ok', 'Gespeichert.');
+        toasts.show('ok', t('Gespeichert.'));
         await load();
       }
     } catch (err) {
@@ -171,7 +172,7 @@
     const name = selected.name;
     try {
       await api.del(`/persons/${selected.id}`);
-      toasts.show('ok', `${name} gelöscht – alle Geräte haben keinen Zugriff mehr.`);
+      toasts.show('ok', t('{0} gelöscht – alle Geräte haben keinen Zugriff mehr.', name));
       router.go('users');
       await load();
     } catch (err) {
@@ -203,7 +204,7 @@
     if (revokeId === null) return;
     try {
       await api.post(`/devices/${revokeId}/revoke`, { reason });
-      toasts.show('ok', 'Gerät gesperrt – die Freigabelisten wurden neu übertragen.');
+      toasts.show('ok', t('Gerät gesperrt – die Freigabelisten wurden neu übertragen.'));
       revokeId = null;
       await load();
     } catch (err) {
@@ -212,10 +213,10 @@
   }
 
   async function deleteDevice(id: number, name: string) {
-    if (!confirm(`„${name}“ endgültig löschen? Das Gerät verschwindet auch aus der Liste der gesperrten Geräte.`)) return;
+    if (!confirm(t('„{0}“ endgültig löschen? Das Gerät verschwindet auch aus der Liste der gesperrten Geräte.', name))) return;
     try {
       await api.del(`/devices/${id}`);
-      toasts.show('ok', `„${name}“ gelöscht.`);
+      toasts.show('ok', t('„{0}“ gelöscht.', name));
       await load();
     } catch (err) {
       toasts.show('bad', err instanceof Error ? err.message : String(err));
@@ -234,7 +235,7 @@
   }
 
   async function deleteGroup(g: Group) {
-    if (!confirm(`Gruppe „${g.name}“ löschen? Freigaben über diese Gruppe entfallen.`)) return;
+    if (!confirm(t('Gruppe „{0}“ löschen? Freigaben über diese Gruppe entfallen.', g.name))) return;
     try {
       await api.del(`/groups/${g.id}`);
       await load();
@@ -254,27 +255,27 @@
 
 <AppShell active="users">
   <PageHeader
-    title="Nutzer"
-    subtitle="Rechte gehören zur Person. Jedes ihrer Geräte hat ein eigenes Zertifikat."
-    primaryLabel="Person anlegen"
+    title={t('Nutzer')}
+    subtitle={t('Rechte gehören zur Person. Jedes ihrer Geräte hat ein eigenes Zertifikat.')}
+    primaryLabel={t('Person anlegen')}
     primaryHref="#/users/new"
   />
 
-  {#if error}<Alert tone="bad" title="Fehler" text={error} />{/if}
+  {#if error}<Alert tone="bad" title={t('Fehler')} text={error} />{/if}
   {#if ca && !ca.configured}
     <Alert
       tone="warn"
-      title="Noch keine Zertifizierungsstelle"
-      text="Ohne CA lassen sich keine Gerätezertifikate ausstellen."
-      actionLabel="CA einrichten"
+      title={t('Noch keine Zertifizierungsstelle')}
+      text={t('Ohne CA lassen sich keine Gerätezertifikate ausstellen.')}
+      actionLabel={t('CA einrichten')}
       actionHref="#/settings-ca"
     />
   {/if}
 
   <div class="layout">
-    <section class="list" aria-label="Personen">
+    <section class="list" aria-label={t('Personen')}>
       {#if persons.length === 0}
-        <EmptyState icon="users" title="Noch keine Personen" text="Lege Personen an und gib ihnen Geräte." actionLabel="Person anlegen" actionHref="#/users/new" />
+        <EmptyState icon="users" title={t('Noch keine Personen')} text={t('Lege Personen an und gib ihnen Geräte.')} actionLabel={t('Person anlegen')} actionHref="#/users/new" />
       {:else}
         <ul class="people">
           {#each persons as p (p.id)}
@@ -284,12 +285,12 @@
                 <span class="stack">
                   <span class="name">{p.name}</span>
                   <span class="muted small">
-                    {p.groups.map((g) => g.name).join(', ') || 'keine Gruppe'} · {p.active_devices} von {p.max_devices} Geräten
+                    {t('{0} · {1} von {2} Geräten', p.groups.map((g) => g.name).join(', ') || t('keine Gruppe'), p.active_devices, p.max_devices)}
                   </span>
                 </span>
-                {#if p.ldap}<StatusPill tone="neutral" label="LDAP" dot={false} />{/if}
-                {#if p.disabled}<StatusPill tone="bad" label="gesperrt" />{/if}
-                {#if pendingFor(p.id)}<StatusPill tone="warn" label="Gerät wartet" />{/if}
+                {#if p.ldap}<StatusPill tone="neutral" label={t('LDAP')} dot={false} />{/if}
+                {#if p.disabled}<StatusPill tone="bad" label={t('gesperrt')} />{/if}
+                {#if pendingFor(p.id)}<StatusPill tone="warn" label={t('Gerät wartet')} />{/if}
               </a>
             </li>
           {/each}
@@ -297,15 +298,15 @@
       {/if}
 
       <section class="card groups" aria-labelledby="groups-title">
-        <h2 id="groups-title">Gruppen</h2>
+        <h2 id="groups-title">{t('Gruppen')}</h2>
         <ul class="group-list">
           {#each groups as g (g.id)}
             <li>
               <span class="name">{g.name}</span>
-              <span class="muted small">{g.members} Personen{g.builtin ? ' · eingebaut' : ''}{g.ldap ? ' · aus LDAP' : ''}</span>
+              <span class="muted small">{t('{0} Personen{1}{2}', g.members, g.builtin ? t(' · eingebaut') : '', g.ldap ? t(' · aus LDAP') : '')}</span>
               <span class="spacer"></span>
               {#if !g.builtin}
-                <button type="button" class="icon-btn" aria-label={`Gruppe ${g.name} löschen`} onclick={() => deleteGroup(g)}>
+                <button type="button" class="icon-btn" aria-label={t('Gruppe {0} löschen', g.name)} onclick={() => deleteGroup(g)}>
                   <Icon name="trash" size={15} />
                 </button>
               {/if}
@@ -313,8 +314,8 @@
           {/each}
         </ul>
         <form class="row" onsubmit={addGroup}>
-          <input class="input grow" placeholder="Neue Gruppe, z. B. Familie" bind:value={newGroup} required maxlength="64" aria-label="Name der neuen Gruppe" />
-          <Button type="submit" variant="secondary" icon="plus" label="Anlegen" />
+          <input class="input grow" placeholder={t('Neue Gruppe, z. B. Familie')} bind:value={newGroup} required maxlength="64" aria-label={t('Name der neuen Gruppe')} />
+          <Button type="submit" variant="secondary" icon="plus" label={t('Anlegen')} />
         </form>
       </section>
     </section>
@@ -322,23 +323,22 @@
     {#if selected || creating}
       <section class="card panel" aria-labelledby="person-title">
         <div class="panel-head">
-          <h2 id="person-title">{creating ? 'Person anlegen' : selected?.name}</h2>
-          <a href="#/users" class="close" aria-label="Schließen"><Icon name="close" size={16} /></a>
+          <h2 id="person-title">{creating ? t('Person anlegen') : selected?.name}</h2>
+          <a href="#/users" class="close" aria-label={t('Schließen')}><Icon name="close" size={16} /></a>
         </div>
 
         <form class="form" onsubmit={savePerson}>
           {#if selected?.ldap && !creating}
             <p class="muted small ldap-note">
-              Aus LDAP{selected.email ? ` · ${selected.email}` : ''}: Name, Sperre und LDAP-Gruppen kommen vom Abgleich und werden dort überschrieben.
-              Geräte und Freigaben verwaltest du hier.
+              {t('Aus LDAP{0}: Name, Sperre und LDAP-Gruppen kommen vom Abgleich und werden dort überschrieben. Geräte und Freigaben verwaltest du hier.', selected.email ? ` · ${selected.email}` : '')}
             </p>
           {/if}
           <label class="field">
-            Name
+            {t('Name')}
             <input class="input" required maxlength="64" bind:value={form.name} />
           </label>
           <fieldset>
-            <legend>Gruppen</legend>
+            <legend>{t('Gruppen')}</legend>
             <div class="chips">
               {#each groups as g (g.id)}
                 <label class="chip" class:on={form.group_ids.includes(g.id)}>
@@ -349,43 +349,43 @@
           </fieldset>
           <div class="grid2">
             <label class="field">
-              Höchstens Geräte
+              {t('Höchstens Geräte')}
               <input class="input" type="number" min="1" max="20" bind:value={form.max_devices} />
             </label>
             <label class="field">
-              Notiz
+              {t('Notiz')}
               <input class="input" maxlength="255" bind:value={form.note} />
             </label>
           </div>
           <label class="field">
-            Zugriff auf Tesseract
+            {t('Zugriff auf Tesseract')}
             <select class="input" bind:value={form.ui_role}>
               {#each Object.keys(UI_ROLES) as r (r)}<option value={r}>{UI_ROLES[r as UiRole]}</option>{/each}
             </select>
             <span class="muted small">
               {UI_ROLE_HINTS[form.ui_role]}
-              {#if form.ui_role !== 'none'}Nur per Gerätezertifikat – kein Passwort, kein Login-Formular.{/if}
+              {#if form.ui_role !== 'none'}{t('Nur per Gerätezertifikat – kein Passwort, kein Login-Formular.')}{/if}
             </span>
           </label>
           {#if !creating}
-            <label class="check"><input type="checkbox" bind:checked={form.disabled} />Person sperren (alle Geräte verlieren den Zugriff)</label>
+            <label class="check"><input type="checkbox" bind:checked={form.disabled} />{t('Person sperren (alle Geräte verlieren den Zugriff)')}</label>
           {/if}
           {#if formError}<p class="field-error" role="alert">{formError}</p>{/if}
           <div class="row">
-            <Button type="submit" label={saving ? 'Speichert …' : creating ? 'Anlegen' : 'Speichern'} disabled={saving} />
+            <Button type="submit" label={saving ? t('Speichert …') : creating ? t('Anlegen') : t('Speichern')} disabled={saving} />
             {#if selected}
               <span class="spacer"></span>
-              <Button variant="danger" icon="trash" label="Löschen" onClick={() => (confirmDelete = true)} />
+              <Button variant="danger" icon="trash" label={t('Löschen')} onClick={() => (confirmDelete = true)} />
             {/if}
           </div>
         </form>
 
         {#if confirmDelete && selected}
           <ConfirmDialog
-            title="Person löschen?"
-            text={`${selected.name} und alle ${selected.devices.length} Geräte werden entfernt. Die Zertifikate funktionieren danach nirgends mehr.`}
+            title={t('Person löschen?')}
+            text={t('{0} und alle {1} Geräte werden entfernt. Die Zertifikate funktionieren danach nirgends mehr.', selected.name, selected.devices.length)}
             word={selected.name}
-            confirmLabel="Endgültig löschen"
+            confirmLabel={t('Endgültig löschen')}
             onConfirm={deletePerson}
             onCancel={() => (confirmDelete = false)}
           />
@@ -394,13 +394,13 @@
         {#if selected}
           <div class="devices">
             <div class="row">
-              <h3>Geräte · {selected.active_devices} von {selected.max_devices}</h3>
+              <h3>{t('Geräte · {0} von {1}', selected.active_devices, selected.max_devices)}</h3>
               <span class="spacer"></span>
               {#if !personInvites.length}
                 <Button
                   size="sm"
                   icon="send"
-                  label={inviting ? 'Erstellt …' : 'Einladen (Link)'}
+                  label={inviting ? t('Erstellt …') : t('Einladen (Link)')}
                   disabled={inviting || !ca?.configured || selected.disabled || selected.active_devices >= selected.max_devices}
                   onClick={invite}
                 />
@@ -410,14 +410,14 @@
                   variant="secondary"
                   size="sm"
                   icon="plus"
-                  label="Direkt ausstellen"
+                  label={t('Direkt ausstellen')}
                   disabled={!ca?.configured || selected.disabled || selected.active_devices >= selected.max_devices}
                   onClick={() => (issueOpen = true)}
                 />
               {/if}
             </div>
             <p class="muted small">
-              Per Link registriert die Person ihr Gerät selbst. „Direkt ausstellen“ ist für Geräte, die du selbst einrichtest.
+              {t('Per Link registriert die Person ihr Gerät selbst. „Direkt ausstellen“ ist für Geräte, die du selbst einrichtest.')}
             </p>
 
             {#each personInvites as inv (inv.id)}
@@ -432,28 +432,28 @@
               <form class="card issue" onsubmit={issue}>
                 <div class="grid3">
                   <label class="field">
-                    Gerätename
-                    <input class="input" required maxlength="64" placeholder="Annas iPhone" bind:value={issueName} />
+                    {t('Gerätename')}
+                    <input class="input" required maxlength="64" placeholder={t('Annas iPhone')} bind:value={issueName} />
                   </label>
                   <label class="field">
-                    Plattform
+                    {t('Plattform')}
                     <select class="input" bind:value={issuePlatform}>
                       {#each Object.entries(PLATFORMS) as [k, v] (k)}<option value={k}>{v}</option>{/each}
                     </select>
                   </label>
                   <label class="field">
-                    Gültig
+                    {t('Gültig')}
                     <select class="input" bind:value={issueDays}>
-                      <option value="90">90 Tage</option>
-                      <option value="365">1 Jahr</option>
-                      <option value="730">2 Jahre</option>
-                      <option value="unlimited">unbegrenzt (bis Zwischenzertifikat)</option>
+                      <option value="90">{t('90 Tage')}</option>
+                      <option value="365">{t('1 Jahr')}</option>
+                      <option value="730">{t('2 Jahre')}</option>
+                      <option value="unlimited">{t('unbegrenzt (bis Zwischenzertifikat)')}</option>
                     </select>
                   </label>
                 </div>
                 <div class="row">
-                  <Button type="submit" label={issuing ? 'Stellt aus …' : 'Zertifikat ausstellen'} disabled={issuing} />
-                  <Button variant="ghost" label="Abbrechen" onClick={() => (issueOpen = false)} />
+                  <Button type="submit" label={issuing ? t('Stellt aus …') : t('Zertifikat ausstellen')} disabled={issuing} />
+                  <Button variant="ghost" label={t('Abbrechen')} onClick={() => (issueOpen = false)} />
                 </div>
               </form>
             {/if}
@@ -467,31 +467,31 @@
                     <span class="name">{d.name}</span>
                     <span class="muted small">
                       {PLATFORMS[d.platform] ?? d.platform} ·
-                      {d.status === 'revoked' ? `gesperrt am ${formatDay(d.revoked_at)}` : d.unlimited ? 'unbegrenzt' : `bis ${formatDay(d.not_after)}`}
+                      {d.status === 'revoked' ? t('gesperrt am {0}', formatDay(d.revoked_at)) : d.unlimited ? 'unbegrenzt' : `bis ${formatDay(d.not_after)}`}
                     </span>
                   </span>
                   <span class="spacer"></span>
-                  {#if expiresSoon(d)}<StatusPill tone="warn" label="läuft bald ab" />{:else}<StatusPill tone={st.tone} label={st.label} />{/if}
+                  {#if expiresSoon(d)}<StatusPill tone="warn" label={t('läuft bald ab')} />{:else}<StatusPill tone={st.tone} label={st.label} />{/if}
                   {#if d.status === 'active'}
-                    <Button variant="ghost" size="sm" label="Sperren" onClick={() => (revokeId = d.id)} />
+                    <Button variant="ghost" size="sm" label={t('Sperren')} onClick={() => (revokeId = d.id)} />
                   {:else}
-                    <Button variant="ghost" size="sm" label="Löschen" onClick={() => deleteDevice(d.id, d.name)} />
+                    <Button variant="ghost" size="sm" label={t('Löschen')} onClick={() => deleteDevice(d.id, d.name)} />
                   {/if}
                 </li>
                 {#if revokeId === d.id}
                   <li class="confirm">
                     <ConfirmDialog
-                      title={`„${d.name}“ sperren?`}
-                      text="Das Zertifikat wird sofort aus allen Freigaben entfernt. Das lässt sich nicht rückgängig machen."
+                      title={t('„{0}“ sperren?', d.name)}
+                      text={t('Das Zertifikat wird sofort aus allen Freigaben entfernt. Das lässt sich nicht rückgängig machen.')}
                       word="sperren"
-                      confirmLabel="Gerät sperren"
-                      onConfirm={() => revoke('vom Admin gesperrt')}
+                      confirmLabel={t('Gerät sperren')}
+                      onConfirm={() => revoke(t('vom Admin gesperrt'))}
                       onCancel={() => (revokeId = null)}
                     />
                   </li>
                 {/if}
               {:else}
-                <li class="muted">Noch keine Geräte.</li>
+                <li class="muted">{t('Noch keine Geräte.')}</li>
               {/each}
             </ul>
           </div>

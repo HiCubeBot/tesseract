@@ -1,7 +1,9 @@
 <script lang="ts">
+  import { t } from '../lib/i18n';
   import { session } from '../lib/session.svelte';
   import { router } from '../lib/router.svelte';
   import Icon from '../lib/components/Icon.svelte';
+  import LangSwitch from '../lib/components/LangSwitch.svelte';
   import { api, type DeviceInfo, type Me } from '../lib/api';
   import * as webauthn from '../lib/webauthn';
 
@@ -52,7 +54,7 @@
       password = '';
       if (router.path === 'login') router.go('');
     } catch (err) {
-      error = err instanceof Error ? err.message : 'Anmeldung fehlgeschlagen';
+      error = err instanceof Error ? err.message : t('Anmeldung fehlgeschlagen');
     } finally {
       busy = false;
     }
@@ -66,19 +68,18 @@
         <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" style="stroke: var(--bg)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3z"></path><path d="M8 8h8v8H8z"></path><path d="M3 3l5 5M21 3l-5 5M3 21l5-5M21 21l-5-5"></path></svg>
       </div>
       <div class="stack">
-        <span class="brand-name">Tesseract</span>
-        <span class="muted">Caddy-Verwaltung</span>
+        <span class="brand-name">{t('Tesseract')}</span>
+        <span class="muted">{t('Caddy-Verwaltung')}</span>
       </div>
     </div>
     <div class="claim">
-      <h1>Ein Webinterface für alle deine Caddy-Nodes.</h1>
-      <p class="muted">Öffentliche Hosts mit Let's Encrypt, private Dienste nur für freigegebene Geräte – zentral verwaltet.</p>
+      <h1>{t('Ein Webinterface für alle deine Caddy-Nodes.')}</h1>
+      <p class="muted">{t('Öffentliche Hosts mit Let\'s Encrypt, private Dienste nur für freigegebene Geräte – zentral verwaltet.')}</p>
     </div>
     <div class="hint">
       <span class="hint-icon"><Icon name="lock" size={16} strokeWidth={2} /></span>
       <span class="muted">
-        <strong>Doppelt geschützt.</strong> Mit eingeschaltetem Admin-Zertifikat ist diese Seite nur von
-        Admin-Geräten erreichbar – das Passwort ist die zweite Hürde.
+        <strong>{t('Doppelt geschützt.')}</strong> {t('Mit eingeschaltetem Admin-Zertifikat ist diese Seite nur von Admin-Geräten erreichbar – das Passwort ist die zweite Hürde.')}
       </span>
     </div>
   </section>
@@ -86,34 +87,34 @@
   <main>
     <form onsubmit={submit}>
       <div class="head">
-        <h2>Anmelden</h2>
+        <h2>{t('Anmelden')}</h2>
         {#if device?.admin_device}
-          <span class="detected"><span class="dot"></span>Admin-Gerät erkannt · {device.admin_device}</span>
+          <span class="detected"><span class="dot"></span>{t('Admin-Gerät erkannt · {0}', device.admin_device)}</span>
         {:else if device?.certificate}
-          <span class="detected other">Zertifikat erkannt – kein Admin-Gerät</span>
+          <span class="detected other">{t('Zertifikat erkannt – kein Admin-Gerät')}</span>
         {/if}
       </div>
 
       {#if methods.sso || methods.passkey}
         <div class="alt">
           {#if methods.passkey && webauthn.supported()}
-            <button type="button" class="secondary" disabled={busy} onclick={passkeyLogin}>Mit Passkey anmelden</button>
+            <button type="button" class="secondary" disabled={busy} onclick={passkeyLogin}>{t('Mit Passkey anmelden')}</button>
           {/if}
           {#if methods.sso}
             <button type="button" class="secondary" disabled={busy} onclick={ssoLogin}>{methods.sso}</button>
           {/if}
         </div>
-        {#if methods.password}<div class="or"><span>oder mit Passwort</span></div>{/if}
+        {#if methods.password}<div class="or"><span>{t('oder mit Passwort')}</span></div>{/if}
       {/if}
 
       {#if methods.password}
       <label>
-        Benutzername
+        {t('Benutzername')}
         <input type="text" autocomplete="username webauthn" required bind:value={username} />
       </label>
 
       <label>
-        Passwort
+        {t('Passwort')}
         <!-- svelte-ignore a11y_autofocus -->
         <input type="password" autocomplete="current-password" required autofocus bind:value={password} aria-invalid={error ? 'true' : undefined} />
       </label>
@@ -121,19 +122,20 @@
 
       <label class="check">
         <input type="checkbox" bind:checked={remember} />
-        Auf diesem Gerät 30 Tage angemeldet bleiben
+        {t('Auf diesem Gerät 30 Tage angemeldet bleiben')}
       </label>
 
       {#if error}<p class="error" role="alert">{error}</p>{/if}
 
       {#if methods.password}
-        <button type="submit" disabled={busy}>{busy ? 'Anmelden …' : 'Anmelden'}</button>
+        <button type="submit" disabled={busy}>{busy ? t('Anmelden …') : t('Anmelden')}</button>
       {/if}
 
       <p class="muted small">
-        Passwort vergessen? Zurücksetzen geht nur auf dem Controller selbst:
+        {t('Passwort vergessen? Zurücksetzen geht nur auf dem Controller selbst:')}
         <code>tesseract admin reset</code>
       </p>
+      <p class="small"><LangSwitch variant="link" /></p>
     </form>
   </main>
 </div>

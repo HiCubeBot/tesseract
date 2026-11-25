@@ -26,6 +26,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from tesseract.db.models import AuditEntry, Setting
+from tesseract.i18n import tr
 from tesseract.secretbox import SecretBox
 
 log = logging.getLogger("tesseract.notify")
@@ -73,6 +74,8 @@ DEFAULTS: dict[str, Any] = {
     "rules": {ev: {"level": lvl, "channels": ["ntfy"]} for ev, (_, lvl, _) in EVENTS.items()},
     "quiet": {"enabled": True, "start": 22, "end": 7, "timezone": "Europe/Berlin"},
     "bundle_minutes": 15,
+    # Sprache der Meldungen: de | en
+    "language": "de",
     # bis zu welchem Audit-Eintrag schon verarbeitet
     "cursor": 0,
 }
@@ -113,6 +116,8 @@ class Message:
     title: str
     lines: list[str] = field(default_factory=list)
     at: float = field(default_factory=time.time)
+    # Sprache der Meldung (Einstellung „Sprache der Benachrichtigungen“)
+    lang: str = "de"
 
     @property
     def text(self) -> str:
@@ -120,39 +125,44 @@ class Message:
             return self.lines[0] if self.lines else self.title
         shown = self.lines[:10]
         more = len(self.lines) - len(shown)
-        return "\n".join(shown + ([f"… und {more} weitere"] if more else []))
+        return "\n".join(shown + ([tr(self.lang, "… und {0} weitere", more)] if more else []))
 
 
-def describe(e: AuditEntry) -> str:
+def describe(e: AuditEntry, lang: str = "de") -> str:
     d = e.details or {}
     a = e.action
+
+    def _(text: str, *args: object) -> str:
+        return tr(lang, text, *args)
+
     if a == "ip_banned":
         why = (
-            f"{d['hits']} WAF-Treffer auf {d.get('host') or '?'}"
+            _("{0} WAF-Treffer auf {1}", d["hits"], d.get("host") or "?")
             if d.get("hits")
-            else d.get("reason", "von Hand")
+            else d.get("reason") or _("von Hand")
         )
         hours = d.get("hours", "?")
-        dauer = "dauerhaft" if hours == "dauerhaft" else f"{hours} Std."
-        return f"{e.target} gesperrt ({why}), {dauer}"
+        dauer = _("dauerhaft") if hours == "dauerhaft" else _("{0} Std.", hours)
+        return _("{0} gesperrt ({1}), {2}", e.target, why, dauer)
     if a == "node_offline":
-        return f"{e.target}: kein Kontakt seit {d.get('since', '?')}"
+        return _("{0}: kein Kontakt seit {1}", e.target, d.get("since", "?"))
     if a == "node_online":
-        return f"{e.target} meldet sich wieder"
+        return _("{0} meldet sich wieder", e.target)
     if a == "host_down":
-        return f"{e.target}: Ziel antwortet nicht ({d.get('error') or 'keine Verbindung'})"
+        error = d.get("error") or _("keine Verbindung")
+        return _("{0}: Ziel antwortet nicht ({1})", e.target, error)
     if a == "host_up":
-        return f"{e.target} ist wieder erreichbar"
+        return _("{0} ist wieder erreichbar", e.target)
     if a == "config_apply_failed":
-        return f"{e.target}: {d.get('error', 'Fehler')}"
+        return f"{e.target}: {d.get('error') or _('Fehler')}"
     if a == "node_drift_detected":
-        return f"Die laufende Config auf {e.target} weicht vom Controller ab"
+        return _("Die laufende Config auf {0} weicht vom Controller ab", e.target)
     if a == "login_failed":
-        return f"Benutzer „{e.actor or '?'}“ von {e.ip or '?'}"
+        return _("Benutzer „{0}“ von {1}", e.actor or "?", e.ip or "?")
     if a == "enrollment_requested":
-        return f"{e.target} – im Controller freigeben"
+        return _("{0} – im Controller freigeben", e.target)
     if a == "node_join_requested":
-        return f"Node {e.target} ({d.get('hostname') or '?'}) – Fingerabdruck vergleichen"
+        return _("Node {0} ({1}) – Fingerabdruck vergleichen", e.target, d.get("hostname") or "?")
     if a in ("device_expiring", "ca_expiring", "node_cert_expiring", "custom_cert_expiring"):
         days = d.get("days", "?")
         hint = {
@@ -161,11 +171,11 @@ def describe(e: AuditEntry) -> str:
             "node_cert_expiring": "Der Agent erneuert es selbst – meldet er sich noch?",
             "custom_cert_expiring": "Unter Zertifikate erneuern",
         }[a]
-        return f"{e.target}: noch {days} Tage – {hint}"
+        return _("{0}: noch {1} Tage – {2}", e.target, days, _(hint))
     if a == "backup_failed":
-        return f"Sicherung fehlgeschlagen: {d.get('error', '?')}"
+        return _("Sicherung fehlgeschlagen: {0}", d.get("error", "?"))
     if a == "enrollment_code_wrong":
-        return f"Einladung für {e.target} von {e.ip or '?'}"
+        return _("Einladung für {0} von {1}", e.target, e.ip or "?")
     return f"{e.action} {e.target}".strip()
 
 
@@ -286,7 +296,7 @@ class Sender:
 
     def _email(self, c: dict[str, Any], msg: Message) -> None:
         m = EmailMessage()
-        m["Subject"] = f"[Tesseract] {LEVEL_LABEL[msg.level]}: {msg.title}"
+        m["Subject"] = f"[Tesseract] {tr(msg.lang, LEVEL_LABEL[msg.level])}: {msg.title}"
         m["From"] = c["sender"] or c["user"]
         m["To"] = ", ".join(c["to"])
         m.set_content(msg.text + "\n\n– Tesseract")
@@ -352,6 +362,7 @@ class Notifier:
         if not entries:
             return 0
         n = 0
+        lang = cfg.get("language") or "de"
         for e in entries:
             ev = ACTION_EVENT.get(e.action)
             if ev is None or (e.action == "ip_banned" and e.actor != "system"):
@@ -364,9 +375,13 @@ class Notifier:
                 msg = self.pending.get(key)
                 if msg is None:
                     msg = self.pending[key] = Message(
-                        ev, rule.get("level", "info"), EVENTS[ev][0], at=self.clock()
+                        ev,
+                        rule.get("level", "info"),
+                        tr(lang, EVENTS[ev][0]),
+                        at=self.clock(),
+                        lang=lang,
                     )
-                msg.lines.append(describe(e))
+                msg.lines.append(describe(e, lang))
                 n += 1
         set_config(db, {"cursor": entries[-1].id})
         db.commit()

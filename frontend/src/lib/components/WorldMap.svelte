@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../i18n';
   /**
    * Herkunftskarte: ein Kreis pro Land, Fläche ∝ Anzahl. Kartendaten (Natural Earth, 110m)
    * werden erst beim Anzeigen nachgeladen und liegen im eigenen Build – keine externe Anfrage.
@@ -103,16 +104,16 @@
     {#if hover && hovered}
       <div class="tip" style:left="{hover.x}px" style:top="{hover.y}px">
         <strong>{countryName(hovered.country)}</strong>
-        <span>{fmt(hovered.count)} abgelehnt</span>
+        <span>{t('{0} abgelehnt', fmt(hovered.count))}</span>
       </div>
     {/if}
   {:else}
-    <div class="loading" style:height="{H}px">Karte wird geladen …</div>
+    <div class="loading" style:height="{H}px">{t('Karte wird geladen …')}</div>
   {/if}
   <figcaption class="muted">
-    Kreisfläche = Anzahl · GeoIP-Datenbank lokal{#if offMap.length} · ohne Kartenpunkt: {offMap
+    {t('Kreisfläche = Anzahl · GeoIP-Datenbank lokal')}{#if offMap.length} {t('· ohne Kartenpunkt: {0}', offMap
         .map((i) => `${countryName(i.country)} (${fmt(i.count)})`)
-        .join(', ')}{/if}
+        .join(', '))}{/if}
   </figcaption>
 </figure>
 

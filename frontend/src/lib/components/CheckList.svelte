@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../i18n';
   import Icon from './Icon.svelte';
   import type { Check } from '../api';
 
@@ -22,7 +23,7 @@
       </div>
     </li>
   {:else}
-    <li class="empty">{busy ? 'Prüfe …' : 'Domain und Ziel eingeben – die Prüfungen laufen automatisch.'}</li>
+    <li class="empty">{busy ? t('Prüfe …') : t('Domain und Ziel eingeben – die Prüfungen laufen automatisch.')}</li>
   {/each}
 </ul>
 

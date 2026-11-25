@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, tApi } from '../lib/i18n';
   import AppShell from '../lib/components/AppShell.svelte';
   import PageHeader from '../lib/components/PageHeader.svelte';
   import Button from '../lib/components/Button.svelte';
@@ -43,7 +44,7 @@
   });
 
   const detailText = (e: AuditEntry) =>
-    [Object.keys(e.details).length ? JSON.stringify(e.details, null, 2) : '', e.hash ? `Prüfsumme ${e.hash}` : '']
+    [Object.keys(e.details).length ? JSON.stringify(e.details, null, 2) : '', e.hash ? t('Prüfsumme {0}', e.hash) : '']
       .filter(Boolean)
       .join('\n\n');
 
@@ -66,41 +67,41 @@
 
 <AppShell active="audit">
   <PageHeader
-    title="Audit-Log"
-    subtitle="Jede Änderung und jede Anmeldung – wer, wann, was. Einträge lassen sich nicht ändern oder löschen."
-    primaryLabel="CSV exportieren"
+    title={t('Audit-Log')}
+    subtitle={t('Jede Änderung und jede Anmeldung – wer, wann, was. Einträge lassen sich nicht ändern oder löschen.')}
+    primaryLabel={t('CSV exportieren')}
     primaryIcon="download"
     onPrimary={exportCsv}
   />
 
   <div class="row">
-    <SegmentedControl groupLabel="Wer" options={['Alle', 'Admins', 'System', 'Gäste', 'Agents']} bind:selected={kind} onChange={() => load()} />
+    <SegmentedControl groupLabel={t('Wer')} options={['Alle', 'Admins', 'System', t('Gäste'), 'Agents']} bind:selected={kind} onChange={() => load()} />
     <label class="search">
       <Icon name="search" size={16} strokeWidth={2} />
-      <span class="visually-hidden">Log durchsuchen</span>
-      <input type="search" placeholder="Wer, Aktion oder Ziel …" bind:value={query} />
+      <span class="visually-hidden">{t('Log durchsuchen')}</span>
+      <input type="search" placeholder={t('Wer, Aktion oder Ziel …')} bind:value={query} />
     </label>
     {#if check}
-      <span class="chain" title={`Letzte Prüfsumme ${check.last_hash}`}>
-        <StatusPill tone={check.ok ? 'ok' : 'bad'} label={check.ok ? `Kette intakt · ${check.checked} Einträge` : `Kette gebrochen bei #${check.broken_id}`} />
+      <span class="chain" title={t('Letzte Prüfsumme {0}', check.last_hash)}>
+        <StatusPill tone={check.ok ? 'ok' : 'bad'} label={check.ok ? t('Kette intakt · {0} Einträge', check.checked) : t('Kette gebrochen bei #{0}', check.broken_id)} />
       </span>
     {/if}
   </div>
   {#if check && !check.ok}
-    <Alert tone="bad" title="Das Audit-Log wurde verändert" text={`Eintrag #${check.broken_id} passt nicht zur Prüfsumme seines Vorgängers. Jemand hat die Datenbank direkt bearbeitet – Backup vergleichen.`} />
+    <Alert tone="bad" title={t('Das Audit-Log wurde verändert')} text={t('Eintrag #{0} passt nicht zur Prüfsumme seines Vorgängers. Jemand hat die Datenbank direkt bearbeitet – Backup vergleichen.', check.broken_id)} />
   {/if}
 
-  {#if error}<Alert tone="bad" title="Fehler" text={error} />{/if}
+  {#if error}<Alert tone="bad" title={t('Fehler')} text={error} />{/if}
 
   <div class="table-wrap">
     <table class="table">
       <thead>
         <tr>
-          <th scope="col">Zeit</th>
-          <th scope="col">Wer</th>
-          <th scope="col">Aktion</th>
-          <th scope="col">Betrifft</th>
-          <th scope="col">Von</th>
+          <th scope="col">{t('Zeit')}</th>
+          <th scope="col">{t('Wer')}</th>
+          <th scope="col">{t('Aktion')}</th>
+          <th scope="col">{t('Betrifft')}</th>
+          <th scope="col">{t('Von')}</th>
         </tr>
       </thead>
       <tbody>
@@ -118,24 +119,23 @@
                 {ACTION_LABELS[e.action] ?? e.action}
               {/if}
             </td>
-            <td class="mono small">{e.target || '–'}</td>
+            <td class="mono small">{tApi(e.target) || '–'}</td>
             <td class="mono small muted">{e.ip ?? '–'}</td>
           </tr>
           {#if open === e.id && details}
             <tr class="details"><td colspan="5"><pre class="code">{details}</pre></td></tr>
           {/if}
         {:else}
-          <tr><td colspan="5" class="muted">Keine Einträge.</td></tr>
+          <tr><td colspan="5" class="muted">{t('Keine Einträge.')}</td></tr>
         {/each}
       </tbody>
     </table>
   </div>
 
-  {#if more}<div><Button variant="secondary" label="Ältere laden" onClick={() => load(true)} /></div>{/if}
+  {#if more}<div><Button variant="secondary" label={t('Ältere laden')} onClick={() => load(true)} /></div>{/if}
 
   <p class="muted small">
-    Jeder Eintrag trägt die Prüfsumme (SHA-256) seines Vorgängers. Ein geänderter oder gelöschter Eintrag bricht die Kette ab dieser
-    Stelle – die Prüfung oben zeigt, wo.
+    {t('Jeder Eintrag trägt die Prüfsumme (SHA-256) seines Vorgängers. Ein geänderter oder gelöschter Eintrag bricht die Kette ab dieser Stelle – die Prüfung oben zeigt, wo.')}
   </p>
 </AppShell>
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../i18n';
   /** Liste von Einträgen als Chips + Eingabefeld (Enter fügt hinzu, Einfügen mehrerer Zeilen geht). */
   import Icon from './Icon.svelte';
 
@@ -47,7 +48,7 @@
   {/if}
   <div class="row">
     <input class="input grow" class:mono {placeholder} aria-label={label} {disabled} bind:value={draft} onkeydown={onKey} onblur={add} />
-    <button type="button" class="add" onclick={add} disabled={disabled || !draft.trim()}>+ Hinzufügen</button>
+    <button type="button" class="add" onclick={add} disabled={disabled || !draft.trim()}>{t('+ Hinzufügen')}</button>
   </div>
 </div>
 

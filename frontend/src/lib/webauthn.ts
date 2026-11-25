@@ -4,6 +4,7 @@
  * Eigene Umrechnung statt parseCreationOptionsFromJSON – läuft so auch in älteren Browsern.
  */
 
+import { t } from './i18n';
 type Json = Record<string, any>;
 
 function fromB64url(s: string): ArrayBuffer {
@@ -35,7 +36,7 @@ export async function create(options: Json): Promise<Json> {
     excludeCredentials: (options.excludeCredentials ?? []).map((c: Json) => ({ ...c, id: fromB64url(c.id) }))
   };
   const cred = (await navigator.credentials.create({ publicKey })) as PublicKeyCredential | null;
-  if (!cred) throw new Error('Abgebrochen');
+  if (!cred) throw new Error(t('Abgebrochen'));
   const r = cred.response as AuthenticatorAttestationResponse;
   return {
     id: cred.id,
@@ -58,7 +59,7 @@ export async function get(options: Json): Promise<Json> {
     allowCredentials: (options.allowCredentials ?? []).map((c: Json) => ({ ...c, id: fromB64url(c.id) }))
   };
   const cred = (await navigator.credentials.get({ publicKey })) as PublicKeyCredential | null;
-  if (!cred) throw new Error('Abgebrochen');
+  if (!cred) throw new Error(t('Abgebrochen'));
   const r = cred.response as AuthenticatorAssertionResponse;
   return {
     id: cred.id,
@@ -77,9 +78,9 @@ export async function get(options: Json): Promise<Json> {
 /** Verständliche Meldung für typische Browser-Fehler. */
 export function explain(e: unknown): string {
   if (e instanceof DOMException) {
-    if (e.name === 'NotAllowedError') return 'Abgebrochen oder keine Zustimmung am Gerät.';
-    if (e.name === 'InvalidStateError') return 'Dieser Passkey ist auf dem Gerät schon eingetragen.';
-    if (e.name === 'SecurityError') return 'Passkeys gehen nur über HTTPS und mit der richtigen Domain.';
+    if (e.name === 'NotAllowedError') return t('Abgebrochen oder keine Zustimmung am Gerät.');
+    if (e.name === 'InvalidStateError') return t('Dieser Passkey ist auf dem Gerät schon eingetragen.');
+    if (e.name === 'SecurityError') return t('Passkeys gehen nur über HTTPS und mit der richtigen Domain.');
   }
   return e instanceof Error ? e.message : String(e);
 }

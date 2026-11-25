@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n';
   import AppShell from '../lib/components/AppShell.svelte';
   import PageHeader from '../lib/components/PageHeader.svelte';
   import SettingsTabs from '../lib/components/SettingsTabs.svelte';
@@ -54,7 +55,7 @@
         wildcard_certs: general.wildcard_certs
       });
       ipLists = await api.get<IpList[]>('/ip-lists');
-      toasts.show('ok', 'Gespeichert.');
+      toasts.show('ok', t('Gespeichert.'));
     } catch (err) {
       error = err instanceof Error ? err.message : String(err);
     } finally {
@@ -83,7 +84,7 @@
         cloudflare_token: token
       });
       cfToken = '';
-      toasts.show('ok', token ? 'Cloudflare-Token gespeichert.' : 'Cloudflare-Token gelöscht.');
+      toasts.show('ok', token ? t('Cloudflare-Token gespeichert.') : t('Cloudflare-Token gelöscht.'));
     } catch (e) {
       toasts.show('bad', e instanceof Error ? e.message : String(e));
     } finally {
@@ -107,36 +108,36 @@
 </script>
 
 <AppShell active="settings">
-  <PageHeader title="Einstellungen" subtitle="Externe Dienste und Caddy-Module, die Hosts nutzen können." />
+  <PageHeader title={t('Einstellungen')} subtitle={t('Externe Dienste und Caddy-Module, die Hosts nutzen können.')} />
   <SettingsTabs current="#/settings-integrations" />
   {#if general?.env_managed.length}
     <Alert
       tone="info"
-      title="Teilweise über die .env festgelegt"
-      text={`${general.env_managed.join(', ')} – kommt aus der Umgebung und wird bei jedem Start gesetzt. Änderungen hier gelten nur bis zum nächsten Neustart.`}
+      title={t('Teilweise über die .env festgelegt')}
+      text={t('{0} – kommt aus der Umgebung und wird bei jedem Start gesetzt. Änderungen hier gelten nur bis zum nächsten Neustart.', general.env_managed.join(', '))}
     />
   {/if}
 
-  {#if error}<Alert tone="bad" title="Fehler" text={error} />{/if}
+  {#if error}<Alert tone="bad" title={t('Fehler')} text={error} />{/if}
 
   {#if general}
     <form class="card" onsubmit={save} aria-labelledby="waf-title">
-      <h2 id="waf-title">Coraza WAF · Standards</h2>
+      <h2 id="waf-title">{t('Coraza WAF · Standards')}</h2>
       <div class="grid">
         <label class="field">
-          Modus für neue Hosts
+          {t('Modus für neue Hosts')}
           <select class="input" bind:value={general.waf_default_mode}>
             {#each modes as [k, v] (k)}<option value={k}>{v}</option>{/each}
           </select>
         </label>
         <label class="field">
-          Paranoia-Level für neue Hosts
+          {t('Paranoia-Level für neue Hosts')}
           <select class="input" bind:value={general.waf_default_paranoia}>
             {#each [1, 2, 3, 4] as l (l)}<option value={l}>{l}</option>{/each}
           </select>
         </label>
         <label class="field">
-          WAF für die Tesseract-Oberfläche
+          {t('WAF für die Tesseract-Oberfläche')}
           <select class="input" bind:value={general.controller_waf_mode}>
             {#each modes as [k, v] (k)}<option value={k}>{v}</option>{/each}
           </select>
@@ -144,116 +145,109 @@
       </div>
       <div class="autoban">
         <Toggle
-          label="Auto-Sperre"
-          description={`IP für ${general.autoban_hours} h sperren nach ${general.autoban_hits} WAF-Treffern in ${general.autoban_window_minutes} Min. – vor allen Hosts, die Oberfläche bleibt erreichbar.`}
+          label={t('Auto-Sperre')}
+          description={t('IP für {0} h sperren nach {1} WAF-Treffern in {2} Min. – vor allen Hosts, die Oberfläche bleibt erreichbar.', general.autoban_hours, general.autoban_hits, general.autoban_window_minutes)}
           bind:checked={general.autoban_enabled}
         />
         {#if general.autoban_enabled}
           <div class="grid">
-            <label class="field">Treffer<input class="input" type="number" min="1" bind:value={general.autoban_hits} /></label>
-            <label class="field">in Minuten<input class="input" type="number" min="1" max="1440" bind:value={general.autoban_window_minutes} /></label>
-            <label class="field">sperren für Stunden<input class="input" type="number" min="1" bind:value={general.autoban_hours} /></label>
+            <label class="field">{t('Treffer')}<input class="input" type="number" min="1" bind:value={general.autoban_hits} /></label>
+            <label class="field">{t('in Minuten')}<input class="input" type="number" min="1" max="1440" bind:value={general.autoban_window_minutes} /></label>
+            <label class="field">{t('sperren für Stunden')}<input class="input" type="number" min="1" bind:value={general.autoban_hours} /></label>
           </div>
           <div class="field">
-            Nie automatisch sperren (z. B. eigenes Netz)
-            <ChipInput bind:values={general.autoban_exempt} label="Ausnahme hinzufügen" placeholder="192.168.178.0/24" />
+            {t('Nie automatisch sperren (z. B. eigenes Netz)')}
+            <ChipInput bind:values={general.autoban_exempt} label={t('Ausnahme hinzufügen')} placeholder="192.168.178.0/24" />
           </div>
           {#if !general.autoban_log_ready}
-            <Alert tone="warn" title="Kein WAF-Log angebunden" text="Der Controller liest keine Treffer – TESSERACT_CADDY_WAF_LOG und TESSERACT_WAF_LOG_PATH setzen (im Compose-Stack schon eingerichtet)." />
+            <Alert tone="warn" title={t('Kein WAF-Log angebunden')} text={t('Der Controller liest keine Treffer – TESSERACT_CADDY_WAF_LOG und TESSERACT_WAF_LOG_PATH setzen (im Compose-Stack schon eingerichtet).')} />
           {/if}
         {/if}
       </div>
       <p class="muted small">
-        Bestehende Hosts behalten ihre Einstellung – die änderst du pro Host unter „Sicherheit“.
-        Empfehlung: neue Dienste erst „nur protokollieren“, nach ein paar Tagen ohne Fehlalarme auf „Blockieren“.
+        {t('Bestehende Hosts behalten ihre Einstellung – die änderst du pro Host unter „Sicherheit“. Empfehlung: neue Dienste erst „nur protokollieren“, nach ein paar Tagen ohne Fehlalarme auf „Blockieren“.')}
       </p>
-      <div class="row"><Button type="submit" label={saving ? 'Speichert …' : 'Speichern'} disabled={saving} /></div>
+      <div class="row"><Button type="submit" label={saving ? t('Speichert …') : t('Speichern')} disabled={saving} /></div>
     </form>
 
     <form class="card" onsubmit={save} aria-labelledby="internal-title">
-      <h2 id="internal-title">Interne Netze</h2>
+      <h2 id="internal-title">{t('Interne Netze')}</h2>
       <p class="muted small">
-        Netze für Hosts mit „Nur aus internen Netzen“ – typisch dein LAN und das Netz deines VPNs.
-        Geprüft wird die echte Verbindungs-IP. Für den Zugriff von innen braucht es Split-DNS:
-        dein interner DNS-Server zeigt auf die LAN-IP des Proxys.
+        {t('Netze für Hosts mit „Nur aus internen Netzen“ – typisch dein LAN und das Netz deines VPNs. Geprüft wird die echte Verbindungs-IP. Für den Zugriff von innen braucht es Split-DNS: dein interner DNS-Server zeigt auf die LAN-IP des Proxys.')}
       </p>
       <div class="field">
-        Netze
-        <ChipInput bind:values={general.internal_networks} label="Internes Netz hinzufügen" placeholder="192.168.178.0/24" />
+        {t('Netze')}
+        <ChipInput bind:values={general.internal_networks} label={t('Internes Netz hinzufügen')} placeholder="192.168.178.0/24" />
       </div>
       {#if ipLists.length}
         <div class="chips">
           {#each ipLists as l (l.id)}
             <label class="chip" class:on={general.internal_list_ids.includes(l.id)}>
-              <input type="checkbox" value={l.id} bind:group={general.internal_list_ids} />Liste „{l.name}“
+              <input type="checkbox" value={l.id} bind:group={general.internal_list_ids} />{t('Liste „{0}“', l.name)}
             </label>
           {/each}
         </div>
       {/if}
-      <div class="row"><Button type="submit" label={saving ? 'Speichert …' : 'Speichern'} disabled={saving} /></div>
+      <div class="row"><Button type="submit" label={saving ? t('Speichert …') : t('Speichern')} disabled={saving} /></div>
     </form>
 
     <BansCard />
 
     <section class="card" aria-labelledby="lists-title">
-      <h2 id="lists-title">IP-Listen</h2>
-      <p class="muted small">Benannte Listen nutzt du im IP-Filter der Hosts und für vertrauenswürdige Proxys.</p>
+      <h2 id="lists-title">{t('IP-Listen')}</h2>
+      <p class="muted small">{t('Benannte Listen nutzt du im IP-Filter der Hosts und für vertrauenswürdige Proxys.')}</p>
       <IpListEditor lists={ipLists} onChange={load} />
     </section>
 
     <form class="card" onsubmit={save} aria-labelledby="proxy-title">
-      <h2 id="proxy-title">Vertrauenswürdige Proxys</h2>
+      <h2 id="proxy-title">{t('Vertrauenswürdige Proxys')}</h2>
       <p class="muted small">
-        Steht ein Proxy wie Cloudflare vor Caddy, sieht Caddy sonst nur dessen IP. Nur von diesen Netzen wird
-        <code>X-Forwarded-For</code> als echte Client-IP übernommen – wichtig für IP-Filter und Logs.
-        Ohne Eintrag: direkte Verbindung.
+        {t('Steht ein Proxy wie Cloudflare vor Caddy, sieht Caddy sonst nur dessen IP. Nur von diesen Netzen wird')}
+        <code>X-Forwarded-For</code> {t('als echte Client-IP übernommen – wichtig für IP-Filter und Logs. Ohne Eintrag: direkte Verbindung.')}
       </p>
       <div class="field">
-        Netze
-        <ChipInput bind:values={general.trusted_proxies} label="Proxy-Netz hinzufügen" placeholder="10.0.0.0/8" />
+        {t('Netze')}
+        <ChipInput bind:values={general.trusted_proxies} label={t('Proxy-Netz hinzufügen')} placeholder="10.0.0.0/8" />
       </div>
       {#if ipLists.length}
         <fieldset>
-          <legend>IP-Listen</legend>
+          <legend>{t('IP-Listen')}</legend>
           <div class="chips">
             {#each ipLists as l (l.id)}
               <label class="chip" class:on={general.trusted_proxy_list_ids.includes(l.id)}>
-                <input type="checkbox" value={l.id} bind:group={general.trusted_proxy_list_ids} />Liste „{l.name}“
+                <input type="checkbox" value={l.id} bind:group={general.trusted_proxy_list_ids} />{t('Liste „{0}“', l.name)}
               </label>
             {/each}
           </div>
         </fieldset>
       {/if}
-      <div class="row"><Button type="submit" label={saving ? 'Speichert …' : 'Speichern'} disabled={saving} /></div>
+      <div class="row"><Button type="submit" label={saving ? t('Speichert …') : t('Speichern')} disabled={saving} /></div>
     </form>
 
     <form class="card" onsubmit={(e) => (e.preventDefault(), saveToken(cfToken))} aria-labelledby="dns-title">
-      <h2 id="dns-title">DNS-01 über Cloudflare</h2>
+      <h2 id="dns-title">{t('DNS-01 über Cloudflare')}</h2>
       <p class="muted small">
-        Damit holt Caddy Zertifikate auch ohne offenen Port 80 und für Wildcard-Hosts (<code>*.beispiel.de</code>).
-        Nötig ist ein API-Token mit dem Rechten „Zone · Zone · Lesen“ und „Zone · DNS · Bearbeiten“ für deine Zone. Er wird verschlüsselt
-        gespeichert und nie wieder angezeigt.
+        {t('Damit holt Caddy Zertifikate auch ohne offenen Port 80 und für Wildcard-Hosts (')}<code>*.beispiel.de</code>{t('). Nötig ist ein API-Token mit dem Rechten „Zone · Zone · Lesen“ und „Zone · DNS · Bearbeiten“ für deine Zone. Er wird verschlüsselt gespeichert und nie wieder angezeigt.')}
       </p>
       {#if general.env_managed.includes('cloudflare_token')}
         <p class="muted small">
-          Der Token kommt aus <code>TESSERACT_CLOUDFLARE_TOKEN</code> in der <code>.env</code> – dort ändern und neu starten.
-          Auch die Tesseract-Oberfläche holt ihr Zertifikat damit per DNS-01.
+          {t('Der Token kommt aus')} <code>TESSERACT_CLOUDFLARE_TOKEN</code> {t('in der')} <code>.env</code> {t('– dort ändern und neu starten. Auch die Tesseract-Oberfläche holt ihr Zertifikat damit per DNS-01.')}
         </p>
       {:else}
       <label class="field">
-        API-Token {general.cloudflare_token_set ? '· hinterlegt' : ''}
+        {t('API-Token {0}', general.cloudflare_token_set ? t('· hinterlegt') : '')}
         <input
           class="input mono"
           type="password"
           autocomplete="off"
-          placeholder={general.cloudflare_token_set ? 'neuen Token eintragen, um ihn zu ersetzen' : 'Token einfügen'}
+          placeholder={general.cloudflare_token_set ? t('neuen Token eintragen, um ihn zu ersetzen') : t('Token einfügen')}
           bind:value={cfToken}
         />
       </label>
       <div class="row">
-        <Button type="submit" label={cfSaving ? 'Speichert …' : 'Token speichern'} disabled={cfSaving || !cfToken.trim()} />
+        <Button type="submit" label={cfSaving ? t('Speichert …') : t('Token speichern')} disabled={cfSaving || !cfToken.trim()} />
         {#if general.cloudflare_token_set}
-          <Button variant="ghost" label="Token löschen" disabled={cfSaving} onClick={() => saveToken('')} />
+          <Button variant="ghost" label={t('Token löschen')} disabled={cfSaving} onClick={() => saveToken('')} />
         {/if}
       </div>
       {/if}
@@ -262,47 +256,44 @@
     <DnsZonesCard />
 
     <form class="card" onsubmit={save} aria-labelledby="wild-title">
-      <h2 id="wild-title">Geteilte Wildcard-Zertifikate</h2>
+      <h2 id="wild-title">{t('Geteilte Wildcard-Zertifikate')}</h2>
       <p class="muted small">
-        Ein Zertifikat wie <code>*.home.beispiel.de</code> wird einmal per DNS-01 geholt und für alle Hosts genutzt,
-        die genau eine Ebene darunter liegen (z. B. <code>grafana.home.beispiel.de</code>). Weniger Zertifikate – und die
-        einzelnen Hostnamen tauchen nicht in den öffentlichen Certificate-Transparency-Logs auf.
+        {t('Ein Zertifikat wie')} <code>*.home.beispiel.de</code> {t('wird einmal per DNS-01 geholt und für alle Hosts genutzt, die genau eine Ebene darunter liegen (z. B.')} <code>grafana.home.beispiel.de</code>{t('). Weniger Zertifikate – und die einzelnen Hostnamen tauchen nicht in den öffentlichen Certificate-Transparency-Logs auf.')}
       </p>
       {#if general.cloudflare_token_set}
         <div class="field">
-          Wildcard-Domains
-          <ChipInput bind:values={general.wildcard_certs} label="Wildcard hinzufügen" placeholder="*.home.beispiel.de" />
+          {t('Wildcard-Domains')}
+          <ChipInput bind:values={general.wildcard_certs} label={t('Wildcard hinzufügen')} placeholder="*.home.beispiel.de" />
         </div>
-        <div class="row"><Button type="submit" label={saving ? 'Speichert …' : 'Speichern'} disabled={saving} /></div>
+        <div class="row"><Button type="submit" label={saving ? t('Speichert …') : t('Speichern')} disabled={saving} /></div>
       {:else}
-        <p class="muted small">Braucht DNS-01 – erst oben den Cloudflare-Token eintragen.</p>
+        <p class="muted small">{t('Braucht DNS-01 – erst oben den Cloudflare-Token eintragen.')}</p>
       {/if}
     </form>
 
     <DockerCard />
 
     <form class="card" onsubmit={save} aria-labelledby="authelia-title">
-      <h2 id="authelia-title">Authelia</h2>
+      <h2 id="authelia-title">{t('Authelia')}</h2>
       <p class="muted small">
-        Optionales Login vor einzelnen Hosts. Nutzer, Gruppen und Regeln (ein/zwei Faktoren) pflegst du in Authelia.
-        Tesseract richtet nur die Weiterleitung ein – die Tesseract-Oberfläche selbst nutzt Authelia nicht.
+        {t('Optionales Login vor einzelnen Hosts. Nutzer, Gruppen und Regeln (ein/zwei Faktoren) pflegst du in Authelia. Tesseract richtet nur die Weiterleitung ein – die Tesseract-Oberfläche selbst nutzt Authelia nicht.')}
       </p>
       <label class="field">
-        Adresse der Authelia-Instanz (vom Node aus)
-        <input class="input mono" placeholder="http://authelia:9091 oder https://auth.beispiel.de" bind:value={general.authelia_url} />
+        {t('Adresse der Authelia-Instanz (vom Node aus)')}
+        <input class="input mono" placeholder={t('http://authelia:9091 oder https://auth.beispiel.de')} bind:value={general.authelia_url} />
       </label>
       <div class="field">
-        An den Dienst weitergereichte Header
-        <ChipInput bind:values={general.authelia_headers} label="Header hinzufügen" placeholder="Remote-User" />
+        {t('An den Dienst weitergereichte Header')}
+        <ChipInput bind:values={general.authelia_headers} label={t('Header hinzufügen')} placeholder={t('Remote-User')} />
       </div>
       <div class="row">
-        <Button type="submit" label={saving ? 'Speichert …' : 'Speichern'} disabled={saving} />
-        <Button variant="secondary" label={testing ? 'Prüft …' : 'Verbindung testen'} disabled={testing || !general.authelia_url} onClick={testAuthelia} />
+        <Button type="submit" label={saving ? t('Speichert …') : t('Speichern')} disabled={saving} />
+        <Button variant="secondary" label={testing ? t('Prüft …') : t('Verbindung testen')} disabled={testing || !general.authelia_url} onClick={testAuthelia} />
         {#if testResult}
           <span class="small" class:ok={testResult.ok} class:bad={!testResult.ok}>{testResult.detail}</span>
         {/if}
       </div>
-      <p class="muted small">Getestet wird vom Controller aus; erst speichern, dann testen.</p>
+      <p class="muted small">{t('Getestet wird vom Controller aus; erst speichern, dann testen.')}</p>
     </form>
   {/if}
 </AppShell>

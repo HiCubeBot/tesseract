@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n';
   import AppShell from '../lib/components/AppShell.svelte';
   import Button from '../lib/components/Button.svelte';
   import Alert from '../lib/components/Alert.svelte';
@@ -117,16 +118,16 @@
   const steps = $derived(
     host
       ? [
-          { label: 'Intern', on: host.internal, note: host.internal ? 'nur LAN/VPN' : 'aus' },
-          { label: 'IP-Filter', on: (form?.ip_mode ?? host.ip_mode) !== 'off', note: IP_MODES[form?.ip_mode ?? host.ip_mode] },
+          { label: t('Intern'), on: host.internal, note: host.internal ? t('nur LAN/VPN') : 'aus' },
+          { label: t('IP-Filter'), on: (form?.ip_mode ?? host.ip_mode) !== 'off', note: IP_MODES[form?.ip_mode ?? host.ip_mode] },
           {
-            label: 'Zertifikat',
+            label: t('Zertifikat'),
             on: host.access === 'mtls' || host.paths.length > 0,
-            note: host.access === 'mtls' ? 'mTLS' : host.paths.length ? 'einzelne Pfade' : 'aus'
+            note: host.access === 'mtls' ? 'mTLS' : host.paths.length ? t('einzelne Pfade') : 'aus'
           },
-          { label: 'Coraza WAF', on: (form?.waf_mode ?? host.waf_mode) !== 'off', note: WAF_MODES[form?.waf_mode ?? host.waf_mode] },
-          { label: 'Authelia', on: form?.authelia ?? host.authelia, note: (form?.authelia ?? host.authelia) ? 'Login' : 'aus' },
-          { label: 'Dienst', on: true, note: `${host.upstream_host}:${host.upstream_port}` }
+          { label: t('Coraza WAF'), on: (form?.waf_mode ?? host.waf_mode) !== 'off', note: WAF_MODES[form?.waf_mode ?? host.waf_mode] },
+          { label: t('Authelia'), on: form?.authelia ?? host.authelia, note: (form?.authelia ?? host.authelia) ? t('Login') : 'aus' },
+          { label: t('Dienst'), on: true, note: `${host.upstream_host}:${host.upstream_port}` }
         ]
       : []
   );
@@ -144,11 +145,11 @@
     }}
   />
 
-  {#if error}<Alert tone="bad" title="Fehler" text={error} />{/if}
+  {#if error}<Alert tone="bad" title={t('Fehler')} text={error} />{/if}
 
   {#if host && form}
     <section class="card" aria-labelledby="flow-title">
-      <h2 id="flow-title">Weg einer Anfrage</h2>
+      <h2 id="flow-title">{t('Weg einer Anfrage')}</h2>
       <ol class="flow">
         {#each steps as s, i (s.label)}
           <li class:on={s.on}>
@@ -162,34 +163,34 @@
 
     <section class="card" aria-labelledby="waf-title">
       <div class="row">
-        <h2 id="waf-title">Coraza WAF</h2>
-        <span class="muted small">OWASP Core Rule Set</span>
+        <h2 id="waf-title">{t('Coraza WAF')}</h2>
+        <span class="muted small">{t('OWASP Core Rule Set')}</span>
       </div>
-      <SegmentedControl groupLabel="WAF-Modus" options={modes.map((m) => WAF_MODES[m])} bind:selected={modeIndex} />
+      <SegmentedControl groupLabel={t('WAF-Modus')} options={modes.map((m) => WAF_MODES[m])} bind:selected={modeIndex} />
       <p class="muted small">
         {#if form.waf_mode === 'off'}
-          Keine Prüfung der Anfragen.
+          {t('Keine Prüfung der Anfragen.')}
         {:else if form.waf_mode === 'detect'}
-          Angriffe werden erkannt und protokolliert, aber nicht blockiert – gut zum Testen neuer Dienste.
+          {t('Angriffe werden erkannt und protokolliert, aber nicht blockiert – gut zum Testen neuer Dienste.')}
         {:else}
-          Erkannte Angriffe werden mit „403“ abgewiesen und kommen nie beim Dienst an.
+          {t('Erkannte Angriffe werden mit „403“ abgewiesen und kommen nie beim Dienst an.')}
         {/if}
       </p>
 
       <div class="grid2">
         <label class="field">
-          Paranoia-Level
+          {t('Paranoia-Level')}
           <select class="input" bind:value={form.waf_paranoia} disabled={form.waf_mode === 'off'}>
-            <option value={1}>1 · Standard, kaum Fehlalarme</option>
-            <option value={2}>2 · strenger</option>
-            <option value={3}>3 · sehr streng</option>
-            <option value={4}>4 · maximal, viele Fehlalarme</option>
+            <option value={1}>{t('1 · Standard, kaum Fehlalarme')}</option>
+            <option value={2}>{t('2 · strenger')}</option>
+            <option value={3}>{t('3 · sehr streng')}</option>
+            <option value={4}>{t('4 · maximal, viele Fehlalarme')}</option>
           </select>
         </label>
       </div>
 
       <fieldset>
-        <legend>Regel-Ausnahmen für Fehlalarme dieses Dienstes</legend>
+        <legend>{t('Regel-Ausnahmen für Fehlalarme dieses Dienstes')}</legend>
         {#if form.waf_exclusions.length}
           <ul class="rules">
             {#each form.waf_exclusions as id (id)}
@@ -197,7 +198,7 @@
                 <code class="mono">{id}</code>
                 <button
                   type="button"
-                  aria-label={`Ausnahme ${id} entfernen`}
+                  aria-label={t('Ausnahme {0} entfernen', id)}
                   onclick={() => form && (form.waf_exclusions = form.waf_exclusions.filter((r) => r !== id))}
                 >
                   <Icon name="close" size={12} strokeWidth={2.5} />
@@ -207,33 +208,33 @@
           </ul>
         {/if}
         <form class="row" onsubmit={(e) => (e.preventDefault(), addRule())}>
-          <input class="input mono rule-input" inputmode="numeric" placeholder="942100" aria-label="Regel-ID" bind:value={newRule} disabled={form.waf_mode === 'off'} />
-          <Button type="submit" variant="secondary" size="sm" icon="plus" label="Ausnahme" disabled={form.waf_mode === 'off' || !newRule.trim()} />
+          <input class="input mono rule-input" inputmode="numeric" placeholder="942100" aria-label={t('Regel-ID')} bind:value={newRule} disabled={form.waf_mode === 'off'} />
+          <Button type="submit" variant="secondary" size="sm" icon="plus" label={t('Ausnahme')} disabled={form.waf_mode === 'off' || !newRule.trim()} />
         </form>
-        <span class="muted small">Die Regel-ID steht im Log beim jeweiligen Treffer (z. B. 942100 = SQL-Injection erkannt).</span>
+        <span class="muted small">{t('Die Regel-ID steht im Log beim jeweiligen Treffer (z. B. 942100 = SQL-Injection erkannt).')}</span>
       </fieldset>
     </section>
 
     <section class="card" aria-labelledby="ip-title">
-      <h2 id="ip-title">IP-Filter</h2>
-      <SegmentedControl groupLabel="IP-Filter-Modus" options={ipModes.map((m) => IP_MODES[m])} bind:selected={ipIndex} />
+      <h2 id="ip-title">{t('IP-Filter')}</h2>
+      <SegmentedControl groupLabel={t('IP-Filter-Modus')} options={ipModes.map((m) => IP_MODES[m])} bind:selected={ipIndex} />
       <p class="muted small">
         {#if form.ip_mode === 'off'}
-          Alle IPs dürfen (weitere Regeln wie Zertifikat und WAF gelten trotzdem).
+          {t('Alle IPs dürfen (weitere Regeln wie Zertifikat und WAF gelten trotzdem).')}
         {:else if form.ip_mode === 'block'}
-          Anfragen von diesen IPs/Netzen werden sofort mit „403“ abgewiesen.
+          {t('Anfragen von diesen IPs/Netzen werden sofort mit „403“ abgewiesen.')}
         {:else}
-          Nur diese IPs/Netze kommen durch – alle anderen bekommen „403“.
+          {t('Nur diese IPs/Netze kommen durch – alle anderen bekommen „403“.')}
         {/if}
       </p>
       {#if form.ip_mode !== 'off'}
         <div class="field">
-          IP, Netz (CIDR) – auch mehrere auf einmal einfügen
-          <ChipInput bind:values={form.ip_entries} label="IP oder Netz hinzufügen" placeholder="192.168.178.0/24" />
+          {t('IP, Netz (CIDR) – auch mehrere auf einmal einfügen')}
+          <ChipInput bind:values={form.ip_entries} label={t('IP oder Netz hinzufügen')} placeholder="192.168.178.0/24" />
         </div>
         {#if ipLists.length}
           <fieldset>
-            <legend>IP-Listen</legend>
+            <legend>{t('IP-Listen')}</legend>
             <div class="chips">
               {#each ipLists as l (l.id)}
                 <label class="chip" class:on={form.ip_list_ids.includes(l.id)}>
@@ -244,25 +245,25 @@
             </div>
           </fieldset>
         {/if}
-        <span class="muted small">Listen verwaltest du unter <a href="#/settings-integrations">Einstellungen › Integrationen</a>.</span>
-        {#if ipEmpty}<p class="field-error">„Nur erlauben“ braucht mindestens einen Eintrag.</p>{/if}
+        <span class="muted small">{t('Listen verwaltest du unter')} <a href="#/settings-integrations">{t('Einstellungen › Integrationen')}</a>.</span>
+        {#if ipEmpty}<p class="field-error">{t('„Nur erlauben“ braucht mindestens einen Eintrag.')}</p>{/if}
       {/if}
     </section>
 
 
     <section class="card" aria-labelledby="auth-title">
-      <h2 id="auth-title">Authelia</h2>
+      <h2 id="auth-title">{t('Authelia')}</h2>
       {#if autheliaUrl}
         <Toggle
-          label="Login über Authelia"
-          description={`Vor dem Dienst erscheint das Authelia-Login (${autheliaUrl}). Nutzer, Regeln und Zwei-Faktor pflegst du in Authelia selbst.`}
+          label={t('Login über Authelia')}
+          description={t('Vor dem Dienst erscheint das Authelia-Login ({0}). Nutzer, Regeln und Zwei-Faktor pflegst du in Authelia selbst.', autheliaUrl)}
           bind:checked={form.authelia}
         />
-        <p class="muted small">Ergänzt Zertifikat und WAF – die laufen vorher. Für die Tesseract-Oberfläche wird Authelia nicht verwendet.</p>
+        <p class="muted small">{t('Ergänzt Zertifikat und WAF – die laufen vorher. Für die Tesseract-Oberfläche wird Authelia nicht verwendet.')}</p>
       {:else}
         <p class="muted small">
-          Noch keine Authelia-Instanz eingetragen –
-          <a href="#/settings-integrations">Einstellungen › Integrationen</a>.
+          {t('Noch keine Authelia-Instanz eingetragen –')}
+          <a href="#/settings-integrations">{t('Einstellungen › Integrationen')}</a>.
         </p>
       {/if}
     </section>
@@ -270,25 +271,23 @@
     <section class="card" aria-labelledby="robots-title">
       <h2 id="robots-title">robots.txt</h2>
       <p class="muted small">
-        Caddy beantwortet <code>/robots.txt</code> selbst – noch vor Zertifikat und WAF, der Dienst muss nichts dafür tun.
-        Crawler müssen sich nicht daran halten; gegen hartnäckige Bots helfen WAF, IP-Filter und Zertifikat.
+        {t('Caddy beantwortet')} <code>/robots.txt</code> {t('selbst – noch vor Zertifikat und WAF, der Dienst muss nichts dafür tun. Crawler müssen sich nicht daran halten; gegen hartnäckige Bots helfen WAF, IP-Filter und Zertifikat.')}
       </p>
       <RobotsEditor bind:value={form} {hostId} bind:invalid={robotsInvalid} />
     </section>
 
     <section class="card" aria-labelledby="areas-title">
-      <h2 id="areas-title">Bereiche</h2>
+      <h2 id="areas-title">{t('Bereiche')}</h2>
       <p class="muted small">
-        Pfade mit abweichenden Regeln, z. B. <code>/api</code> ohne WAF-Blockade, <code>/admin</code> nur für Ben per
-        Zertifikat oder <code>/.well-known</code> öffentlich.
+        {t('Pfade mit abweichenden Regeln, z. B.')} <code>/api</code> {t('ohne WAF-Blockade,')} <code>/admin</code> {t('nur für Ben per Zertifikat oder')} <code>/.well-known</code> {t('öffentlich.')}
       </p>
       <AreaEditor bind:areas={form.areas} {groups} {persons} {ipLists} autheliaAvailable={!!autheliaUrl} />
     </section>
 
     <div class="row sticky">
-      <Button label={saving ? 'Überträgt …' : 'Speichern & übertragen'} disabled={!dirty || saving || ipEmpty || areasInvalid || robotsInvalid} onClick={save} />
-      <Button variant="secondary" label="Verwerfen" disabled={!dirty || saving} onClick={load} />
-      {#if dirty}<span class="muted small">Ungespeicherte Änderungen</span>{/if}
+      <Button label={saving ? t('Überträgt …') : t('Speichern & übertragen')} disabled={!dirty || saving || ipEmpty || areasInvalid || robotsInvalid} onClick={save} />
+      <Button variant="secondary" label={t('Verwerfen')} disabled={!dirty || saving} onClick={load} />
+      {#if dirty}<span class="muted small">{t('Ungespeicherte Änderungen')}</span>{/if}
     </div>
   {/if}
 </AppShell>

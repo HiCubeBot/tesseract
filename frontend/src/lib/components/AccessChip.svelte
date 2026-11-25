@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../i18n';
   import Icon from './Icon.svelte';
 
   interface Props {
@@ -16,7 +17,7 @@
   <Icon name={iconName} size={14} strokeWidth={2} />
   <span>{label}</span>
   {#if removable}
-    <button type="button" aria-label="{label} entfernen" onclick={() => onRemove?.()}>
+    <button type="button" aria-label={t('{0} entfernen', label)} onclick={() => onRemove?.()}>
       <Icon name="close" size={12} strokeWidth={2.5} />
     </button>
   {/if}

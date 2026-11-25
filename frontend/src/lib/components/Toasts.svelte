@@ -1,12 +1,13 @@
 <script lang="ts">
+  import { t } from '../i18n';
   import { toasts } from '../toast.svelte';
 </script>
 
 <div class="toasts" aria-live="polite">
-  {#each toasts.items as t (t.id)}
-    <div class="toast {t.tone}" role={t.tone === 'bad' ? 'alert' : 'status'}>
-      <span>{t.text}</span>
-      <button type="button" aria-label="Schließen" onclick={() => toasts.dismiss(t.id)}>×</button>
+  {#each toasts.items as toast (toast.id)}
+    <div class="toast {toast.tone}" role={toast.tone === 'bad' ? 'alert' : 'status'}>
+      <span>{toast.text}</span>
+      <button type="button" aria-label={t('Schließen')} onclick={() => toasts.dismiss(toast.id)}>×</button>
     </div>
   {/each}
 </div>

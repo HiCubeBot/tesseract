@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n';
   import AppShell from '../lib/components/AppShell.svelte';
   import PageHeader from '../lib/components/PageHeader.svelte';
   import SettingsTabs from '../lib/components/SettingsTabs.svelte';
@@ -32,14 +33,14 @@
   let keep = $state<{ enabled: boolean; stored: number } | null>(null);
 
   async function setKeep(enabled: boolean) {
-    if (!enabled && keep?.stored && !confirm(`Alle ${keep.stored} hinterlegten Zertifikate löschen? Die Geräte bleiben gültig, ihre .p12 lässt sich aber nicht mehr abrufen.`)) {
+    if (!enabled && keep?.stored && !confirm(t('Alle {0} hinterlegten Zertifikate löschen? Die Geräte bleiben gültig, ihre .p12 lässt sich aber nicht mehr abrufen.', keep.stored))) {
       keep = { ...keep };
       return;
     }
     try {
       const g = await api.put<GeneralSettings>('/settings/general', { device_keep_p12: enabled });
       keep = { enabled: g.device_keep_p12, stored: g.device_p12_stored };
-      toasts.show('ok', enabled ? 'Neue Zertifikate werden aufbewahrt.' : 'Aufbewahren aus, hinterlegte Kopien gelöscht.');
+      toasts.show('ok', enabled ? t('Neue Zertifikate werden aufbewahrt.') : t('Aufbewahren aus, hinterlegte Kopien gelöscht.'));
     } catch (e) {
       toasts.show('bad', e instanceof Error ? e.message : String(e), 10000);
     }
@@ -61,7 +62,7 @@
         device_self_renew_days: Number(selfRenew.days)
       });
       selfRenew = { enabled: g.device_self_renew, days: g.device_self_renew_days, url: g.device_self_renew_url };
-      toasts.show('ok', 'Gespeichert.');
+      toasts.show('ok', t('Gespeichert.'));
     } catch (e) {
       toasts.show('bad', e instanceof Error ? e.message : String(e), 10000);
     } finally {
@@ -70,7 +71,7 @@
   }
 
   function copyRenewUrl() {
-    if (selfRenew) navigator.clipboard?.writeText(selfRenew.url).then(() => toasts.show('ok', 'Link kopiert.'));
+    if (selfRenew) navigator.clipboard?.writeText(selfRenew.url).then(() => toasts.show('ok', t('Link kopiert.')));
   }
 
   async function load() {
@@ -91,7 +92,7 @@
       try {
         status = await api.post<CAStatus>('/ca/import', importBody(setupImport));
         setupImport = emptyImport();
-        toasts.show('ok', 'Bestehende CA übernommen.');
+        toasts.show('ok', t('Bestehende CA übernommen.'));
       } catch (err) {
         error = err instanceof Error ? err.message : String(err);
       } finally {
@@ -100,14 +101,14 @@
       return;
     }
     if (pass1 !== pass2) {
-      error = 'Die Passphrasen stimmen nicht überein.';
+      error = t('Die Passphrasen stimmen nicht überein.');
       return;
     }
     creating = true;
     try {
       created = await api.post('/ca/setup', { passphrase: pass1 });
       pass1 = pass2 = '';
-      toasts.show('ok', 'Zertifizierungsstelle eingerichtet.');
+      toasts.show('ok', t('Zertifizierungsstelle eingerichtet.'));
     } catch (err) {
       error = err instanceof Error ? err.message : String(err);
     } finally {
@@ -160,7 +161,7 @@
     try {
       status = await api.post<CAStatus>('/ca/rotate', { root_key_pem: rootKey, passphrase: rootPass });
       rootKey = rootPass = '';
-      toasts.show('ok', 'Neues Zwischenzertifikat aktiv. Alte Geräte funktionieren weiter und lassen sich nach und nach verlängern.', 10000);
+      toasts.show('ok', t('Neues Zwischenzertifikat aktiv. Alte Geräte funktionieren weiter und lassen sich nach und nach verlängern.'), 10000);
     } catch (err) {
       toasts.show('bad', err instanceof Error ? err.message : String(err), 10000);
     } finally {
@@ -192,7 +193,7 @@
         created = { root_cert_pem: r.root_cert_pem, root_key_pem: r.root_key_pem };
         keySaved = keyDownloaded = false;
       }
-      toasts.show('ok', 'Neue Root-CA aktiv. Alte Geräte funktionieren weiter, Nodes erneuern ihr Zertifikat selbst.', 10000);
+      toasts.show('ok', t('Neue Root-CA aktiv. Alte Geräte funktionieren weiter, Nodes erneuern ihr Zertifikat selbst.'), 10000);
     } catch (err) {
       toasts.show('bad', err instanceof Error ? err.message : String(err), 12000);
     } finally {
@@ -214,66 +215,64 @@
 </script>
 
 <AppShell active="settings">
-  <PageHeader title="Einstellungen" subtitle="Die eigene CA stellt Geräte-, Admin- und Node-Zertifikate aus." />
+  <PageHeader title={t('Einstellungen')} subtitle={t('Die eigene CA stellt Geräte-, Admin- und Node-Zertifikate aus.')} />
   <SettingsTabs current="#/settings-ca" />
 
-  {#if error}<Alert tone="bad" title="Fehler" text={error} />{/if}
+  {#if error}<Alert tone="bad" title={t('Fehler')} text={error} />{/if}
 
   {#if created}
     <section class="card setup done" aria-labelledby="done-title">
-      <h2 id="done-title">Root-Schlüssel jetzt sichern</h2>
+      <h2 id="done-title">{t('Root-Schlüssel jetzt sichern')}</h2>
       {#if status?.configured}
-        <p class="muted">Die neue Root-CA ist aktiv. Geräte bekommen beim Verlängern das neue Root-Zertifikat mit.</p>
+        <p class="muted">{t('Die neue Root-CA ist aktiv. Geräte bekommen beim Verlängern das neue Root-Zertifikat mit.')}</p>
       {/if}
       <p class="muted">
-        Der Root-Schlüssel ist mit deiner Passphrase verschlüsselt. Er wird nur gebraucht, um später ein neues
-        Zwischenzertifikat zu signieren – bewahre ihn offline auf (z. B. USB-Stick im Schrank).
-        <strong>Tesseract speichert ihn nicht.</strong>
+        {t('Der Root-Schlüssel ist mit deiner Passphrase verschlüsselt. Er wird nur gebraucht, um später ein neues Zwischenzertifikat zu signieren – bewahre ihn offline auf (z. B. USB-Stick im Schrank).')}
+        <strong>{t('Tesseract speichert ihn nicht.')}</strong>
       </p>
       <div class="row">
-        <Button icon="download" label="Root-Schlüssel herunterladen" onClick={downloadKey} />
-        <Button variant="secondary" icon="download" label="Root-Zertifikat (.pem)" onClick={downloadRoot} />
+        <Button icon="download" label={t('Root-Schlüssel herunterladen')} onClick={downloadKey} />
+        <Button variant="secondary" icon="download" label={t('Root-Zertifikat (.pem)')} onClick={downloadRoot} />
       </div>
       <label class="check">
         <input type="checkbox" bind:checked={keySaved} disabled={!keyDownloaded} />
-        Ich habe den Root-Schlüssel und die Passphrase sicher gespeichert.
+        {t('Ich habe den Root-Schlüssel und die Passphrase sicher gespeichert.')}
       </label>
-      <div class="row"><Button label="Fertig" disabled={!keySaved} onClick={finish} /></div>
+      <div class="row"><Button label={t('Fertig')} disabled={!keySaved} onClick={finish} /></div>
     </section>
   {:else if status && !status.configured}
     <form class="card setup" onsubmit={setup} aria-labelledby="setup-title">
-      <h2 id="setup-title">Zertifizierungsstelle einrichten</h2>
-      <div class="modes" role="radiogroup" aria-label="Art der Einrichtung">
-        <label class="check"><input type="radio" name="setup-mode" value="generate" bind:group={setupMode} /> Neue CA erzeugen</label>
-        <label class="check"><input type="radio" name="setup-mode" value="import" bind:group={setupMode} /> Bestehende CA importieren</label>
+      <h2 id="setup-title">{t('Zertifizierungsstelle einrichten')}</h2>
+      <div class="modes" role="radiogroup" aria-label={t('Art der Einrichtung')}>
+        <label class="check"><input type="radio" name="setup-mode" value="generate" bind:group={setupMode} /> {t('Neue CA erzeugen')}</label>
+        <label class="check"><input type="radio" name="setup-mode" value="import" bind:group={setupMode} /> {t('Bestehende CA importieren')}</label>
       </div>
       {#if setupMode === 'generate'}
         <ol class="steps muted">
-          <li>Tesseract erzeugt eine <strong>Root-CA</strong> (ECDSA P-384, 10 Jahre) und ein <strong>Geräte-Zwischenzertifikat</strong> (3 Jahre).</li>
-          <li>Den Root-Schlüssel lädst du einmal herunter – verschlüsselt mit dieser Passphrase. Danach vergisst Tesseract ihn.</li>
-          <li>Das Zwischenzertifikat bleibt verschlüsselt auf dem Controller und stellt die Gerätezertifikate aus.</li>
+          <li>{t('Tesseract erzeugt eine')} <strong>{t('Root-CA')}</strong> {t('(ECDSA P-384, 10 Jahre) und ein')} <strong>{t('Geräte-Zwischenzertifikat')}</strong> {t('(3 Jahre).')}</li>
+          <li>{t('Den Root-Schlüssel lädst du einmal herunter – verschlüsselt mit dieser Passphrase. Danach vergisst Tesseract ihn.')}</li>
+          <li>{t('Das Zwischenzertifikat bleibt verschlüsselt auf dem Controller und stellt die Gerätezertifikate aus.')}</li>
         </ol>
         <div class="grid2">
           <label class="field">
-            Passphrase für den Root-Schlüssel (mind. 12 Zeichen)
+            {t('Passphrase für den Root-Schlüssel (mind. 12 Zeichen)')}
             <input class="input" type="password" autocomplete="new-password" minlength="12" required bind:value={pass1} />
           </label>
           <label class="field">
-            Passphrase wiederholen
+            {t('Passphrase wiederholen')}
             <input class="input" type="password" autocomplete="new-password" minlength="12" required bind:value={pass2} />
           </label>
         </div>
         <div class="row">
-          <Button type="submit" label={creating ? 'Erzeugt …' : 'CA erzeugen'} disabled={creating} />
+          <Button type="submit" label={creating ? t('Erzeugt …') : t('CA erzeugen')} disabled={creating} />
         </div>
       {:else}
         <p class="muted small">
-          Für eine vorhandene PKI (z. B. die der Firma oder eine bisherige Homelab-CA). Geräte, die dieser CA schon vertrauen, brauchen kein
-          neues Root-Zertifikat. Schlüssel liegen danach nur verschlüsselt auf dem Controller – ein Root-Schlüssel gar nicht.
+          {t('Für eine vorhandene PKI (z. B. die der Firma oder eine bisherige Homelab-CA). Geräte, die dieser CA schon vertrauen, brauchen kein neues Root-Zertifikat. Schlüssel liegen danach nur verschlüsselt auf dem Controller – ein Root-Schlüssel gar nicht.')}
         </p>
         <CAImportFields bind:value={setupImport} id="setup" />
         <div class="row">
-          <Button type="submit" label={creating ? 'Prüft …' : 'CA importieren'} disabled={creating || !importReady(setupImport)} />
+          <Button type="submit" label={creating ? t('Prüft …') : t('CA importieren')} disabled={creating || !importReady(setupImport)} />
         </div>
       {/if}
     </form>
@@ -281,27 +280,27 @@
     {#if status.devices_beyond_intermediate > 0 && status.intermediate}
       <Alert
         tone="warn"
-        title={`${status.devices_beyond_intermediate} Gerät(e) „unbegrenzt“ gültig`}
-        text={`Sie funktionieren nur bis ${formatDay(status.intermediate.not_after)} – solange das Zwischenzertifikat gilt.`}
+        title={t('{0} Gerät(e) „unbegrenzt“ gültig', status.devices_beyond_intermediate)}
+        text={t('Sie funktionieren nur bis {0} – solange das Zwischenzertifikat gilt.', formatDay(status.intermediate.not_after))}
       />
     {/if}
 
-    <div class="chain" aria-label="Aufbau der CA">
+    <div class="chain" aria-label={t('Aufbau der CA')}>
       {#each [status.root, status.intermediate] as a, i (i)}
         {#if a}
           <section class="card">
             <div class="row">
               <span class="ca-icon"><Icon name="lock" size={16} strokeWidth={2} /></span>
-              <h2 class="card-title">{a.kind === 'root' ? 'Root-Zertifikat' : 'Geräte-Zwischenzertifikat'}</h2>
+              <h2 class="card-title">{a.kind === 'root' ? t('Root-Zertifikat') : t('Geräte-Zwischenzertifikat')}</h2>
               <span class="spacer"></span>
-              <StatusPill tone="ok" label="aktiv" />
+              <StatusPill tone="ok" label={t('aktiv')} />
             </div>
             <dl>
-              <dt>Name</dt><dd>{a.subject}</dd>
-              <dt>Gültig</dt><dd>{formatDay(a.not_before)} – {formatDay(a.not_after)} · noch {yearsLeft(a)} Jahre</dd>
-              <dt>Schlüssel</dt>
-              <dd>{a.key_on_controller ? 'verschlüsselt auf dem Controller' : 'offline – nicht auf dem Controller'}</dd>
-              <dt>Fingerabdruck</dt><dd class="mono fp">{a.fingerprint}</dd>
+              <dt>{t('Name')}</dt><dd>{a.subject}</dd>
+              <dt>{t('Gültig')}</dt><dd>{t('{0} – {1} · noch {2} Jahre', formatDay(a.not_before), formatDay(a.not_after), yearsLeft(a))}</dd>
+              <dt>{t('Schlüssel')}</dt>
+              <dd>{a.key_on_controller ? t('verschlüsselt auf dem Controller') : t('offline – nicht auf dem Controller')}</dd>
+              <dt>{t('Fingerabdruck')}</dt><dd class="mono fp">{a.fingerprint}</dd>
             </dl>
           </section>
         {/if}
@@ -309,56 +308,53 @@
     </div>
 
     <section class="card">
-      <h2>Ausgestellte Gerätezertifikate</h2>
+      <h2>{t('Ausgestellte Gerätezertifikate')}</h2>
       <p class="muted">
-        {status.devices_total} Geräte · {status.devices_active} aktiv · {status.devices_revoked} gesperrt
-        · <a href="#/devices">Geräte ansehen</a>
+        {t('{0} Geräte · {1} aktiv · {2} gesperrt ·', status.devices_total, status.devices_active, status.devices_revoked)} <a href="#/devices">{t('Geräte ansehen')}</a>
       </p>
       <div class="row">
-        <Button variant="secondary" icon="download" label="Root-Zertifikat herunterladen" onClick={downloadRoot} />
+        <Button variant="secondary" icon="download" label={t('Root-Zertifikat herunterladen')} onClick={downloadRoot} />
       </div>
     </section>
 
     {#if keep}
       <section class="card" aria-labelledby="keep-title">
-        <h2 id="keep-title">Zertifikate aufbewahren</h2>
+        <h2 id="keep-title">{t('Zertifikate aufbewahren')}</h2>
         <Toggle
-          label="Zum erneuten Abruf aufbewahren"
-          description="Die .p12 neuer und verlängerter Geräte samt Passwort wird verschlüsselt gespeichert. So lässt sie sich unter Geräte später erneut herunterladen oder per QR-Code aufs Handy holen. Aus = Datei und Passwort gibt es nur einmal beim Ausstellen."
+          label={t('Zum erneuten Abruf aufbewahren')}
+          description={t('Die .p12 neuer und verlängerter Geräte samt Passwort wird verschlüsselt gespeichert. So lässt sie sich unter Geräte später erneut herunterladen oder per QR-Code aufs Handy holen. Aus = Datei und Passwort gibt es nur einmal beim Ausstellen.')}
           checked={keep.enabled}
           onChange={(v) => setKeep(v)}
         />
         <p class="muted small">
-          {keep.stored} {keep.stored === 1 ? 'Gerät hat' : 'Geräte haben'} eine hinterlegte Kopie. Gesperrte Geräte verlieren sie sofort. Zum Entschlüsseln dient der Schlüssel des
-          Controllers (<span class="mono">secret.key</span>) – wer ihn und die Datenbank hat, kommt an die Zertifikate.
+          {t('{0} {1} eine hinterlegte Kopie. Gesperrte Geräte verlieren sie sofort. Zum Entschlüsseln dient der Schlüssel des Controllers (', keep.stored, keep.stored === 1 ? t('Gerät hat') : t('Geräte haben'))}<span class="mono">secret.key</span>{t(') – wer ihn und die Datenbank hat, kommt an die Zertifikate.')}
         </p>
       </section>
     {/if}
 
     {#if selfRenew}
       <section class="card" aria-labelledby="renew-title">
-        <h2 id="renew-title">Gäste verlängern selbst</h2>
+        <h2 id="renew-title">{t('Gäste verlängern selbst')}</h2>
         <Toggle
-          label="Selbst verlängern erlauben"
-          description="Gäste öffnen den Link auf dem Gerät und bekommen ein neues Zertifikat – ohne neue Einladung und ohne Freigabe. Ausweis ist das noch gültige Zertifikat; gesperrte oder abgelaufene Geräte gehen nicht."
+          label={t('Selbst verlängern erlauben')}
+          description={t('Gäste öffnen den Link auf dem Gerät und bekommen ein neues Zertifikat – ohne neue Einladung und ohne Freigabe. Ausweis ist das noch gültige Zertifikat; gesperrte oder abgelaufene Geräte gehen nicht.')}
           bind:checked={selfRenew.enabled}
         />
         {#if selfRenew.enabled}
           <div class="row renew-row">
             <label class="field days">
-              <span class="muted small">Ab wie vielen Tagen vor Ablauf</span>
+              <span class="muted small">{t('Ab wie vielen Tagen vor Ablauf')}</span>
               <input class="input" type="number" min="1" max="365" bind:value={selfRenew.days} />
             </label>
             <span class="mono small link">{selfRenew.url}</span>
-            <Button variant="ghost" size="sm" icon="clipboard" label="Link kopieren" onClick={copyRenewUrl} />
+            <Button variant="ghost" size="sm" icon="clipboard" label={t('Link kopieren')} onClick={copyRenewUrl} />
           </div>
           <p class="muted small">
-            Den Link bekommen Gäste nach der Registrierung angezeigt. Nach einem Wechsel des Zwischenzertifikats geht das Verlängern
-            für alte Geräte sofort.
+            {t('Den Link bekommen Gäste nach der Registrierung angezeigt. Nach einem Wechsel des Zwischenzertifikats geht das Verlängern für alte Geräte sofort.')}
           </p>
         {/if}
         <div class="row">
-          <Button variant="secondary" size="sm" icon="check" label={savingRenew ? 'Speichert …' : 'Speichern'} onClick={saveRenew} disabled={savingRenew} />
+          <Button variant="secondary" size="sm" icon="check" label={savingRenew ? t('Speichert …') : t('Speichern')} onClick={saveRenew} disabled={savingRenew} />
         </div>
       </section>
     {/if}
@@ -366,22 +362,21 @@
     {#each status.previous as prev (prev.authority.fingerprint)}
       <section class="card retiring">
         <div class="row">
-          <h2 class="card-title">Altes Zwischenzertifikat – noch vertraut</h2>
+          <h2 class="card-title">{t('Altes Zwischenzertifikat – noch vertraut')}</h2>
           <span class="spacer"></span>
-          <StatusPill tone="warn" label={`${prev.devices.length} Gerät(e)`} />
+          <StatusPill tone="warn" label={t('{0} Gerät(e)', prev.devices.length)} />
         </div>
         <p class="muted small">
-          {prev.authority.subject} · gültig bis {formatDay(prev.authority.not_after)}. Caddy vertraut ihm, bis alle Geräte unten verlängert
-          und alle Nodes erneuert sind – danach fällt es weg.
+          {t('{0} · gültig bis {1}. Caddy vertraut ihm, bis alle Geräte unten verlängert und alle Nodes erneuert sind – danach fällt es weg.', prev.authority.subject, formatDay(prev.authority.not_after))}
           {#if prev.nodes.length}
-            Nodes ({prev.nodes.map((n) => n.name).join(', ')}) erneuern ihr Zertifikat beim nächsten Kontakt selbst.
+            {t('Nodes ({0}) erneuern ihr Zertifikat beim nächsten Kontakt selbst.', prev.nodes.map((n) => n.name).join(', '))}
           {/if}
         </p>
         <ul class="devlist">
           {#each prev.devices as d (d.id)}
             <li>
               <span>{d.person} · {d.name}</span>
-              <Button variant="secondary" size="sm" label={renewing === d.id ? 'Verlängert …' : 'Verlängern'} disabled={renewing !== null} onClick={() => renew(d.id)} />
+              <Button variant="secondary" size="sm" label={renewing === d.id ? t('Verlängert …') : t('Verlängern')} disabled={renewing !== null} onClick={() => renew(d.id)} />
             </li>
           {/each}
         </ul>
@@ -389,46 +384,42 @@
     {/each}
 
     <form class="card" onsubmit={rotate} aria-labelledby="rot-title">
-      <h2 id="rot-title">Wechsel auf ein neues Zwischenzertifikat</h2>
+      <h2 id="rot-title">{t('Wechsel auf ein neues Zwischenzertifikat')}</h2>
       <p class="muted small">
-        Dafür wird der Root-Schlüssel gebraucht, den du bei der Einrichtung gesichert hast (Datei <span class="mono">tesseract-root-key.pem</span>, mit
-        Passphrase verschlüsselt). Er wird nur für diesen Vorgang entschlüsselt und nicht gespeichert. Bestehende Geräte funktionieren weiter;
-        verlängerte und neue bekommen ihr Zertifikat vom neuen Zwischenzertifikat. Empfohlen spätestens 90 Tage vor Ablauf.
+        {t('Dafür wird der Root-Schlüssel gebraucht, den du bei der Einrichtung gesichert hast (Datei')} <span class="mono">tesseract-root-key.pem</span>{t(', mit Passphrase verschlüsselt). Er wird nur für diesen Vorgang entschlüsselt und nicht gespeichert. Bestehende Geräte funktionieren weiter; verlängerte und neue bekommen ihr Zertifikat vom neuen Zwischenzertifikat. Empfohlen spätestens 90 Tage vor Ablauf.')}
       </p>
       <label class="field col">
-        <span class="label">Root-Schlüssel (Datei wählen oder Inhalt einfügen)</span>
+        <span class="label">{t('Root-Schlüssel (Datei wählen oder Inhalt einfügen)')}</span>
         <input class="input" type="file" accept=".pem,.key,.txt" onchange={readKey} />
         <textarea class="input mono keyarea" rows="4" bind:value={rootKey} placeholder="-----BEGIN ENCRYPTED PRIVATE KEY-----"></textarea>
       </label>
       <label class="field col">
-        <span class="label">Passphrase des Root-Schlüssels</span>
+        <span class="label">{t('Passphrase des Root-Schlüssels')}</span>
         <input class="input" type="password" autocomplete="off" bind:value={rootPass} />
       </label>
       <div class="row">
-        <Button type="submit" label={rotating ? 'Wechselt …' : 'Wechsel durchführen'} disabled={rotating || !rootKey.trim() || !rootPass} />
+        <Button type="submit" label={rotating ? t('Wechselt …') : t('Wechsel durchführen')} disabled={rotating || !rootKey.trim() || !rootPass} />
       </div>
     </form>
 
     <section class="card" aria-labelledby="root-title">
-      <h2 id="root-title">Wechsel der Root-CA</h2>
+      <h2 id="root-title">{t('Wechsel der Root-CA')}</h2>
       <p class="muted small">
-        Neue Root samt neuem Zwischenzertifikat – z. B. wenn die Root bald abläuft, der Root-Schlüssel verloren oder kompromittiert ist, oder
-        um auf eine vorhandene PKI umzuziehen. Bestehende Geräte funktionieren weiter, bis sie verlängert sind; Nodes erneuern ihr Zertifikat
-        selbst. Wo das alte Root-Zertifikat als vertrauenswürdig installiert ist, muss das neue hinzu.
-        {#if status.root}Aktuelle Root gültig bis {formatDay(status.root.not_after)}.{/if}
+        {t('Neue Root samt neuem Zwischenzertifikat – z. B. wenn die Root bald abläuft, der Root-Schlüssel verloren oder kompromittiert ist, oder um auf eine vorhandene PKI umzuziehen. Bestehende Geräte funktionieren weiter, bis sie verlängert sind; Nodes erneuern ihr Zertifikat selbst. Wo das alte Root-Zertifikat als vertrauenswürdig installiert ist, muss das neue hinzu.')}
+        {#if status.root}{t('Aktuelle Root gültig bis {0}.', formatDay(status.root.not_after))}{/if}
       </p>
-      <div class="modes" role="radiogroup" aria-label="Art des Wechsels">
-        <label class="check"><input type="radio" name="root-mode" value="generate" bind:group={rootMode} /> Neue Root erzeugen</label>
-        <label class="check"><input type="radio" name="root-mode" value="import" bind:group={rootMode} /> Bestehende Root importieren</label>
+      <div class="modes" role="radiogroup" aria-label={t('Art des Wechsels')}>
+        <label class="check"><input type="radio" name="root-mode" value="generate" bind:group={rootMode} /> {t('Neue Root erzeugen')}</label>
+        <label class="check"><input type="radio" name="root-mode" value="import" bind:group={rootMode} /> {t('Bestehende Root importieren')}</label>
       </div>
       {#if rootMode === 'generate'}
         <div class="grid2">
           <label class="field">
-            Passphrase für den neuen Root-Schlüssel (mind. 12 Zeichen)
+            {t('Passphrase für den neuen Root-Schlüssel (mind. 12 Zeichen)')}
             <input class="input" type="password" autocomplete="new-password" minlength="12" bind:value={newPass1} />
           </label>
           <label class="field">
-            Passphrase wiederholen
+            {t('Passphrase wiederholen')}
             <input class="input" type="password" autocomplete="new-password" minlength="12" bind:value={newPass2} />
           </label>
         </div>
@@ -436,16 +427,16 @@
         <CAImportFields bind:value={rootImport} id="root" />
       {/if}
       <div class="row">
-        <Button variant="secondary" label={rootRotating ? 'Wechselt …' : 'Root wechseln …'} disabled={rootRotating || !rootReady} onClick={() => (confirmRoot = true)} />
+        <Button variant="secondary" label={rootRotating ? t('Wechselt …') : t('Root wechseln …')} disabled={rootRotating || !rootReady} onClick={() => (confirmRoot = true)} />
       </div>
     </section>
 
     {#if confirmRoot}
       <ConfirmDialog
-        title="Root-CA wechseln?"
-        text="Neue und verlängerte Geräte bekommen ihr Zertifikat ab sofort von der neuen Root. Das alte Zwischenzertifikat bleibt vertraut, solange Geräte oder Nodes daran hängen. Zurück geht es nur mit einem weiteren Wechsel."
+        title={t('Root-CA wechseln?')}
+        text={t('Neue und verlängerte Geräte bekommen ihr Zertifikat ab sofort von der neuen Root. Das alte Zwischenzertifikat bleibt vertraut, solange Geräte oder Nodes daran hängen. Zurück geht es nur mit einem weiteren Wechsel.')}
         word="wechseln"
-        confirmLabel="Root wechseln"
+        confirmLabel={t('Root wechseln')}
         onConfirm={rotateRoot}
         onCancel={() => (confirmRoot = false)}
       />

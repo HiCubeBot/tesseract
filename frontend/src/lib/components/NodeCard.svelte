@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../i18n';
   import Icon from './Icon.svelte';
   import StatusPill from './StatusPill.svelte';
 
@@ -23,9 +24,9 @@
   }: Props = $props();
 
   const S = {
-    online: { tone: 'ok', label: 'online' },
-    drift: { tone: 'warn', label: 'lokal geändert' },
-    offline: { tone: 'bad', label: 'offline' }
+    online: { tone: 'ok', label: t('online') },
+    drift: { tone: 'warn', label: t('lokal geändert') },
+    offline: { tone: 'bad', label: t('offline') }
   } as const;
   const s = $derived(S[status]);
 </script>
@@ -42,11 +43,11 @@
     <StatusPill tone={s.tone} label={s.label} />
   </div>
   <dl>
-    <div><dt>Caddy</dt><dd>{caddy}</dd></div>
-    <div><dt>Hosts</dt><dd>{hosts}</dd></div>
-    <div><dt>Kontakt</dt><dd class="seen">{seen}</dd></div>
+    <div><dt>{t('Caddy')}</dt><dd>{caddy}</dd></div>
+    <div><dt>{t('Hosts')}</dt><dd>{hosts}</dd></div>
+    <div><dt>{t('Kontakt')}</dt><dd class="seen">{seen}</dd></div>
   </dl>
-  <a {href} class="link">Node öffnen</a>
+  <a {href} class="link">{t('Node öffnen')}</a>
 </article>
 
 <style>

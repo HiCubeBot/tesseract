@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { locale } from '../i18n';
   // Kennzahl mit Veränderung zum Vorzeitraum und Verlaufslinie am unteren Rand.
   import Sparkline from './Sparkline.svelte';
 
@@ -33,7 +34,7 @@
   const deltaText = $derived(
     delta === null || !Number.isFinite(delta)
       ? ''
-      : `${delta > 0 ? '▲' : delta < 0 ? '▼' : '±'} ${Math.abs(delta).toLocaleString('de-DE', { maximumFractionDigits: 1 })} %`
+      : `${delta > 0 ? '▲' : delta < 0 ? '▼' : '±'} ${Math.abs(delta).toLocaleString(locale, { maximumFractionDigits: 1 })} %`
   );
   const deltaTone = $derived(delta === null || delta === 0 ? 'muted' : (delta > 0) !== upIsBad ? 'good' : 'bad');
 </script>

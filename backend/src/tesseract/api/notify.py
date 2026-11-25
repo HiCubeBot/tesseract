@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field, field_validator
 from tesseract import audit
 from tesseract import notify as n
 from tesseract.deps import DB, Box, CurrentActor
+from tesseract.i18n import tr
 
 router = APIRouter(prefix="/settings/notify", tags=["settings"])
 
@@ -67,6 +68,8 @@ class NotifyIn(BaseModel):
     rules: dict[str, RuleIn] | None = None
     quiet: QuietIn | None = None
     bundle_minutes: int | None = Field(None, ge=0, le=1440)
+    # Sprache der Meldungen
+    language: Literal["de", "en"] | None = None
 
 
 def _url_ok(url: str) -> bool:
@@ -93,6 +96,7 @@ def _out(cfg: dict[str, Any], request: Request) -> dict[str, Any]:
         "rules": cfg["rules"],
         "quiet": cfg["quiet"],
         "bundle_minutes": cfg["bundle_minutes"],
+        "language": cfg.get("language") or "de",
         "events": [
             {"id": ev, "title": title, "default_level": lvl}
             for ev, (title, lvl, _) in n.EVENTS.items()
@@ -152,6 +156,8 @@ def put_notify(
         value["quiet"] = body.quiet.model_dump()
     if body.bundle_minutes is not None:
         value["bundle_minutes"] = body.bundle_minutes
+    if body.language is not None:
+        value["language"] = body.language
     cfg = n.set_config(db, value)
     audit.record(
         db,
@@ -174,8 +180,13 @@ def test_notify(body: TestIn, request: Request, db: DB, _: CurrentActor) -> dict
     cfg = n.get_config(db)
     if not cfg[body.channel]["enabled"]:
         raise HTTPException(status.HTTP_409_CONFLICT, "Kanal erst einschalten und speichern")
+    lang = cfg.get("language") or "de"
     msg = n.Message(
-        "test", "info", "Testmeldung", ["Wenn das ankommt, klappen die Benachrichtigungen."]
+        "test",
+        "info",
+        tr(lang, "Testmeldung"),
+        [tr(lang, "Wenn das ankommt, klappen die Benachrichtigungen.")],
+        lang=lang,
     )
     try:
         request.app.state.notifier.sender.send(body.channel, cfg, msg)

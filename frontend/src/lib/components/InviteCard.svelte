@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../i18n';
   import Button from './Button.svelte';
   import StatusPill from './StatusPill.svelte';
   import { api, ENROLLMENT_STATUS, PLATFORMS, formatAgo, formatDate, type Invite } from '../api';
@@ -38,34 +39,33 @@
   }
 </script>
 
-<section class="card invite" aria-label={`Einladung für ${invite.person_name}`}>
+<section class="card invite" aria-label={t('Einladung für {0}', invite.person_name)}>
   <div class="row">
-    <h3>Einladung für {invite.person_name}</h3>
+    <h3>{t('Einladung für {0}', invite.person_name)}</h3>
     <span class="spacer"></span>
     {#if invite.state === 'open'}
-      <StatusPill tone="ok" label={`gültig bis ${formatDate(invite.expires_at)}`} />
+      <StatusPill tone="ok" label={t('gültig bis {0}', formatDate(invite.expires_at))} />
     {:else}
       <StatusPill tone="bad" label={invite.state === 'expired' ? 'abgelaufen' : 'widerrufen'} />
     {/if}
   </div>
 
   <div class="share">
-    <img src={`/api/invites/${invite.id}/qr.svg`} alt="QR-Code für den Einladungslink" width="148" height="148" />
+    <img src={`/api/invites/${invite.id}/qr.svg`} alt={t('QR-Code für den Einladungslink')} width="148" height="148" />
     <div class="stack">
       <label class="field">
-        Link
+        {t('Link')}
         <span class="link-row">
           <input class="input mono" readonly value={invite.url} onfocus={(e) => e.currentTarget.select()} />
-          <Button variant="secondary" size="sm" label={copied ? 'Kopiert' : 'Kopieren'} onClick={copy} />
+          <Button variant="secondary" size="sm" label={copied ? t('Kopiert') : t('Kopieren')} onClick={copy} />
         </span>
       </label>
       <div class="field">
-        Bestätigungscode – separat mitteilen
+        {t('Bestätigungscode – separat mitteilen')}
         <span class="code mono">{invite.code}</span>
       </div>
       <p class="muted small">
-        Am besten mündlich oder per Anruf. Wer nur den Link abfängt, kann damit kein Gerät registrieren.
-        Noch {invite.slots_left} Gerät(e) möglich.
+        {t('Am besten mündlich oder per Anruf. Wer nur den Link abfängt, kann damit kein Gerät registrieren. Noch {0} Gerät(e) möglich.', invite.slots_left)}
       </p>
     </div>
   </div>
@@ -83,8 +83,8 @@
           </span>
           <span class="spacer"></span>
           {#if e.status === 'pending'}
-            <Button size="sm" label="Gerät freigeben" disabled={busy} onClick={() => act(`/enrollments/${e.id}/approve`, `„${e.device_name}“ freigegeben.`)} />
-            <Button variant="ghost" size="sm" label="Ablehnen" disabled={busy} onClick={() => act(`/enrollments/${e.id}/reject`, 'Abgelehnt.')} />
+            <Button size="sm" label={t('Gerät freigeben')} disabled={busy} onClick={() => act(`/enrollments/${e.id}/approve`, t('„{0}“ freigegeben.', e.device_name))} />
+            <Button variant="ghost" size="sm" label={t('Ablehnen')} disabled={busy} onClick={() => act(`/enrollments/${e.id}/reject`, 'Abgelehnt.')} />
           {:else}
             <StatusPill tone={st.tone} label={st.label} />
           {/if}
@@ -92,13 +92,13 @@
       {/each}
     </ul>
   {:else if invite.state === 'open'}
-    <p class="muted small">Noch keine Registrierung. Diese Ansicht aktualisiert sich automatisch.</p>
+    <p class="muted small">{t('Noch keine Registrierung. Diese Ansicht aktualisiert sich automatisch.')}</p>
   {/if}
 
   {#if invite.state === 'open'}
     <div class="row">
       <span class="spacer"></span>
-      <Button variant="ghost" size="sm" label="Einladung widerrufen" disabled={busy} onClick={() => act(`/invites/${invite.id}/revoke`, 'Einladung widerrufen.')} />
+      <Button variant="ghost" size="sm" label={t('Einladung widerrufen')} disabled={busy} onClick={() => act(`/invites/${invite.id}/revoke`, t('Einladung widerrufen.'))} />
     </div>
   {/if}
 </section>

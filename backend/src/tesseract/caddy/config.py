@@ -244,6 +244,54 @@ if (!isNaN(n)) e.textContent = n.toFixed(1).replace(".", ",") + " ms";
 </main></body></html>
 """
 
+# Englische Fassung – für Browser, die nicht Deutsch bevorzugen (Accept-Language)
+HINT_PAGE_EN = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>No access</title>
+<style>
+:root{--bg:#f4f5f8;--card:#fff;--line:#e4e6ec;--fg:#14161b;--muted:#5b6170;--key:#5b6170;
+--accent:#7c6cf0;--accent-bg:#f1effe}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1014;--card:#161920;--line:#262b36;--fg:#eceef3;
+--muted:#a0a7b4;--key:#8a91a0;--accent:#a99cff;--accent-bg:#221f3a}}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+background:var(--bg);color:var(--fg);font:16px/1.6 Inter,system-ui,-apple-system,sans-serif;
+padding:24px}
+main{width:100%;max-width:500px;padding:28px 32px;border:1px solid var(--line);border-radius:16px;
+background:var(--card)}
+.badge{display:inline-block;padding:2px 12px;border:1px solid var(--accent);border-radius:999px;
+background:var(--accent-bg);color:var(--accent);font:12px/1.7 ui-monospace,SFMono-Regular,Menlo,
+Consolas,monospace}
+h1{margin:16px 0 8px;font-size:24px;line-height:1.25}
+p{margin:0 0 12px;color:var(--muted)}
+dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 24px;margin:20px 0 0;
+padding-top:18px;border-top:1px solid var(--line);font-size:13px}
+dt{color:var(--key)}
+dd{margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;word-break:break-all}
+</style></head>
+<body><main>
+<span class="badge">403 · device certificate</span>
+<h1>No access</h1>
+<p>This service is only reachable with an approved device certificate.</p>
+<p>Did you get an invitation? Install the certificate via the link and then reload this page.
+If the browser asks for a certificate, choose your device's certificate.</p>
+<dl>
+<dt>Service</dt><dd>{http.request.host}</dd>
+<dt>Your IP</dt><dd>{http.vars.client_ip}</dd>
+<dt>Time</dt><dd>{time.now.http}</dd>
+<dt>Processing</dt><dd id="ms">{http.request.duration_ms} ms</dd>
+<dt>Request ID</dt><dd>{http.request.uuid}</dd>
+</dl>
+<script>
+// round processing time
+var e = document.getElementById("ms"), n = parseFloat(e.textContent);
+if (!isNaN(n)) e.textContent = n.toFixed(1) + " ms";
+</script>
+</main></body></html>
+"""
+
 
 # Endungen, für die es kein öffentliches Zertifikat gibt (RFC 6762/8375 und übliche Heimnetze)
 LOCAL_SUFFIXES = (
@@ -344,16 +392,34 @@ def _apply_reasons(node: Any, enabled: bool) -> None:
             _apply_reasons(item, enabled)
 
 
+def _hint(body: str) -> JSON:
+    return {
+        "handler": "static_response",
+        "status_code": 403,
+        "headers": {
+            "Content-Type": ["text/html; charset=utf-8"],
+            "Cache-Control": ["no-store"],
+            "Vary": ["Accept-Language"],
+        },
+        "body": body,
+    }
+
+
+# Deutsch, wenn der Browser Deutsch zuerst nennt oder keine Sprache schickt – sonst Englisch
+GERMAN_FIRST: list[JSON] = [
+    {"header_regexp": {"Accept-Language": {"pattern": r"(?i)^\s*de\b"}}},
+    {"header": {"Accept-Language": None}},
+]
+
+
 def _deny(host: HostSpec) -> JSON:
     if host.no_cert_action == "hint":
         return {
-            "handler": "static_response",
-            "status_code": 403,
-            "headers": {
-                "Content-Type": ["text/html; charset=utf-8"],
-                "Cache-Control": ["no-store"],
-            },
-            "body": HINT_PAGE,
+            "handler": "subroute",
+            "routes": [
+                {"match": GERMAN_FIRST, "handle": [_hint(HINT_PAGE)], "terminal": True},
+                {"handle": [_hint(HINT_PAGE_EN)]},
+            ],
         }
     return {"handler": "static_response", "status_code": 403, "body": "Kein Zugang"}
 

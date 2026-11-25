@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t, tApi } from '../lib/i18n';
   import AppShell from '../lib/components/AppShell.svelte';
   import PageHeader from '../lib/components/PageHeader.svelte';
   import SettingsTabs from '../lib/components/SettingsTabs.svelte';
@@ -71,7 +72,7 @@
         metrics_list_ids: cfg.metrics_list_ids,
         metrics_caddy: cfg.metrics_caddy
       });
-      toasts.show('ok', 'Gespeichert.');
+      toasts.show('ok', t('Gespeichert.'));
     } catch (e) {
       toasts.show('bad', e instanceof Error ? e.message : String(e), 10000);
     } finally {
@@ -86,7 +87,7 @@
     geoUpdating = true;
     try {
       await api.post('/settings/observability/geoip-update');
-      toasts.show('ok', 'GeoIP-Datenbank aktualisiert.');
+      toasts.show('ok', t('GeoIP-Datenbank aktualisiert.'));
       await load();
     } catch (e) {
       toasts.show('bad', e instanceof Error ? e.message : String(e), 10000);
@@ -94,7 +95,7 @@
       geoUpdating = false;
     }
   }
-  const storeName = $derived(cfg?.loki_kind === 'victorialogs' ? 'VictoriaLogs' : 'Loki');
+  const storeName = $derived(cfg?.loki_kind === 'victorialogs' ? t('VictoriaLogs') : t('Loki'));
   async function testLoki() {
     if (!cfg?.loki_url) return;
     testing = true;
@@ -104,7 +105,7 @@
         loki_tenant: cfg.loki_tenant,
         loki_kind: cfg.loki_kind
       });
-      if (r.ok) toasts.show('ok', `${storeName} hat den Test-Eintrag angenommen.`);
+      if (r.ok) toasts.show('ok', t('{0} hat den Test-Eintrag angenommen.', storeName));
       else toasts.show('bad', `${storeName}: ${r.error}`, 10000);
     } catch (e) {
       toasts.show('bad', e instanceof Error ? e.message : String(e), 10000);
@@ -130,196 +131,178 @@
   }
 
   function copy(text: string) {
-    navigator.clipboard?.writeText(text).then(() => toasts.show('ok', 'Kopiert.'));
+    navigator.clipboard?.writeText(text).then(() => toasts.show('ok', t('Kopiert.')));
   }
 
   const target = $derived(cfg ? new URL(cfg.metrics_url) : null);
   const snippet = $derived(
     cfg && target
-      ? `scrape_configs:
-  - job_name: tesseract
-    scheme: ${target.protocol.replace(':', '')}
-    metrics_path: /metrics
-    static_configs:
-      - targets: ['${target.host}']${
-        AUTH[auth] === 'token'
-          ? `
-    authorization:
-      type: Bearer
-      credentials: ${token || '<Token>'}`
+      ? t('scrape_configs:\n  - job_name: tesseract\n    scheme: {0}\n    metrics_path: /metrics\n    static_configs:\n      - targets: [\'{1}\']{2}', target.protocol.replace(':', ''), target.host, AUTH[auth] === 'token'
+          ? t('\n    authorization:\n      type: Bearer\n      credentials: {0}', token || '<Token>')
           : AUTH[auth] === 'mtls'
-            ? `
-    tls_config:
-      cert_file: /etc/prometheus/admin-geraet.crt
-      key_file: /etc/prometheus/admin-geraet.key`
-            : ''
-      }`
+            ? t('\n    tls_config:\n      cert_file: /etc/prometheus/admin-geraet.crt\n      key_file: /etc/prometheus/admin-geraet.key')
+            : '')
       : ''
   );
 </script>
 
 <AppShell active="settings">
   <PageHeader
-    title="Einstellungen"
-    subtitle="Prometheus-Metriken für Controller und alle Nodes – an einer Stelle abrufbar."
-    primaryLabel={saving ? 'Speichert …' : 'Speichern'}
+    title={t('Einstellungen')}
+    subtitle={t('Prometheus-Metriken für Controller und alle Nodes – an einer Stelle abrufbar.')}
+    primaryLabel={saving ? t('Speichert …') : t('Speichern')}
     primaryIcon="check"
     onPrimary={save}
-    secondaryLabel="Grafana-Dashboard (JSON)"
+    secondaryLabel={t('Grafana-Dashboard (JSON)')}
     secondaryHref="/api/settings/observability/grafana.json"
   />
   <SettingsTabs current="#/settings-metrics" />
 
-  {#if error}<Alert tone="bad" title="Fehler" text={error} />{/if}
+  {#if error}<Alert tone="bad" title={t('Fehler')} text={error} />{/if}
 
   {#if cfg}
     <section class="card" aria-labelledby="ep-title">
       <div class="row">
-        <h2 id="ep-title">Endpunkt</h2>
+        <h2 id="ep-title">{t('Endpunkt')}</h2>
         <span class="spacer"></span>
-        <span class="muted small">{cfg.last_scrape ? `abgefragt ${formatAgo(cfg.last_scrape)}` : 'noch nicht abgefragt'}</span>
+        <span class="muted small">{cfg.last_scrape ? `abgefragt ${formatAgo(cfg.last_scrape)}` : t('noch nicht abgefragt')}</span>
       </div>
-      <Toggle label="Metriken anbieten" description={cfg.metrics_url} bind:checked={cfg.metrics_enabled} />
+      <Toggle label={t('Metriken anbieten')} description={cfg.metrics_url} bind:checked={cfg.metrics_enabled} />
       <div class="field-block">
-        <span class="label">Schutz – wer die Metriken abrufen darf</span>
-        <SegmentedControl groupLabel="Schutz" options={['Bearer-Token', 'Admin-Gerätezertifikat (mTLS)', 'Nur IP-Liste']} bind:selected={auth} />
+        <span class="label">{t('Schutz – wer die Metriken abrufen darf')}</span>
+        <SegmentedControl groupLabel={t('Schutz')} options={['Bearer-Token', t('Admin-Gerätezertifikat (mTLS)'), t('Nur IP-Liste')]} bind:selected={auth} />
       </div>
       {#if AUTH[auth] === 'token'}
         <div class="row">
-          <span class="small">Token: {cfg.metrics_token_set ? 'gesetzt' : 'noch keins'}</span>
-          <Button variant="secondary" size="sm" icon="refresh" label={cfg.metrics_token_set ? 'Neu erzeugen' : 'Erzeugen'} onClick={newToken} />
+          <span class="small">{t('Token: {0}', cfg.metrics_token_set ? 'gesetzt' : t('noch keins'))}</span>
+          <Button variant="secondary" size="sm" icon="refresh" label={cfg.metrics_token_set ? t('Neu erzeugen') : t('Erzeugen')} onClick={newToken} />
         </div>
         {#if token}
-          <Alert tone="warn" title="Token jetzt kopieren" text="Es wird nur dieses eine Mal angezeigt. Ein neues Token macht das alte ungültig." />
-          <div class="row"><code class="token">{token}</code><Button variant="ghost" size="sm" icon="clipboard" label="Kopieren" onClick={() => copy(token)} /></div>
+          <Alert tone="warn" title={t('Token jetzt kopieren')} text={t('Es wird nur dieses eine Mal angezeigt. Ein neues Token macht das alte ungültig.')} />
+          <div class="row"><code class="token">{token}</code><Button variant="ghost" size="sm" icon="clipboard" label={t('Kopieren')} onClick={() => copy(token)} /></div>
         {/if}
       {:else if AUTH[auth] === 'mtls'}
-        <p class="muted small">Prometheus meldet sich mit dem Zertifikat eines Admin-Geräts (Gruppe „Admin“). Am besten ein eigenes Gerät „prometheus“ dafür ausstellen.</p>
+        <p class="muted small">{t('Prometheus meldet sich mit dem Zertifikat eines Admin-Geräts (Gruppe „Admin“). Am besten ein eigenes Gerät „prometheus“ dafür ausstellen.')}</p>
       {:else}
-        <ChipInput bind:values={cfg.metrics_networks} label="Netz hinzufügen" placeholder="192.168.178.0/24" />
+        <ChipInput bind:values={cfg.metrics_networks} label={t('Netz hinzufügen')} placeholder="192.168.178.0/24" />
         {#if lists.length}
           <div class="row">
             {#each lists as l (l.id)}
-              <label class="check"><input type="checkbox" checked={cfg.metrics_list_ids.includes(l.id)} onchange={() => toggleList(l.id)} /> Liste „{l.name}“</label>
+              <label class="check"><input type="checkbox" checked={cfg.metrics_list_ids.includes(l.id)} onchange={() => toggleList(l.id)} /> {t('Liste „{0}“', l.name)}</label>
             {/each}
           </div>
         {/if}
       {/if}
       <Toggle
-        label="Caddy-Metriken der Nodes einsammeln"
-        description="Der Controller fragt den lokalen Caddy, die Agents liefern ihre mit – jeweils mit Label node."
+        label={t('Caddy-Metriken der Nodes einsammeln')}
+        description={t('Der Controller fragt den lokalen Caddy, die Agents liefern ihre mit – jeweils mit Label node.')}
         bind:checked={cfg.metrics_caddy}
       />
     </section>
 
     <section class="card" aria-labelledby="prom-title">
       <div class="row">
-        <h2 id="prom-title">Für prometheus.yml</h2>
+        <h2 id="prom-title">{t('Für prometheus.yml')}</h2>
         <span class="spacer"></span>
-        <Button variant="ghost" size="sm" icon="clipboard" label="Kopieren" onClick={() => copy(snippet)} />
+        <Button variant="ghost" size="sm" icon="clipboard" label={t('Kopieren')} onClick={() => copy(snippet)} />
       </div>
       <pre class="code">{snippet}</pre>
     </section>
 
     <section class="card" aria-labelledby="logs-title">
-      <h2 id="logs-title">Logs</h2>
+      <h2 id="logs-title">{t('Logs')}</h2>
       <label class="field days">
-        <span class="label">Aufbewahrung in Tagen</span>
+        <span class="label">{t('Aufbewahrung in Tagen')}</span>
         <input class="input" type="number" min="1" max="365" bind:value={cfg.logs_days} />
       </label>
       <p class="muted small">
-        Zugriffs-Log vom lokalen Caddy: {cfg.logs_ready ? 'wird gelesen' : 'nicht eingerichtet (TESSERACT_CADDY_ACCESS_LOG und TESSERACT_ACCESS_LOG_PATH)'} ·
-        Statistik reicht so weit zurück wie die Logs.
+        {t('Zugriffs-Log vom lokalen Caddy: {0} · Statistik reicht so weit zurück wie die Logs.', cfg.logs_ready ? t('wird gelesen') : t('nicht eingerichtet (TESSERACT_CADDY_ACCESS_LOG und TESSERACT_ACCESS_LOG_PATH)'))}
       </p>
       <div class="row">
         <span class="muted small">
-          GeoIP:
+          {t('GeoIP:')}
           {#if cfg.geoip_auto.auto}
-            automatisch von DB-IP{cfg.geoip_auto.file_month ? ` · Stand ${cfg.geoip_auto.file_month}` : ''}{cfg.geoip_auto.updated_at
-              ? ` · geholt ${formatAgo(cfg.geoip_auto.updated_at)}`
-              : ' · noch nicht geholt'}
+            {t('automatisch von DB-IP{0}{1}', cfg.geoip_auto.file_month ? t(' · Stand {0}', cfg.geoip_auto.file_month) : '', cfg.geoip_auto.updated_at
+              ? t(' · geholt {0}', formatAgo(cfg.geoip_auto.updated_at))
+              : t(' · noch nicht geholt'))}
           {:else if cfg.geoip}
-            Datenbank aus TESSERACT_GEOIP_DB geladen
+            {t('Datenbank aus TESSERACT_GEOIP_DB geladen')}
           {:else}
-            keine Datenbank – TESSERACT_GEOIP_AUTO=dbip (automatisch) oder TESSERACT_GEOIP_DB (Datei) setzen
+            {t('keine Datenbank – TESSERACT_GEOIP_AUTO=dbip (automatisch) oder TESSERACT_GEOIP_DB (Datei) setzen')}
           {/if}
         </span>
         {#if cfg.geoip_auto.auto}
-          <Button variant="secondary" size="sm" icon="refresh" label={geoUpdating ? 'Lädt …' : 'Jetzt aktualisieren'} disabled={geoUpdating} onClick={updateGeo} />
+          <Button variant="secondary" size="sm" icon="refresh" label={geoUpdating ? t('Lädt …') : t('Jetzt aktualisieren')} disabled={geoUpdating} onClick={updateGeo} />
         {/if}
       </div>
-      {#if cfg.geoip_auto.error}<p class="field-error">Letzter Download fehlgeschlagen: {cfg.geoip_auto.error}</p>{/if}
+      {#if cfg.geoip_auto.error}<p class="field-error">{t('Letzter Download fehlgeschlagen: {0}', cfg.geoip_auto.error)}</p>{/if}
     </section>
 
     <section class="card" aria-labelledby="loki-title">
       <div class="row">
-        <h2 id="loki-title">Log-Speicher (Loki / VictoriaLogs)</h2>
+        <h2 id="loki-title">{t('Log-Speicher (Loki / VictoriaLogs)')}</h2>
         <span class="spacer"></span>
         {#if cfg.loki_url}
           <span class="muted small">
             {cfg.loki.last_error
-              ? `Fehler: ${cfg.loki.last_error}`
+              ? t('Fehler: {0}', cfg.loki.last_error)
               : cfg.loki.last_push_at
-                ? `zuletzt gesendet ${formatAgo(cfg.loki.last_push_at)}`
-                : 'noch nichts gesendet'}
+                ? t('zuletzt gesendet {0}', formatAgo(cfg.loki.last_push_at))
+                : t('noch nichts gesendet')}
           </span>
         {/if}
       </div>
       {#if cfg.loki_kind === 'victorialogs'}
         <p class="muted small">
-          Zusätzlicher Speicher für lange Aufbewahrung: jeder neue Eintrag geht auch an VictoriaLogs und lässt sich mit LogsQL
-          auswerten, z. B. <code>{'{job="tesseract", reason="waf"}'} status:&gt;=400</code>. Die Log-Ansicht und die Statistik hier nutzen
-          weiter die eigene Datenbank. Im Compose-Stack: <code>docker compose --profile victorialogs up -d</code> und
+          {t('Zusätzlicher Speicher für lange Aufbewahrung: jeder neue Eintrag geht auch an VictoriaLogs und lässt sich mit LogsQL auswerten, z. B.')} <code>{'{job="tesseract", reason="waf"}'} status:&gt;=400</code>{t('. Die Log-Ansicht und die Statistik hier nutzen weiter die eigene Datenbank. Im Compose-Stack:')} <code>docker compose --profile victorialogs up -d</code> {t('und')}
           <code>http://victorialogs:9428</code>.
         </p>
       {:else}
         <p class="muted small">
-          Zusätzlicher Speicher für lange Aufbewahrung: jeder neue Eintrag geht auch an Loki und lässt sich in Grafana mit LogQL
-          auswerten, z. B. <code>{'{job="tesseract", reason="waf"}'} | json</code>. Die Log-Ansicht und die Statistik hier nutzen weiter die
-          eigene Datenbank. Im Compose-Stack: <code>docker compose --profile loki up -d</code> und <code>http://loki:3100</code>.
+          {t('Zusätzlicher Speicher für lange Aufbewahrung: jeder neue Eintrag geht auch an Loki und lässt sich in Grafana mit LogQL auswerten, z. B.')} <code>{'{job="tesseract", reason="waf"}'} | json</code>{t('. Die Log-Ansicht und die Statistik hier nutzen weiter die eigene Datenbank. Im Compose-Stack:')} <code>docker compose --profile loki up -d</code> {t('und')} <code>http://loki:3100</code>.
         </p>
       {/if}
       <div class="loki-fields">
         <label class="field">
-          <span class="label">Art</span>
+          <span class="label">{t('Art')}</span>
           <select class="input" bind:value={cfg.loki_kind}>
-            <option value="loki">Loki</option>
-            <option value="victorialogs">VictoriaLogs</option>
+            <option value="loki">{t('Loki')}</option>
+            <option value="victorialogs">{t('VictoriaLogs')}</option>
           </select>
         </label>
         <label class="field">
-          <span class="label">URL (leer = aus)</span>
+          <span class="label">{t('URL (leer = aus)')}</span>
           <input class="input" type="url" placeholder={cfg.loki_kind === 'victorialogs' ? 'http://victorialogs:9428' : 'http://loki:3100'} bind:value={cfg.loki_url} />
         </label>
         <label class="field">
-          <span class="label">{cfg.loki_kind === 'victorialogs' ? 'Mandant (AccountID[:ProjectID], optional)' : 'Mandant (X-Scope-OrgID, optional)'}</span>
+          <span class="label">{cfg.loki_kind === 'victorialogs' ? t('Mandant (AccountID[:ProjectID], optional)') : t('Mandant (X-Scope-OrgID, optional)')}</span>
           <input class="input" type="text" bind:value={cfg.loki_tenant} />
         </label>
       </div>
       <Toggle
-        label={`Log-Ansicht und Statistik aus ${storeName} lesen`}
-        description={`Suche, Live-Ansicht und Statistik fragen ${storeName} statt der eigenen Datenbank – so weit zurück, wie ${storeName} aufbewahrt. Die eigene Datenbank sammelt weiter (für Auto-Sperre und Benachrichtigungen).`}
+        label={t('Log-Ansicht und Statistik aus {0} lesen', storeName)}
+        description={t('Suche, Live-Ansicht und Statistik fragen {0} statt der eigenen Datenbank – so weit zurück, wie {1} aufbewahrt. Die eigene Datenbank sammelt weiter (für Auto-Sperre und Benachrichtigungen).', storeName, storeName)}
         bind:checked={cfg.logs_external}
       />
-      {#if cfg.logs_external && !cfg.loki_url}<p class="field-error">Erst die URL eintragen.</p>{/if}
+      {#if cfg.logs_external && !cfg.loki_url}<p class="field-error">{t('Erst die URL eintragen.')}</p>{/if}
       <div class="row">
-        <Button variant="secondary" size="sm" icon="refresh" label={testing ? 'Prüft …' : 'Verbindung testen'} onClick={testLoki} disabled={!cfg.loki_url || testing} />
+        <Button variant="secondary" size="sm" icon="refresh" label={testing ? t('Prüft …') : t('Verbindung testen')} onClick={testLoki} disabled={!cfg.loki_url || testing} />
         {#if cfg.loki_url}
           <span class="muted small">
-            {cfg.loki.pushed} gesendet · {cfg.loki.queued} im Puffer{cfg.loki.dropped ? ` · ${cfg.loki.dropped} verworfen (Puffer voll)` : ''}
+            {t('{0} gesendet · {1} im Puffer{2}', cfg.loki.pushed, cfg.loki.queued, cfg.loki.dropped ? t(' · {0} verworfen (Puffer voll)', cfg.loki.dropped) : '')}
           </span>
         {/if}
       </div>
     </section>
 
     <section class="card" aria-labelledby="cat-title">
-      <h2 id="cat-title">Verfügbare Metriken</h2>
+      <h2 id="cat-title">{t('Verfügbare Metriken')}</h2>
       <div class="table-wrap">
         <table class="table">
-          <thead><tr><th scope="col">Name</th><th scope="col">Typ</th><th scope="col">Bedeutung</th></tr></thead>
+          <thead><tr><th scope="col">{t('Name')}</th><th scope="col">{t('Typ')}</th><th scope="col">{t('Bedeutung')}</th></tr></thead>
           <tbody>
             {#each cfg.catalog as m (m.name)}
-              <tr><td class="mono small">{m.name}</td><td class="small">{m.type}</td><td class="small">{m.help}</td></tr>
+              <tr><td class="mono small">{m.name}</td><td class="small">{tApi(m.type)}</td><td class="small">{tApi(m.help)}</td></tr>
             {/each}
           </tbody>
         </table>

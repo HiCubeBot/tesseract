@@ -119,3 +119,36 @@ Alle Seiten außer `#/login` verlangen eine Anmeldung.
 1. Seite unter `pages/` anlegen, `AppShell` als Rahmen, Daten über `api` aus `lib/api.ts`.
 2. In `routes.ts` unter `pages` eintragen – sie hat dann Vorrang vor dem Prototyp-Screen.
 3. Der Prototyp bleibt unter `#/design/<pfad>` als Vorlage erhalten.
+4. Texte über `t('…')` schreiben und in `en.json` übersetzen (siehe unten), den Seitentitel
+   aus `routes.ts` in `en.api.json`.
+
+## Mehrsprachigkeit (i18n)
+
+Quelle ist Deutsch: Der deutsche Text ist zugleich der Schlüssel (`src/lib/i18n/index.ts`).
+
+```svelte
+<script lang="ts">
+  import { t } from '../lib/i18n';
+</script>
+<h2>{t('Gespeichert.')}</h2>
+<p>{t('{0} von {1} Geräten', aktiv, max)}</p>
+```
+
+- **Übersetzungen:** `src/lib/i18n/en.json` (deutscher Text → Englisch). Fehlt ein Eintrag,
+  bleibt der deutsche Text stehen.
+- **Texte vom Backend** (API-Fehler, Ereignisse, Metriken, Seitentitel): `en.api.json`, über
+  `tApi(text)` – auch mit Platzhaltern („IP-Liste 5 unbekannt“ ↔ „IP-Liste {0} unbekannt“).
+  API-Fehler laufen in `lib/api.ts` automatisch durch `tApi`.
+- **Sprache:** automatisch nach Browser (`navigator.languages`), umschaltbar in der Seitenleiste
+  und auf der Anmeldeseite, gespeichert im Browser. Umschalten lädt die Seite neu – so greifen
+  auch Texte in Konstanten. Zahlen, Daten und Ländernamen über `locale` und `Intl`.
+- **Prüfung:** `npm run check` ruft `node scripts/i18n.mjs check` auf und meldet feste Texte
+  ohne `t()` sowie Schlüssel ohne englische Übersetzung. `npm run i18n -- keys` listet alle
+  Schlüssel, `npm run i18n -- transform` packt feste Texte automatisch ein.
+- **Pluralformen:** keine angehängten Endungen als Platzhalter (`Tag{1}` mit „e“) – lieber zwei
+  Texte: `n === 1 ? t('1 Tag') : t('{0} Tage', n)`.
+- **Neue Sprache:** `xx.json` (und `xx.api.json`) anlegen und in `LANGUAGES` eintragen.
+- Öffentliche Seiten (Einladung, Verlängern, Statusseite) folgen der Browser-Sprache; die
+  Kein-Zugang-Seite von Caddy kommt auf Deutsch bei `Accept-Language: de…` (oder ohne Angabe),
+  sonst auf Englisch. Benachrichtigungen haben eine eigene Spracheinstellung
+  (`backend/src/tesseract/i18n.py`).

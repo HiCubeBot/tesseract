@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../i18n';
   // Kopf der Host-Seiten: Domain, Status, Aktiv-Schalter und Tabs
   // (Allgemein · Zugriff · Sicherheit · Statistik · Verlauf)
   import StatusPill from './StatusPill.svelte';
@@ -21,17 +22,17 @@
   let busy = $state(false);
 
   const allTabs: { id: HostTab; label: string; path: string }[] = [
-    { id: 'general', label: 'Allgemein', path: '' },
-    { id: 'access', label: 'Zugriff', path: '/access' },
-    { id: 'security', label: 'Sicherheit', path: '/security' },
-    { id: 'stats', label: 'Statistik', path: '/stats' },
-    { id: 'history', label: 'Verlauf', path: '/history' }
+    { id: 'general', label: t('Allgemein'), path: '' },
+    { id: 'access', label: t('Zugriff'), path: '/access' },
+    { id: 'security', label: t('Sicherheit'), path: '/security' },
+    { id: 'stats', label: t('Statistik'), path: '/stats' },
+    { id: 'history', label: t('Verlauf'), path: '/history' }
   ];
   // Personen per Zertifikat (Lesen, Eigene Dienste): nur Statistik und Verlauf
-  const tabs = $derived(session.isAdmin ? allTabs : allTabs.filter((t) => t.id === 'stats' || t.id === 'history'));
+  const tabs = $derived(session.isAdmin ? allTabs : allTabs.filter((x) => x.id === 'stats' || x.id === 'history'));
 
   function leave(e: MouseEvent) {
-    if (dirty && !confirm('Es gibt ungespeicherte Änderungen. Trotzdem wechseln und verwerfen?')) e.preventDefault();
+    if (dirty && !confirm(t('Es gibt ungespeicherte Änderungen. Trotzdem wechseln und verwerfen?'))) e.preventDefault();
   }
 
   async function toggle(enabled: boolean) {
@@ -49,14 +50,14 @@
 </script>
 
 <header class="head">
-  <a href="#/hosts" class="crumb" onclick={leave}>← Proxy-Hosts</a>
+  <a href="#/hosts" class="crumb" onclick={leave}>{t('← Proxy-Hosts')}</a>
   <div class="title-row">
     <h1 class="mono">{host?.domain ?? '…'}</h1>
     {#if st}<StatusPill tone={st.tone} label={st.label} />{/if}
     <span class="spacer"></span>
     {#if host && !host.draft && session.isAdmin}
       <span class="enabled">
-        <span class="muted small">{host.enabled ? 'Aktiv' : 'Deaktiviert'}</span>
+        <span class="muted small">{host.enabled ? t('Aktiv') : t('Deaktiviert')}</span>
         <Switch
           checked={host.enabled}
           disabled={busy}
@@ -68,16 +69,16 @@
   </div>
   {#if host}
     <span class="muted small">
-      {host.node.name} · Version {host.version}{host.enabled || host.draft ? '' : ' · deaktiviert, wird nicht an Caddy übertragen'}
+      {t('{0} · Version {1}{2}', host.node.name, host.version, host.enabled || host.draft ? '' : t(' · deaktiviert, wird nicht an Caddy übertragen'))}
     </span>
   {/if}
-  <nav class="tabs" aria-label="Bereiche des Hosts">
-    {#each tabs as t (t.id)}
+  <nav class="tabs" aria-label={t('Bereiche des Hosts')}>
+    {#each tabs as item (item.id)}
       <a
-        href={`#/hosts/${hostId}${t.path}`}
-        class:on={t.id === tab}
-        aria-current={t.id === tab ? 'page' : undefined}
-        onclick={t.id === tab ? undefined : leave}>{t.label}</a
+        href={`#/hosts/${hostId}${item.path}`}
+        class:on={item.id === tab}
+        aria-current={item.id === tab ? 'page' : undefined}
+        onclick={item.id === tab ? undefined : leave}>{item.label}</a
       >
     {/each}
   </nav>

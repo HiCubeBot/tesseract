@@ -1,5 +1,6 @@
 /** Kleiner Client für die Controller-API (/api). */
 
+import { locale, t, tApi } from './i18n';
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -21,18 +22,18 @@ export function onUnauthorized(fn: Listener): () => void {
 function errorMessage(body: unknown, status: number): string {
   if (body && typeof body === 'object' && 'detail' in body) {
     const detail = (body as { detail: unknown }).detail;
-    if (typeof detail === 'string') return detail;
+    if (typeof detail === 'string') return tApi(detail);
     if (Array.isArray(detail)) {
       return detail
         .map((d) => {
           const loc = Array.isArray(d.loc) ? d.loc.filter((x: unknown) => x !== 'body').join('.') : '';
-          const msg = String(d.msg ?? '').replace(/^Value error, /, '');
+          const msg = tApi(String(d.msg ?? '').replace(/^Value error, /, ''));
           return loc ? `${loc}: ${msg}` : msg;
         })
         .join(' · ');
     }
   }
-  return `Fehler ${status}`;
+  return t('Fehler {0}', status);
 }
 
 /**
@@ -95,16 +96,16 @@ export interface Me {
 /** Zugriff auf Tesseract per Gerätezertifikat */
 export type UiRole = 'none' | 'read' | 'own' | 'admin';
 export const UI_ROLES: Record<UiRole, string> = {
-  none: 'Kein Zugriff',
-  read: 'Lesen',
-  own: 'Eigene Dienste',
-  admin: 'Admin'
+  none: t('Kein Zugriff'),
+  read: t('Lesen'),
+  own: t('Eigene Dienste'),
+  admin: t('Admin')
 };
 export const UI_ROLE_HINTS: Record<UiRole, string> = {
-  none: 'Tesseract selbst ist für diese Person nicht erreichbar.',
-  read: 'Übersicht, Hosts, Statistik und Logs ansehen – nichts ändern.',
-  own: 'Nur die Hosts, für die die Person freigegeben ist (Statistik, Verlauf), und die eigenen Geräte.',
-  admin: 'Alles wie ein Admin – nur Passwort und Passkeys gibt es nicht.'
+  none: t('Tesseract selbst ist für diese Person nicht erreichbar.'),
+  read: t('Übersicht, Hosts, Statistik und Logs ansehen – nichts ändern.'),
+  own: t('Nur die Hosts, für die die Person freigegeben ist (Statistik, Verlauf), und die eigenen Geräte.'),
+  admin: t('Alles wie ein Admin – nur Passwort und Passkeys gibt es nicht.')
 };
 
 export interface MyAccess {
@@ -263,9 +264,9 @@ export interface Ban {
 }
 
 export const IP_MODES: Record<IpMode, string> = {
-  off: 'Aus',
-  block: 'Sperren',
-  allow: 'Nur erlauben'
+  off: t('Aus'),
+  block: t('Sperren'),
+  allow: t('Nur erlauben')
 };
 
 export interface IpList {
@@ -298,12 +299,12 @@ export const CLOUDFLARE_RANGES = [
 
 export type RobotsMode = 'off' | 'allow' | 'deny' | 'deny_ai' | 'paths' | 'custom';
 export const ROBOTS_MODES: Record<RobotsMode, string> = {
-  off: 'Aus – der Dienst antwortet selbst',
-  allow: 'Alles erlauben',
-  deny: 'Alles verbieten',
-  deny_ai: 'KI-Crawler verbieten, Suchmaschinen erlauben',
-  paths: 'Nur bestimmte Pfade sperren',
-  custom: 'Eigener Text'
+  off: t('Aus – der Dienst antwortet selbst'),
+  allow: t('Alles erlauben'),
+  deny: t('Alles verbieten'),
+  deny_ai: t('KI-Crawler verbieten, Suchmaschinen erlauben'),
+  paths: t('Nur bestimmte Pfade sperren'),
+  custom: t('Eigener Text')
 };
 
 export interface RobotsPreview {
@@ -315,9 +316,9 @@ export interface RobotsPreview {
 }
 
 export const WAF_MODES: Record<WafMode, string> = {
-  off: 'Aus',
-  detect: 'Nur protokollieren',
-  block: 'Blockieren'
+  off: t('Aus'),
+  detect: t('Nur protokollieren'),
+  block: t('Blockieren')
 };
 
 export interface GrantRef {
@@ -505,8 +506,8 @@ export interface NodeDrift {
 
 /** Bekannte Caddy-Module, die Tesseract nutzt */
 export const MODULES: Record<string, string> = {
-  'http.handlers.waf': 'Coraza WAF',
-  'dns.providers.cloudflare': 'DNS · Cloudflare'
+  'http.handlers.waf': t('Coraza WAF'),
+  'dns.providers.cloudflare': t('DNS · Cloudflare')
 };
 
 export interface GeneralSettings {
@@ -576,7 +577,7 @@ export interface AuditVerify {
 
 // ---------- Anzeige-Hilfen ----------
 
-const dateFmt = new Intl.DateTimeFormat('de-DE', {
+const dateFmt = new Intl.DateTimeFormat(locale, {
   day: '2-digit',
   month: '2-digit',
   year: 'numeric',
@@ -589,9 +590,9 @@ export const formatDate = (iso: string | null) => (iso ? dateFmt.format(new Date
 export function formatAgo(iso: string | null): string {
   if (!iso) return 'nie';
   const s = Math.round((Date.now() - new Date(iso).getTime()) / 1000);
-  if (s < 60) return 'gerade eben';
-  if (s < 3600) return `vor ${Math.round(s / 60)} Min.`;
-  if (s < 86400) return `vor ${Math.round(s / 3600)} Std.`;
+  if (s < 60) return t('gerade eben');
+  if (s < 3600) return t('vor {0} Min.', Math.round(s / 60));
+  if (s < 86400) return t('vor {0} Std.', Math.round(s / 3600));
   return formatDate(iso);
 }
 
@@ -600,51 +601,51 @@ export function formatAgoShort(iso: string | null): string {
   if (!iso) return 'nie';
   const d = new Date(iso);
   if (Date.now() - d.getTime() < 86_400_000) return formatAgo(iso);
-  const day = d.toLocaleDateString('de-DE', {
+  const day = d.toLocaleDateString(locale, {
     day: '2-digit',
     month: '2-digit',
     ...(d.getFullYear() !== new Date().getFullYear() ? { year: '2-digit' } : {})
   });
-  const time = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  const time = d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
   return `${day} ${time}`;
 }
 
 export const FIELD_LABELS: Record<string, string> = {
-  domain: 'Domain',
-  node: 'Node',
-  upstream_scheme: 'Protokoll',
-  upstream_host: 'Ziel-Adresse',
-  upstream_port: 'Port',
-  upstream_insecure: 'Zertifikat des Ziels nicht prüfen',
-  websockets: 'WebSockets',
-  force_https: 'HTTP → HTTPS',
-  compression: 'Kompression',
-  access: 'Zugriff',
-  no_cert_action: 'Ohne Zertifikat',
-  paths: 'Pfade',
-  grants: 'Freigegeben für',
+  domain: t('Domain'),
+  node: t('Node'),
+  upstream_scheme: t('Protokoll'),
+  upstream_host: t('Ziel-Adresse'),
+  upstream_port: t('Port'),
+  upstream_insecure: t('Zertifikat des Ziels nicht prüfen'),
+  websockets: t('WebSockets'),
+  force_https: t('HTTP → HTTPS'),
+  compression: t('Kompression'),
+  access: t('Zugriff'),
+  no_cert_action: t('Ohne Zertifikat'),
+  paths: t('Pfade'),
+  grants: t('Freigegeben für'),
   waf_mode: 'WAF',
-  waf_paranoia: 'Paranoia-Level',
-  waf_exclusions: 'Regel-Ausnahmen',
-  ip_mode: 'IP-Filter',
+  waf_paranoia: t('Paranoia-Level'),
+  waf_exclusions: t('Regel-Ausnahmen'),
+  ip_mode: t('IP-Filter'),
   ip_entries: 'IPs/Netze',
-  ip_lists: 'IP-Listen',
-  authelia: 'Login über Authelia',
-  tls_challenge: 'Zertifikats-Prüfung',
-  internal: 'Nur intern',
-  internal_no_cert: 'Intern ohne Zertifikat',
-  allow_controller: 'Tesseract darf zugreifen',
-  monitor: 'Überwachung',
-  status_public: 'Statusseite',
-  status_name: 'Name auf der Statusseite',
+  ip_lists: t('IP-Listen'),
+  authelia: t('Login über Authelia'),
+  tls_challenge: t('Zertifikats-Prüfung'),
+  internal: t('Nur intern'),
+  internal_no_cert: t('Intern ohne Zertifikat'),
+  allow_controller: t('Tesseract darf zugreifen'),
+  monitor: t('Überwachung'),
+  status_public: t('Statusseite'),
+  status_name: t('Name auf der Statusseite'),
   robots: 'robots.txt',
-  robots_paths: 'robots.txt: gesperrte Pfade',
-  robots_sitemap: 'robots.txt: Sitemap',
-  robots_text: 'robots.txt: eigener Text',
-  custom_cert: 'Eigenes Zertifikat',
-  areas: 'Bereiche',
-  enabled: 'Aktiv',
-  draft: 'Entwurf'
+  robots_paths: t('robots.txt: gesperrte Pfade'),
+  robots_sitemap: t('robots.txt: Sitemap'),
+  robots_text: t('robots.txt: eigener Text'),
+  custom_cert: t('Eigenes Zertifikat'),
+  areas: t('Bereiche'),
+  enabled: t('Aktiv'),
+  draft: t('Entwurf')
 };
 
 export function formatValue(v: unknown): string {
@@ -653,90 +654,90 @@ export function formatValue(v: unknown): string {
     const a = v as { name?: string; paths: string[] };
     return `${a.name ? a.name + ' ' : ''}(${a.paths.join(', ')})`;
   }
-  if (v === 'reject') return 'Verbindung ablehnen';
+  if (v === 'reject') return t('Verbindung ablehnen');
   if (v === 'http') return 'HTTP-01';
-  if (v === 'dns') return 'DNS-01 (Cloudflare)';
-  if (v === 'off') return 'Aus';
-  if (v === 'detect') return 'Nur protokollieren';
+  if (v === 'dns') return t('DNS-01 (Cloudflare)');
+  if (v === 'off') return t('Aus');
+  if (v === 'detect') return t('Nur protokollieren');
   if (v === 'block') return 'Blockieren/Sperren';
-  if (v === 'allow') return 'Nur erlauben';
-  if (v === 'hint') return 'Hinweisseite';
+  if (v === 'allow') return t('Nur erlauben');
+  if (v === 'hint') return t('Hinweisseite');
   if (v === true) return 'an';
   if (v === false) return 'aus';
-  if (v === 'public') return 'Öffentlich';
-  if (v === 'mtls') return 'Nur mit Zertifikat';
+  if (v === 'public') return t('Öffentlich');
+  if (v === 'mtls') return t('Nur mit Zertifikat');
   if (v === null || v === undefined || v === '') return '–';
   return String(v);
 }
 
 export const ACTION_LABELS: Record<string, string> = {
-  login: 'Angemeldet',
-  login_failed: 'Anmeldung fehlgeschlagen',
-  password_changed: 'Passwort geändert',
-  password_reset: 'Passwort zurückgesetzt (CLI)',
-  host_created: 'Host angelegt',
-  host_updated: 'Host geändert',
-  host_deleted: 'Host gelöscht',
-  host_restored: 'Host zurückgesetzt',
-  config_applied: 'Config übertragen',
-  config_apply_failed: 'Übertragen fehlgeschlagen',
-  settings_changed: 'Einstellungen geändert',
-  ca_created: 'Zertifizierungsstelle eingerichtet',
-  group_created: 'Gruppe angelegt',
-  group_updated: 'Gruppe geändert',
-  group_deleted: 'Gruppe gelöscht',
-  person_created: 'Person angelegt',
-  person_updated: 'Person geändert',
-  person_deleted: 'Person gelöscht',
-  device_issued: 'Gerätezertifikat ausgestellt',
-  device_revoked: 'Gerät gesperrt',
-  device_deleted: 'Gerät gelöscht',
-  access_changed: 'Zugriff geändert',
-  invite_created: 'Einladung erstellt',
-  invite_revoked: 'Einladung widerrufen',
-  enrollment_requested: 'Gerät möchte sich registrieren',
-  enrollment_approved: 'Gerät freigegeben',
-  enrollment_rejected: 'Gerät abgelehnt',
-  enrollment_code_wrong: 'Falscher Einladungscode',
-  admin_mtls_on: 'Oberfläche nur noch mit Admin-Zertifikat',
-  admin_mtls_off: 'Admin-Zertifikat für Oberfläche abgeschaltet',
-  iplist_created: 'IP-Liste angelegt',
-  iplist_updated: 'IP-Liste geändert',
-  iplist_deleted: 'IP-Liste gelöscht',
-  ip_banned: 'IP gesperrt',
-  ip_unbanned: 'IP entsperrt',
-  node_created: 'Node angelegt',
-  node_updated: 'Node geändert',
-  node_deleted: 'Node gelöscht',
-  node_token_created: 'Beitritts-Token erzeugt',
-  node_join_requested: 'Agent möchte beitreten',
-  node_approved: 'Node bestätigt',
-  node_rejected: 'Beitritt abgelehnt',
-  node_joined: 'Agent verbunden',
-  node_drift_detected: 'Abweichung auf Node erkannt',
-  node_drift_overwritten: 'Abweichung überschrieben',
-  node_drift_accepted: 'Abweichung übernommen',
-  node_offline: 'Node offline',
-  host_down: 'Dienst nicht erreichbar',
-  host_up: 'Dienst wieder erreichbar',
-  node_online: 'Node wieder online',
-  backup_created: 'Sicherung erstellt',
-  backup_failed: 'Sicherung fehlgeschlagen',
-  git_mirrored: 'Git-Spiegel aktualisiert',
-  backup_tested: 'Sicherung getestet',
-  backup_downloaded: 'Sicherung heruntergeladen',
-  backup_restored: 'Sicherung wiederhergestellt',
-  ca_rotated: 'Zwischenzertifikat gewechselt',
-  device_renewed: 'Gerät verlängert',
-  node_cert_renewed: 'Node-Zertifikat erneuert',
-  device_expiring: 'Gerätezertifikat läuft bald ab',
-  ca_expiring: 'Zwischenzertifikat läuft bald ab',
-  node_cert_expiring: 'Node-Zertifikat läuft bald ab',
-  custom_cert_expiring: 'Eigenes Zertifikat läuft bald ab',
-  passkey_added: 'Passkey hinzugefügt',
-  passkey_removed: 'Passkey entfernt',
-  ldap_synced: 'Abgleich mit LDAP',
-  ldap_sync_failed: 'Abgleich mit LDAP fehlgeschlagen'
+  login: t('Angemeldet'),
+  login_failed: t('Anmeldung fehlgeschlagen'),
+  password_changed: t('Passwort geändert'),
+  password_reset: t('Passwort zurückgesetzt (CLI)'),
+  host_created: t('Host angelegt'),
+  host_updated: t('Host geändert'),
+  host_deleted: t('Host gelöscht'),
+  host_restored: t('Host zurückgesetzt'),
+  config_applied: t('Config übertragen'),
+  config_apply_failed: t('Übertragen fehlgeschlagen'),
+  settings_changed: t('Einstellungen geändert'),
+  ca_created: t('Zertifizierungsstelle eingerichtet'),
+  group_created: t('Gruppe angelegt'),
+  group_updated: t('Gruppe geändert'),
+  group_deleted: t('Gruppe gelöscht'),
+  person_created: t('Person angelegt'),
+  person_updated: t('Person geändert'),
+  person_deleted: t('Person gelöscht'),
+  device_issued: t('Gerätezertifikat ausgestellt'),
+  device_revoked: t('Gerät gesperrt'),
+  device_deleted: t('Gerät gelöscht'),
+  access_changed: t('Zugriff geändert'),
+  invite_created: t('Einladung erstellt'),
+  invite_revoked: t('Einladung widerrufen'),
+  enrollment_requested: t('Gerät möchte sich registrieren'),
+  enrollment_approved: t('Gerät freigegeben'),
+  enrollment_rejected: t('Gerät abgelehnt'),
+  enrollment_code_wrong: t('Falscher Einladungscode'),
+  admin_mtls_on: t('Oberfläche nur noch mit Admin-Zertifikat'),
+  admin_mtls_off: t('Admin-Zertifikat für Oberfläche abgeschaltet'),
+  iplist_created: t('IP-Liste angelegt'),
+  iplist_updated: t('IP-Liste geändert'),
+  iplist_deleted: t('IP-Liste gelöscht'),
+  ip_banned: t('IP gesperrt'),
+  ip_unbanned: t('IP entsperrt'),
+  node_created: t('Node angelegt'),
+  node_updated: t('Node geändert'),
+  node_deleted: t('Node gelöscht'),
+  node_token_created: t('Beitritts-Token erzeugt'),
+  node_join_requested: t('Agent möchte beitreten'),
+  node_approved: t('Node bestätigt'),
+  node_rejected: t('Beitritt abgelehnt'),
+  node_joined: t('Agent verbunden'),
+  node_drift_detected: t('Abweichung auf Node erkannt'),
+  node_drift_overwritten: t('Abweichung überschrieben'),
+  node_drift_accepted: t('Abweichung übernommen'),
+  node_offline: t('Node offline'),
+  host_down: t('Dienst nicht erreichbar'),
+  host_up: t('Dienst wieder erreichbar'),
+  node_online: t('Node wieder online'),
+  backup_created: t('Sicherung erstellt'),
+  backup_failed: t('Sicherung fehlgeschlagen'),
+  git_mirrored: t('Git-Spiegel aktualisiert'),
+  backup_tested: t('Sicherung getestet'),
+  backup_downloaded: t('Sicherung heruntergeladen'),
+  backup_restored: t('Sicherung wiederhergestellt'),
+  ca_rotated: t('Zwischenzertifikat gewechselt'),
+  device_renewed: t('Gerät verlängert'),
+  node_cert_renewed: t('Node-Zertifikat erneuert'),
+  device_expiring: t('Gerätezertifikat läuft bald ab'),
+  ca_expiring: t('Zwischenzertifikat läuft bald ab'),
+  node_cert_expiring: t('Node-Zertifikat läuft bald ab'),
+  custom_cert_expiring: t('Eigenes Zertifikat läuft bald ab'),
+  passkey_added: t('Passkey hinzugefügt'),
+  passkey_removed: t('Passkey entfernt'),
+  ldap_synced: t('Abgleich mit LDAP'),
+  ldap_sync_failed: t('Abgleich mit LDAP fehlgeschlagen')
 };
 
 // ---------- Phase 2: CA, Personen, Geräte ----------
@@ -822,21 +823,21 @@ export interface IssuedDevice {
 }
 
 export const PLATFORMS: Record<string, string> = {
-  ios: 'iPhone / iPad',
-  android: 'Android',
-  macos: 'Mac',
-  windows: 'Windows',
-  linux: 'Linux',
-  other: 'Sonstiges'
+  ios: t('iPhone / iPad'),
+  android: t('Android'),
+  macos: t('Mac'),
+  windows: t('Windows'),
+  linux: t('Linux'),
+  other: t('Sonstiges')
 };
 
 export const DEVICE_STATUS: Record<Device['status'], { label: string; tone: 'ok' | 'warn' | 'bad' }> = {
-  active: { label: 'aktiv', tone: 'ok' },
-  expired: { label: 'abgelaufen', tone: 'warn' },
-  revoked: { label: 'gesperrt', tone: 'bad' }
+  active: { label: t('aktiv'), tone: 'ok' },
+  expired: { label: t('abgelaufen'), tone: 'warn' },
+  revoked: { label: t('gesperrt'), tone: 'bad' }
 };
 
-const dayFmt = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+const dayFmt = new Intl.DateTimeFormat(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
 export const formatDay = (iso: string | null) => (iso ? dayFmt.format(new Date(iso)) : '–');
 
 /** Läuft in weniger als 30 Tagen ab? */
@@ -909,10 +910,10 @@ export interface GuestCertificate {
 }
 
 export const ENROLLMENT_STATUS: Record<Enrollment['status'], { label: string; tone: 'ok' | 'warn' | 'bad' | 'neutral' }> = {
-  pending: { label: 'wartet', tone: 'warn' },
-  approved: { label: 'freigegeben', tone: 'ok' },
-  delivered: { label: 'installiert', tone: 'ok' },
-  rejected: { label: 'abgelehnt', tone: 'bad' }
+  pending: { label: t('wartet'), tone: 'warn' },
+  approved: { label: t('freigegeben'), tone: 'ok' },
+  delivered: { label: t('installiert'), tone: 'ok' },
+  rejected: { label: t('abgelehnt'), tone: 'bad' }
 };
 
 // ---------- Phase 5: Logs ----------
@@ -965,21 +966,21 @@ export interface LogDetail extends LogEntry {
 }
 
 export const LOG_REASONS: Record<LogReason, { label: string; tone: 'ok' | 'waf' | 'mtls' | 'ip' | 'bad' }> = {
-  ok: { label: 'ok', tone: 'ok' },
+  ok: { label: t('ok'), tone: 'ok' },
   waf: { label: 'WAF', tone: 'waf' },
-  ip: { label: 'IP-Filter', tone: 'ip' },
-  ban: { label: 'IP gesperrt', tone: 'ip' },
-  internal: { label: 'nicht intern', tone: 'ip' },
-  mtls: { label: 'ohne Zertifikat', tone: 'mtls' },
-  websocket: { label: 'WebSocket gesperrt', tone: 'bad' },
-  authelia: { label: 'Authelia fehlt', tone: 'bad' }
+  ip: { label: t('IP-Filter'), tone: 'ip' },
+  ban: { label: t('IP gesperrt'), tone: 'ip' },
+  internal: { label: t('nicht intern'), tone: 'ip' },
+  mtls: { label: t('ohne Zertifikat'), tone: 'mtls' },
+  websocket: { label: t('WebSocket gesperrt'), tone: 'bad' },
+  authelia: { label: t('Authelia fehlt'), tone: 'bad' }
 };
 
 /** Land (ISO-Code) als Name auf Deutsch */
 export function countryName(code: string | null): string {
   if (!code) return '';
   try {
-    return new Intl.DisplayNames(['de'], { type: 'region' }).of(code) ?? code;
+    return new Intl.DisplayNames([locale], { type: 'region' }).of(code) ?? code;
   } catch {
     return code;
   }
@@ -994,5 +995,5 @@ export function formatBytes(n: number): string {
     v /= 1024;
     i++;
   }
-  return `${v.toLocaleString('de-DE', { maximumFractionDigits: v < 10 ? 1 : 0 })} ${units[i]}`;
+  return `${v.toLocaleString(locale, { maximumFractionDigits: v < 10 ? 1 : 0 })} ${units[i]}`;
 }

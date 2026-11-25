@@ -1,5 +1,6 @@
 /** Plattform erkennen und Installationsanleitungen für das Geräte-Zertifikat. */
 
+import { t } from './i18n';
 export type Platform = 'ios' | 'android' | 'macos' | 'windows' | 'linux' | 'other';
 
 export function detectPlatform(ua = navigator.userAgent): Platform {
@@ -21,63 +22,63 @@ export function suggestedName(p: Platform, person: string): string {
     macos: 'Mac',
     windows: 'Windows-PC',
     linux: 'Linux-PC',
-    other: 'Gerät'
+    other: t('Gerät')
   };
   return `${first}s ${device[p]}`;
 }
 
 export const INSTALL_STEPS: Record<Platform, { title: string; steps: string[]; browser?: string }> = {
   ios: {
-    title: 'iPhone / iPad',
+    title: t('iPhone / iPad'),
     steps: [
-      'Zertifikat herunterladen – Safari fragt „Profil laden?“ → Erlauben.',
-      'Einstellungen öffnen → oben „Profil geladen“ antippen (oder Allgemein › VPN & Geräteverwaltung).',
-      '„Installieren“ antippen, Gerätecode eingeben und das Passwort von dieser Seite eintragen.',
-      'Fertig. Beim ersten Aufruf eines Dienstes fragt Safari, welches Zertifikat es verwenden soll – deins wählen.'
+      t('Zertifikat herunterladen – Safari fragt „Profil laden?“ → Erlauben.'),
+      t('Einstellungen öffnen → oben „Profil geladen“ antippen (oder Allgemein › VPN & Geräteverwaltung).'),
+      t('„Installieren“ antippen, Gerätecode eingeben und das Passwort von dieser Seite eintragen.'),
+      t('Fertig. Beim ersten Aufruf eines Dienstes fragt Safari, welches Zertifikat es verwenden soll – deins wählen.')
     ],
-    browser: 'Bitte Safari verwenden – andere Browser auf iOS können das Zertifikat nicht installieren.'
+    browser: t('Bitte Safari verwenden – andere Browser auf iOS können das Zertifikat nicht installieren.')
   },
   android: {
-    title: 'Android',
+    title: t('Android'),
     steps: [
-      'Zertifikat herunterladen.',
-      'Einstellungen › Sicherheit › Weitere Sicherheitseinstellungen › Verschlüsselung & Anmeldedaten › Zertifikat installieren.',
-      '„VPN- und App-Nutzerzertifikat“ wählen, die heruntergeladene .p12-Datei auswählen und das Passwort eintragen.',
-      'Beim ersten Aufruf eines Dienstes fragt Chrome nach dem Zertifikat – deins wählen und „Zulassen“.'
+      t('Zertifikat herunterladen.'),
+      t('Einstellungen › Sicherheit › Weitere Sicherheitseinstellungen › Verschlüsselung & Anmeldedaten › Zertifikat installieren.'),
+      t('„VPN- und App-Nutzerzertifikat“ wählen, die heruntergeladene .p12-Datei auswählen und das Passwort eintragen.'),
+      t('Beim ersten Aufruf eines Dienstes fragt Chrome nach dem Zertifikat – deins wählen und „Zulassen“.')
     ],
-    browser: 'Die Menünamen unterscheiden sich je nach Hersteller leicht – in den Einstellungen nach „Zertifikat“ suchen hilft.'
+    browser: t('Die Menünamen unterscheiden sich je nach Hersteller leicht – in den Einstellungen nach „Zertifikat“ suchen hilft.')
   },
   macos: {
-    title: 'Mac',
+    title: t('Mac'),
     steps: [
-      'Zertifikat herunterladen und die .p12-Datei doppelklicken.',
-      'Die Schlüsselbundverwaltung öffnet sich: Schlüsselbund „Anmeldung“ wählen und das Passwort eintragen.',
-      'Safari und Chrome verwenden das Zertifikat automatisch und fragen beim ersten Mal nach.'
+      t('Zertifikat herunterladen und die .p12-Datei doppelklicken.'),
+      t('Die Schlüsselbundverwaltung öffnet sich: Schlüsselbund „Anmeldung“ wählen und das Passwort eintragen.'),
+      t('Safari und Chrome verwenden das Zertifikat automatisch und fragen beim ersten Mal nach.')
     ],
-    browser: 'Firefox hat einen eigenen Speicher: Einstellungen › Datenschutz & Sicherheit › Zertifikate anzeigen › Ihre Zertifikate › Importieren.'
+    browser: t('Firefox hat einen eigenen Speicher: Einstellungen › Datenschutz & Sicherheit › Zertifikate anzeigen › Ihre Zertifikate › Importieren.')
   },
   windows: {
-    title: 'Windows',
+    title: t('Windows'),
     steps: [
-      'Zertifikat herunterladen und die .p12-Datei doppelklicken.',
-      'Im Zertifikatimport-Assistenten „Aktueller Benutzer“ wählen, Passwort eintragen, Speicherort automatisch wählen lassen.',
-      'Edge und Chrome verwenden das Zertifikat automatisch und fragen beim ersten Mal nach.'
+      t('Zertifikat herunterladen und die .p12-Datei doppelklicken.'),
+      t('Im Zertifikatimport-Assistenten „Aktueller Benutzer“ wählen, Passwort eintragen, Speicherort automatisch wählen lassen.'),
+      t('Edge und Chrome verwenden das Zertifikat automatisch und fragen beim ersten Mal nach.')
     ],
-    browser: 'Firefox hat einen eigenen Speicher: Einstellungen › Datenschutz & Sicherheit › Zertifikate anzeigen › Ihre Zertifikate › Importieren.'
+    browser: t('Firefox hat einen eigenen Speicher: Einstellungen › Datenschutz & Sicherheit › Zertifikate anzeigen › Ihre Zertifikate › Importieren.')
   },
   linux: {
-    title: 'Linux',
+    title: t('Linux'),
     steps: [
-      'Zertifikat herunterladen.',
-      'Firefox: Einstellungen › Datenschutz & Sicherheit › Zertifikate anzeigen › Ihre Zertifikate › Importieren.',
-      'Chrome/Chromium: chrome://settings/certificates › Ihre Zertifikate › Importieren.'
+      t('Zertifikat herunterladen.'),
+      t('Firefox: Einstellungen › Datenschutz & Sicherheit › Zertifikate anzeigen › Ihre Zertifikate › Importieren.'),
+      t('Chrome/Chromium: chrome://settings/certificates › Ihre Zertifikate › Importieren.')
     ]
   },
   other: {
-    title: 'Anderes Gerät',
+    title: t('Anderes Gerät'),
     steps: [
-      'Zertifikat herunterladen.',
-      'Die .p12-Datei im Zertifikatsspeicher des Systems oder Browsers importieren und das Passwort eintragen.'
+      t('Zertifikat herunterladen.'),
+      t('Die .p12-Datei im Zertifikatsspeicher des Systems oder Browsers importieren und das Passwort eintragen.')
     ]
   }
 };

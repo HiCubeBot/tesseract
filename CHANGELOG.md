@@ -4,6 +4,21 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.25.0] – 2026-11-25
+
+### Hinzugefügt
+- **Mehrsprachigkeit** ([#31](https://github.com/HiCubeBot/tesseract/issues/31)): Die Oberfläche
+  gibt es auf Deutsch und Englisch. Die Sprache folgt dem Browser und lässt sich in der
+  Seitenleiste (DE/EN) und auf der Anmeldeseite umschalten; Zahlen, Daten und Ländernamen in der
+  gewählten Sprache. Fehlermeldungen der API, Ereignisse und Metriken werden mit übersetzt.
+- Öffentliche Seiten (Einladung, Verlängern, Statusseite) folgen der Browser-Sprache; die
+  Kein-Zugang-Seite von Caddy kommt nach `Accept-Language` auf Deutsch oder Englisch.
+- Benachrichtigungen (ntfy, E-Mail, Webhook) in einstellbarer Sprache: Einstellungen ›
+  Benachrichtigungen › „Sprache der Meldungen“.
+- Für Entwickler: Texte über `t('…')` mit Deutsch als Schlüssel, Übersetzungen in
+  `frontend/src/lib/i18n/en.json`; `npm run check` meldet neue feste Texte und fehlende
+  Übersetzungen ([docs/frontend.md](docs/frontend.md#mehrsprachigkeit-i18n)).
+
 ## [1.24.0] – 2026-11-25
 
 ### Hinzugefügt

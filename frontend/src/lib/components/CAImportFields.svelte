@@ -43,6 +43,7 @@
 </script>
 
 <script lang="ts">
+  import { t } from '../i18n';
   interface Props {
     value: CAImport;
     /** eindeutige Namen für die Radio-Gruppe */
@@ -61,46 +62,46 @@
 
 <div class="import">
   <fieldset class="ways">
-    <legend class="label">Was liegt vor?</legend>
+    <legend class="label">{t('Was liegt vor?')}</legend>
     <label class="check">
       <input type="radio" name={`${id}-way`} value="root" bind:group={value.way} />
-      Root-Zertifikat und Root-Schlüssel – Tesseract erzeugt daraus sein Zwischenzertifikat und vergisst den Schlüssel sofort
+      {t('Root-Zertifikat und Root-Schlüssel – Tesseract erzeugt daraus sein Zwischenzertifikat und vergisst den Schlüssel sofort')}
     </label>
     <label class="check">
       <input type="radio" name={`${id}-way`} value="intermediate" bind:group={value.way} />
-      Root-Zertifikat und ein fertiges Zwischenzertifikat mit Schlüssel – der Root-Schlüssel bleibt in der vorhandenen PKI
+      {t('Root-Zertifikat und ein fertiges Zwischenzertifikat mit Schlüssel – der Root-Schlüssel bleibt in der vorhandenen PKI')}
     </label>
   </fieldset>
 
   <label class="field col">
-    <span class="label">Root-Zertifikat (PEM)</span>
+    <span class="label">{t('Root-Zertifikat (PEM)')}</span>
     <input class="input" type="file" accept=".pem,.crt,.cer,.txt" onchange={(e) => readFile(e, 'root_cert_pem')} />
     <textarea class="input mono pem" rows="3" bind:value={value.root_cert_pem} placeholder="-----BEGIN CERTIFICATE-----"></textarea>
   </label>
 
   {#if value.way === 'root'}
     <label class="field col">
-      <span class="label">Root-Schlüssel (PEM, ECDSA oder RSA)</span>
+      <span class="label">{t('Root-Schlüssel (PEM, ECDSA oder RSA)')}</span>
       <input class="input" type="file" accept=".pem,.key,.txt" onchange={(e) => readFile(e, 'root_key_pem')} />
       <textarea class="input mono pem" rows="3" bind:value={value.root_key_pem} placeholder="-----BEGIN ENCRYPTED PRIVATE KEY-----"></textarea>
     </label>
     <label class="field col">
-      <span class="label">Passphrase des Root-Schlüssels (leer, wenn unverschlüsselt)</span>
+      <span class="label">{t('Passphrase des Root-Schlüssels (leer, wenn unverschlüsselt)')}</span>
       <input class="input" type="password" autocomplete="off" bind:value={value.passphrase} />
     </label>
   {:else}
     <label class="field col">
-      <span class="label">Zwischenzertifikat (PEM, vom Root oben ausgestellt)</span>
+      <span class="label">{t('Zwischenzertifikat (PEM, vom Root oben ausgestellt)')}</span>
       <input class="input" type="file" accept=".pem,.crt,.cer,.txt" onchange={(e) => readFile(e, 'intermediate_cert_pem')} />
       <textarea class="input mono pem" rows="3" bind:value={value.intermediate_cert_pem} placeholder="-----BEGIN CERTIFICATE-----"></textarea>
     </label>
     <label class="field col">
-      <span class="label">Schlüssel des Zwischenzertifikats (PEM)</span>
+      <span class="label">{t('Schlüssel des Zwischenzertifikats (PEM)')}</span>
       <input class="input" type="file" accept=".pem,.key,.txt" onchange={(e) => readFile(e, 'intermediate_key_pem')} />
       <textarea class="input mono pem" rows="3" bind:value={value.intermediate_key_pem} placeholder="-----BEGIN PRIVATE KEY-----"></textarea>
     </label>
     <label class="field col">
-      <span class="label">Passphrase dieses Schlüssels (leer, wenn unverschlüsselt)</span>
+      <span class="label">{t('Passphrase dieses Schlüssels (leer, wenn unverschlüsselt)')}</span>
       <input class="input" type="password" autocomplete="off" bind:value={value.intermediate_passphrase} />
     </label>
   {/if}

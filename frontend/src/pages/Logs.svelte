@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { locale, t } from '../lib/i18n';
   import { onDestroy } from 'svelte';
   import { session } from '../lib/session.svelte';
   import AppShell from '../lib/components/AppShell.svelte';
@@ -122,8 +123,8 @@
   async function ban(d: LogDetail) {
     busy = true;
     try {
-      await api.post('/bans', { ip: d.ip, hours: 24, reason: `aus den Logs: ${d.method} ${d.host}${d.uri}`.slice(0, 250) });
-      toasts.show('ok', `${d.ip} ist für 24 Stunden auf allen Nodes gesperrt.`);
+      await api.post('/bans', { ip: d.ip, hours: 24, reason: t('aus den Logs: {0} {1}{2}', d.method, d.host, d.uri).slice(0, 250) });
+      toasts.show('ok', t('{0} ist für 24 Stunden auf allen Nodes gesperrt.', d.ip));
       selected = await api.get<LogDetail>(`/logs/${d.id}`);
     } catch (err) {
       toasts.show('bad', err instanceof Error ? err.message : String(err), 10000);
@@ -136,9 +137,9 @@
     busy = true;
     try {
       const r = await api.post<{ ok: boolean; added: number[]; host: string; error: string | null }>(`/logs/${d.id}/exclude`);
-      if (!r.added.length) toasts.show('info', `Die Regeln sind für ${r.host} schon ausgenommen.`);
-      else if (r.ok) toasts.show('ok', `Ausnahme ${r.added.join(', ')} für ${r.host} angelegt und übertragen.`);
-      else toasts.show('warn', `Ausnahme gespeichert, aber nicht übertragen: ${r.error}`, 10000);
+      if (!r.added.length) toasts.show('info', t('Die Regeln sind für {0} schon ausgenommen.', r.host));
+      else if (r.ok) toasts.show('ok', t('Ausnahme {0} für {1} angelegt und übertragen.', r.added.join(', '), r.host));
+      else toasts.show('warn', t('Ausnahme gespeichert, aber nicht übertragen: {0}', r.error), 10000);
       selected = await api.get<LogDetail>(`/logs/${d.id}`);
     } catch (err) {
       toasts.show('bad', err instanceof Error ? err.message : String(err), 10000);
@@ -148,8 +149,8 @@
   }
 
   const time = (iso: string) =>
-    new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  const day = (iso: string) => new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+    new Date(iso).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const day = (iso: string) => new Date(iso).toLocaleDateString(locale, { day: '2-digit', month: '2-digit' });
   const today = new Date().toDateString();
   const short = (host: string) => host.split('.')[0];
 
@@ -163,8 +164,8 @@
   function reasonText(e: LogEntry): string {
     if (e.reason === 'waf') return `WAF ${e.waf_rules[0] ?? ''}`.trim();
     if (e.reason !== 'ok') return LOG_REASONS[e.reason].label;
-    if (e.waf_rules.length) return `ok · WAF meldet ${e.waf_rules[0]}`;
-    if (e.device) return 'ok · Gerät erkannt';
+    if (e.waf_rules.length) return t('ok · WAF meldet {0}', e.waf_rules[0]);
+    if (e.device) return t('ok · Gerät erkannt');
     return 'ok';
   }
 
@@ -175,41 +176,41 @@
 
 <AppShell active="stats">
   <PageHeader
-    title="Logs"
-    subtitle={`${delivering.length} von ${sources.length} Node${sources.length === 1 ? '' : 's'} liefern${offline.length ? ` · ${offline.map((s) => s.node).join(', ')} puffert lokal und liefert nach` : ''}`}
+    title={t('Logs')}
+    subtitle={t('{0} von {1} Node{2} liefern{3}', delivering.length, sources.length, sources.length === 1 ? '' : 's', offline.length ? t(' · {0} puffert lokal und liefert nach', offline.map((s) => s.node).join(', ')) : '')}
   />
   <StatsTabs current="#/logs" />
 
-  {#if error}<Alert tone="bad" title="Fehler" text={error} />{/if}
+  {#if error}<Alert tone="bad" title={t('Fehler')} text={error} />{/if}
   {#if !loading && !error && entries.length === 0 && !applied && filter === 0}
     <Alert
       tone="info"
-      title="Noch keine Einträge"
-      text="Caddy schreibt das Zugriffs-Log, sobald TESSERACT_CADDY_ACCESS_LOG (Controller) bzw. TESSERACT_AGENT_ACCESS_LOG (Nodes) gesetzt ist – im Compose-Stack schon so. Neue Anfragen erscheinen hier nach wenigen Sekunden."
+      title={t('Noch keine Einträge')}
+      text={t('Caddy schreibt das Zugriffs-Log, sobald TESSERACT_CADDY_ACCESS_LOG (Controller) bzw. TESSERACT_AGENT_ACCESS_LOG (Nodes) gesetzt ist – im Compose-Stack schon so. Neue Anfragen erscheinen hier nach wenigen Sekunden.')}
     />
   {/if}
 
   <form class="row toolbar" onsubmit={search}>
     <SegmentedControl
-      groupLabel="Filter"
-      options={['Alle', 'Abgelehnt', 'Ohne Zertifikat', 'WAF', 'IP-Filter']}
+      groupLabel={t('Filter')}
+      options={['Alle', 'Abgelehnt', t('Ohne Zertifikat'), 'WAF', 'IP-Filter']}
       bind:selected={filter}
       onChange={() => load()}
     />
     <label class="search">
       <Icon name="search" size={16} strokeWidth={2} />
-      <span class="visually-hidden">Logs durchsuchen</span>
-      <input type="search" placeholder="host:git status:403 ip:… rule:942100 oder Text" bind:value={query} />
+      <span class="visually-hidden">{t('Logs durchsuchen')}</span>
+      <input type="search" placeholder={t('host:git status:403 ip:… rule:942100 oder Text')} bind:value={query} />
     </label>
     <label class="node-select">
-      <span>Node</span>
+      <span>{t('Node')}</span>
       <select class="input" bind:value={node} onchange={() => load()}>
-        <option value="">Alle Nodes</option>
+        <option value="">{t('Alle Nodes')}</option>
         {#each sources as s (s.node)}<option value={s.node}>{s.node}</option>{/each}
       </select>
     </label>
     <button type="button" class="live" aria-pressed={live} onclick={() => (live = !live)}>
-      <span class="dot"></span>Live
+      <span class="dot"></span>{t('Live')}
     </button>
   </form>
 
@@ -218,12 +219,12 @@
       <table class="table">
         <thead>
           <tr>
-            <th scope="col">Zeit</th>
-            <th scope="col">Host · Node</th>
-            <th scope="col">Anfrage</th>
-            <th scope="col">Status</th>
-            <th scope="col">Wer</th>
-            <th scope="col">Grund</th>
+            <th scope="col">{t('Zeit')}</th>
+            <th scope="col">{t('Host · Node')}</th>
+            <th scope="col">{t('Anfrage')}</th>
+            <th scope="col">{t('Status')}</th>
+            <th scope="col">{t('Wer')}</th>
+            <th scope="col">{t('Grund')}</th>
           </tr>
         </thead>
         <tbody>
@@ -244,72 +245,72 @@
               <td class="small nowrap"><span class="key {LOG_REASONS[e.reason].tone}"></span>{reasonText(e)}</td>
             </tr>
           {:else}
-            {#if !loading}<tr><td colspan="6" class="muted">Keine Treffer.</td></tr>{/if}
+            {#if !loading}<tr><td colspan="6" class="muted">{t('Keine Treffer.')}</td></tr>{/if}
           {/each}
         </tbody>
       </table>
       {#if more && entries.length}
-        <div class="more"><Button variant="ghost" size="sm" label="Ältere laden" onClick={older} /></div>
+        <div class="more"><Button variant="ghost" size="sm" label={t('Ältere laden')} onClick={older} /></div>
       {/if}
     </div>
 
     {#if selected}
       {@const d = selected}
       {@const rules = d.waf_rules.filter((r) => !scoreRules.has(r))}
-      <aside class="card detail" aria-label="Details">
+      <aside class="card detail" aria-label={t('Details')}>
         <div class="row">
-          <span class="muted small">{new Date(d.ts).toLocaleString('de-DE')} · {d.node}</span>
+          <span class="muted small">{new Date(d.ts).toLocaleString(locale)} · {d.node}</span>
           <span class="spacer"></span>
-          <Button variant="ghost" size="sm" icon="close" label="Schließen" onClick={() => (selected = null)} />
+          <Button variant="ghost" size="sm" icon="close" label={t('Schließen')} onClick={() => (selected = null)} />
         </div>
         <h2>
-          {#if d.reason === 'waf'}Von Coraza blockiert
-          {:else if d.reason !== 'ok'}Abgelehnt: {LOG_REASONS[d.reason].label}
-          {:else if d.status >= 500}Fehler beim Dienst
-          {:else}Anfrage{/if}
+          {#if d.reason === 'waf'}{t('Von Coraza blockiert')}
+          {:else if d.reason !== 'ok'}{t('Abgelehnt: {0}', LOG_REASONS[d.reason].label)}
+          {:else if d.status >= 500}{t('Fehler beim Dienst')}
+          {:else}{t('Anfrage')}{/if}
         </h2>
         <p class="mono req-full">{d.method} {d.host}{d.uri}</p>
         <dl>
           {#if d.waf_rules.length}
-            <dt>Regel</dt>
+            <dt>{t('Regel')}</dt>
             <dd><span class="mono strong">{rules.join(', ') || d.waf_rules.join(', ')}</span>{#if d.waf_msg} · {d.waf_msg}{/if}</dd>
           {/if}
-          {#if d.waf_score !== null}<dt>Anomalie-Score</dt><dd>{d.waf_score}</dd>{/if}
-          <dt>Antwort</dt>
+          {#if d.waf_score !== null}<dt>{t('Anomalie-Score')}</dt><dd>{d.waf_score}</dd>{/if}
+          <dt>{t('Antwort')}</dt>
           <dd>
-            {d.status === 0 ? 'Verbindung abgebrochen' : d.status}
-            {#if d.reason !== 'ok'}, nie beim Dienst angekommen{:else} · {d.duration_ms.toLocaleString('de-DE')} ms · {formatBytes(d.size)}{/if}
+            {d.status === 0 ? t('Verbindung abgebrochen') : d.status}
+            {#if d.reason !== 'ok'}{t(', nie beim Dienst angekommen')}{:else} {t('· {0} ms · {1}', d.duration_ms.toLocaleString(locale), formatBytes(d.size))}{/if}
           </dd>
-          <dt>Client</dt>
+          <dt>{t('Client')}</dt>
           <dd><span class="mono">{d.ip}</span>{#if d.country} · {countryName(d.country)}{/if}</dd>
-          {#if d.device}<dt>Gerät</dt><dd>{d.device} · {d.person}</dd>{/if}
-          {#if d.user_agent}<dt>Browser</dt><dd class="small">{d.user_agent}</dd>{/if}
-          <dt>Diese IP (24 h)</dt>
-          <dd>{d.ip_requests} Anfragen, {d.ip_denied} abgelehnt{#if d.ip_banned} · <strong>gesperrt</strong>{/if}</dd>
+          {#if d.device}<dt>{t('Gerät')}</dt><dd>{d.device} · {d.person}</dd>{/if}
+          {#if d.user_agent}<dt>{t('Browser')}</dt><dd class="small">{d.user_agent}</dd>{/if}
+          <dt>{t('Diese IP (24 h)')}</dt>
+          <dd>{t('{0} Anfragen, {1} abgelehnt', d.ip_requests, d.ip_denied)}{#if d.ip_banned} · <strong>{t('gesperrt')}</strong>{/if}</dd>
         </dl>
         <div class="actions">
           {#if !d.ip_banned && !d.device && session.isAdmin}
-            <Button variant="danger" size="sm" label="IP 24 h sperren" disabled={busy} onClick={() => ban(d)} />
+            <Button variant="danger" size="sm" label={t('IP 24 h sperren')} disabled={busy} onClick={() => ban(d)} />
           {/if}
           {#if rules.length && d.host_id && session.isAdmin}
             {#if rules.every((r) => d.waf_exclusions.includes(r))}
-              <span class="muted small">Regel {rules.join(', ')} ist für diesen Host bereits ausgenommen.</span>
+              <span class="muted small">{t('Regel {0} ist für diesen Host bereits ausgenommen.', rules.join(', '))}</span>
             {:else}
-              <Button variant="secondary" size="sm" label={`Fehlalarm: Ausnahme für ${short(d.host)} anlegen`} disabled={busy} onClick={() => exclude(d)} />
+              <Button variant="secondary" size="sm" label={t('Fehlalarm: Ausnahme für {0} anlegen', short(d.host))} disabled={busy} onClick={() => exclude(d)} />
             {/if}
           {/if}
-          <Button variant="ghost" size="sm" label="Alle Einträge dieser IP" onClick={() => showIp(d.ip)} />
-          {#if d.host_id}<Button variant="ghost" size="sm" label="Host-Sicherheit" href={`#/hosts/${d.host_id}/security`} />{/if}
+          <Button variant="ghost" size="sm" label={t('Alle Einträge dieser IP')} onClick={() => showIp(d.ip)} />
+          {#if d.host_id}<Button variant="ghost" size="sm" label={t('Host-Sicherheit')} href={`#/hosts/${d.host_id}/security`} />{/if}
         </div>
       </aside>
     {/if}
   </div>
 
   <p class="muted small">
-    Suche: <span class="mono">host:git status:403 status:5xx ip:198.51.100.7 ip:198.51.100.0/24 reason:waf rule:942100 node:pi method:POST device:iphone country:DE</span>
-    und freier Text (Teil der Adresse). {#if !geoip}Länder: TESSERACT_GEOIP_AUTO=dbip (automatisch) oder TESSERACT_GEOIP_DB setzen.{/if}
-    {#if store !== 'local'}Quelle: {store === 'loki' ? 'Loki' : 'VictoriaLogs'} (Einstellungen › Metriken).{/if}
-    {#if sources.length}Letzter Eintrag: {sources.map((s) => `${s.node} ${formatAgo(s.last_entry_at)}`).join(' · ')}{/if}
+    {t('Suche:')} <span class="mono">{t('host:git status:403 status:5xx ip:198.51.100.7 ip:198.51.100.0/24 reason:waf rule:942100 node:pi method:POST device:iphone country:DE')}</span>
+    {t('und freier Text (Teil der Adresse).')} {#if !geoip}{t('Länder: TESSERACT_GEOIP_AUTO=dbip (automatisch) oder TESSERACT_GEOIP_DB setzen.')}{/if}
+    {#if store !== 'local'}{t('Quelle: {0} (Einstellungen › Metriken).', store === 'loki' ? t('Loki') : t('VictoriaLogs'))}{/if}
+    {#if sources.length}{t('Letzter Eintrag: {0}', sources.map((s) => `${s.node} ${formatAgo(s.last_entry_at)}`).join(' · '))}{/if}
   </p>
 </AppShell>
 

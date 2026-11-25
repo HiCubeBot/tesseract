@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n';
   import AppShell from '../lib/components/AppShell.svelte';
   import PageHeader from '../lib/components/PageHeader.svelte';
   import SegmentedControl from '../lib/components/SegmentedControl.svelte';
@@ -37,11 +38,11 @@
 
   async function forget() {
     const d = shown?.device;
-    if (!d || !confirm(`Hinterlegte Kopie von „${d.name}“ löschen? Das Zertifikat bleibt gültig, lässt sich aber nicht mehr abrufen.`)) return;
+    if (!d || !confirm(t('Hinterlegte Kopie von „{0}“ löschen? Das Zertifikat bleibt gültig, lässt sich aber nicht mehr abrufen.', d.name))) return;
     try {
       await api.del(`/devices/${d.id}/certificate`);
       shown = null;
-      toasts.show('ok', 'Hinterlegte Kopie gelöscht.');
+      toasts.show('ok', t('Hinterlegte Kopie gelöscht.'));
       await load();
     } catch (e) {
       toasts.show('bad', e instanceof Error ? e.message : String(e));
@@ -100,8 +101,8 @@
   async function doRevoke() {
     if (!revoke) return;
     try {
-      await api.post(`/devices/${revoke.id}/revoke`, { reason: 'vom Admin gesperrt' });
-      toasts.show('ok', `„${revoke.name}“ gesperrt.`);
+      await api.post(`/devices/${revoke.id}/revoke`, { reason: t('vom Admin gesperrt') });
+      toasts.show('ok', t('„{0}“ gesperrt.', revoke.name));
       revoke = null;
       await load();
     } catch (e) {
@@ -110,10 +111,10 @@
   }
 
   async function remove(d: Device) {
-    if (!confirm(`„${d.name}“ von ${d.person_name} endgültig löschen?`)) return;
+    if (!confirm(t('„{0}“ von {1} endgültig löschen?', d.name, d.person_name))) return;
     try {
       await api.del(`/devices/${d.id}`);
-      toasts.show('ok', `„${d.name}“ gelöscht.`);
+      toasts.show('ok', t('„{0}“ gelöscht.', d.name));
       await load();
     } catch (e) {
       toasts.show('bad', e instanceof Error ? e.message : String(e));
@@ -125,29 +126,29 @@
 
 <AppShell active="devices">
   <PageHeader
-    title="Geräte"
-    subtitle="Ein Gerät = ein Client-Zertifikat. Es gehört immer zu genau einer Person."
-    secondaryLabel="Gesperrte exportieren (CSV)"
+    title={t('Geräte')}
+    subtitle={t('Ein Gerät = ein Client-Zertifikat. Es gehört immer zu genau einer Person.')}
+    secondaryLabel={t('Gesperrte exportieren (CSV)')}
     secondaryHref="/api/devices/revoked.csv"
   />
 
-  {#if error}<Alert tone="bad" title="Fehler" text={error} />{/if}
+  {#if error}<Alert tone="bad" title={t('Fehler')} text={error} />{/if}
 
   <div class="row">
     <SegmentedControl
-      groupLabel="Gerätestatus"
-      options={[`Alle · ${counts.all}`, `Aktiv · ${counts.active}`, `Läuft bald ab · ${counts.soon}`, `Gesperrt · ${counts.revoked}`]}
+      groupLabel={t('Gerätestatus')}
+      options={[t('Alle · {0}', counts.all), t('Aktiv · {0}', counts.active), t('Läuft bald ab · {0}', counts.soon), t('Gesperrt · {0}', counts.revoked)]}
       bind:selected={filter}
     />
     <label class="search">
       <Icon name="search" size={16} strokeWidth={2} />
-      <span class="visually-hidden">Geräte durchsuchen</span>
-      <input type="search" placeholder="Gerät, Person oder Fingerabdruck" bind:value={query} />
+      <span class="visually-hidden">{t('Geräte durchsuchen')}</span>
+      <input type="search" placeholder={t('Gerät, Person oder Fingerabdruck')} bind:value={query} />
     </label>
     <label class="field inline">
-      Person
+      {t('Person')}
       <select class="input" bind:value={person}>
-        <option value="">Alle Personen</option>
+        <option value="">{t('Alle Personen')}</option>
         {#each persons as p (p)}<option value={p}>{p}</option>{/each}
       </select>
     </label>
@@ -158,28 +159,28 @@
 
   {#if revoke}
     <ConfirmDialog
-      title={`„${revoke.name}“ von ${revoke.person_name} sperren?`}
-      text="Das Zertifikat wird sofort aus allen Freigaben entfernt. Das lässt sich nicht rückgängig machen."
+      title={t('„{0}“ von {1} sperren?', revoke.name, revoke.person_name)}
+      text={t('Das Zertifikat wird sofort aus allen Freigaben entfernt. Das lässt sich nicht rückgängig machen.')}
       word="sperren"
-      confirmLabel="Gerät sperren"
+      confirmLabel={t('Gerät sperren')}
       onConfirm={doRevoke}
       onCancel={() => (revoke = null)}
     />
   {/if}
 
   {#if loaded && devices.length === 0}
-    <EmptyState icon="devices" title="Noch keine Geräte" text="Geräte bekommen Personen per Einladung oder direkt unter Nutzer." actionLabel="Zu den Nutzern" actionHref="#/users" />
+    <EmptyState icon="devices" title={t('Noch keine Geräte')} text={t('Geräte bekommen Personen per Einladung oder direkt unter Nutzer.')} actionLabel={t('Zu den Nutzern')} actionHref="#/users" />
   {:else}
     <div class="table-wrap">
       <table class="table">
         <thead>
           <tr>
-            <th scope="col">Gerät</th>
-            <th scope="col">Person</th>
-            <th scope="col">Fingerabdruck</th>
-            <th scope="col">Gültig bis</th>
-            <th scope="col">Status</th>
-            <th scope="col"><span class="visually-hidden">Aktionen</span></th>
+            <th scope="col">{t('Gerät')}</th>
+            <th scope="col">{t('Person')}</th>
+            <th scope="col">{t('Fingerabdruck')}</th>
+            <th scope="col">{t('Gültig bis')}</th>
+            <th scope="col">{t('Status')}</th>
+            <th scope="col"><span class="visually-hidden">{t('Aktionen')}</span></th>
           </tr>
         </thead>
         <tbody>
@@ -194,24 +195,24 @@
               <td class="mono small muted" title={d.fingerprint}>{shortFp(d.fingerprint)}</td>
               <td class="nowrap">{d.unlimited ? 'unbegrenzt' : formatDay(d.not_after)}</td>
               <td>
-                {#if expiresSoon(d)}<StatusPill tone="warn" label="läuft bald ab" />{:else}<StatusPill tone={st.tone} label={st.label} />{/if}
+                {#if expiresSoon(d)}<StatusPill tone="warn" label={t('läuft bald ab')} />{:else}<StatusPill tone={st.tone} label={st.label} />{/if}
               </td>
               <td class="right">
                 {#if d.p12_stored && d.status !== 'revoked'}
-                  <Button variant="ghost" size="sm" label="Zertifikat" onClick={() => showCert(d)} />
+                  <Button variant="ghost" size="sm" label={t('Zertifikat')} onClick={() => showCert(d)} />
                 {/if}
                 {#if d.status === 'active' || d.status === 'expired'}
-                  <Button variant="ghost" size="sm" label={renewing === d.id ? 'Verlängert …' : 'Verlängern'} disabled={renewing !== null} onClick={() => renew(d)} />
+                  <Button variant="ghost" size="sm" label={renewing === d.id ? t('Verlängert …') : t('Verlängern')} disabled={renewing !== null} onClick={() => renew(d)} />
                 {/if}
                 {#if d.status === 'active'}
-                  <Button variant="ghost" size="sm" label="Sperren" onClick={() => (revoke = d)} />
+                  <Button variant="ghost" size="sm" label={t('Sperren')} onClick={() => (revoke = d)} />
                 {:else}
-                  <Button variant="ghost" size="sm" label="Löschen" onClick={() => remove(d)} />
+                  <Button variant="ghost" size="sm" label={t('Löschen')} onClick={() => remove(d)} />
                 {/if}
               </td>
             </tr>
           {:else}
-            <tr><td colspan="6" class="muted">Keine Treffer.</td></tr>
+            <tr><td colspan="6" class="muted">{t('Keine Treffer.')}</td></tr>
           {/each}
         </tbody>
       </table>

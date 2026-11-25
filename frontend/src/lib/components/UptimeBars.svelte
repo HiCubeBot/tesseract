@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { locale, t } from '../i18n';
   // Erreichbarkeit je Tag als Balkenreihe: grün = ohne Ausfall, gelb = unter 30 Min.,
   // rot = ab 30 Min., grau = keine Daten.
   interface Day {
@@ -24,11 +25,11 @@
   }
 
   function title(d: Day): string {
-    const date = new Date(`${d.day}T00:00:00`).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
-    if (d.pct === null) return `${date}: keine Daten`;
-    if (d.down_minutes === 0) return `${date}: ohne Ausfall`;
-    const pct = d.pct.toLocaleString('de-DE', { maximumFractionDigits: 1 });
-    return `${date}: ${d.down_minutes} Min. nicht erreichbar · ${pct} % des Tages erreichbar`;
+    const date = new Date(`${d.day}T00:00:00`).toLocaleDateString(locale, { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
+    if (d.pct === null) return t('{0}: keine Daten', date);
+    if (d.down_minutes === 0) return t('{0}: ohne Ausfall', date);
+    const pct = d.pct.toLocaleString(locale, { maximumFractionDigits: 1 });
+    return t('{0}: {1} Min. nicht erreichbar · {2} % des Tages erreichbar', date, d.down_minutes, pct);
   }
 </script>
 

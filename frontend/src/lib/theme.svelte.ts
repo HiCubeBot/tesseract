@@ -1,4 +1,5 @@
 // Farbschema: System (Standard), hell oder dunkel – pro Browser gemerkt
+import { t } from './i18n';
 export type ThemeChoice = 'system' | 'light' | 'dark';
 
 const KEY = 'tesseract-theme';
@@ -20,9 +21,9 @@ function apply(choice: ThemeChoice) {
 }
 
 export const THEME_LABELS: Record<ThemeChoice, string> = {
-  system: 'Wie System',
-  light: 'Hell',
-  dark: 'Dunkel'
+  system: t('Wie System'),
+  light: t('Hell'),
+  dark: t('Dunkel')
 };
 
 class Theme {

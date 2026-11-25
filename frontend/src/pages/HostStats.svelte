@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { locale, t } from '../lib/i18n';
   // Statistik eines Hosts: Kennzahlen mit Vorzeitraum, Verlauf, Abgelehnte, Herkunft, Pfade.
   import AppShell from '../lib/components/AppShell.svelte';
   import Alert from '../lib/components/Alert.svelte';
@@ -47,7 +48,7 @@
   const hostId = $derived(Number(params.id));
 
   const RANGES: Range[] = ['24h', '7d', '30d'];
-  const RANGE_LABEL: Record<Range, string> = { '24h': 'Vortag', '7d': 'Vorwoche', '30d': 'Vormonat' };
+  const RANGE_LABEL: Record<Range, string> = { '24h': t('Vortag'), '7d': t('Vorwoche'), '30d': t('Vormonat') };
   let rangeIdx = $state(0);
   const range = $derived(RANGES[rangeIdx]);
 
@@ -93,16 +94,16 @@
   const latencySpark = $derived(data ? data.hourly.map((h) => h.latency) : []);
 
   const METRIC = {
-    requests: { label: 'Anfragen', format: fmt },
-    visitors: { label: 'Besucher', format: fmt },
-    bytes: { label: 'Daten', format: formatBytes }
+    requests: { label: t('Anfragen'), format: fmt },
+    visitors: { label: t('Besucher'), format: fmt },
+    bytes: { label: t('Daten'), format: formatBytes }
   } as const;
 
   const lineSeries = $derived(
     metric === 'requests'
       ? [
-          { key: 'requests', label: 'Anfragen', color: '#8B7CF6' },
-          { key: 'previous', label: 'Vorzeitraum', color: '#8A91A0', dashed: true }
+          { key: 'requests', label: t('Anfragen'), color: '#8B7CF6' },
+          { key: 'previous', label: t('Vorzeitraum'), color: '#8A91A0', dashed: true }
         ]
       : [{ key: metric, label: METRIC[metric].label, color: '#8B7CF6' }]
   );
@@ -119,9 +120,9 @@
   async function ban(ip: string) {
     banning = ip;
     try {
-      await api.post('/bans', { ip, hours: 24, reason: `aus der Statistik von ${host?.domain ?? ''}`.slice(0, 250) });
+      await api.post('/bans', { ip, hours: 24, reason: t('aus der Statistik von {0}', host?.domain ?? '').slice(0, 250) });
       banned = new Set([...banned, ip]);
-      toasts.show('ok', `${ip} ist für 24 Stunden gesperrt.`);
+      toasts.show('ok', t('{0} ist für 24 Stunden gesperrt.', ip));
     } catch (e) {
       toasts.show('bad', e instanceof Error ? e.message : String(e), 10000);
     } finally {
@@ -141,22 +142,22 @@
   <div class="toolbar">
     <span class="muted small">
       {#if data}
-        Seit {new Date(data.since).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })}
-        {#if data.source !== 'sqlite'} · aus {data.source === 'loki' ? 'Loki' : 'VictoriaLogs'}{/if}
+        {t('Seit {0}', new Date(data.since).toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' }))}
+        {#if data.source !== 'sqlite'} {t('· aus {0}', data.source === 'loki' ? t('Loki') : t('VictoriaLogs'))}{/if}
       {/if}
-      {#if loading} · lädt …{/if}
+      {#if loading} {t('· lädt …')}{/if}
     </span>
     <span class="spacer"></span>
-    <SegmentedControl options={['24 Stunden', '7 Tage', '30 Tage']} bind:selected={rangeIdx} groupLabel="Zeitraum" />
+    <SegmentedControl options={[t('24 Stunden'), t('7 Tage'), t('30 Tage')]} bind:selected={rangeIdx} groupLabel={t('Zeitraum')} />
   </div>
 
-  {#if error}<Alert tone="bad" title="Statistik nicht verfügbar" text={error} />{/if}
+  {#if error}<Alert tone="bad" title={t('Statistik nicht verfügbar')} text={error} />{/if}
 
   {#if data}
     {@const d = data}
-    <section class="kpis" aria-label="Kennzahlen">
+    <section class="kpis" aria-label={t('Kennzahlen')}>
       <KpiCard
-        label="Anfragen"
+        label={t('Anfragen')}
         value={fmt(d.requests.total)}
         delta={delta(d.requests.total, d.requests.previous)}
         sub={`zum ${RANGE_LABEL[range]}`}
@@ -165,16 +166,16 @@
         onclick={() => (metric = 'requests')}
       />
       <KpiCard
-        label="Besucher"
+        label={t('Besucher')}
         value={fmt(d.visitors.total)}
         delta={delta(d.visitors.total, d.visitors.previous)}
-        sub="verschiedene Adressen, ohne Bots"
+        sub={t('verschiedene Adressen, ohne Bots')}
         spark={spark('visitors')}
         selected={metric === 'visitors'}
         onclick={() => (metric = 'visitors')}
       />
       <KpiCard
-        label="Daten ausgeliefert"
+        label={t('Daten ausgeliefert')}
         value={formatBytes(d.bytes.out)}
         delta={delta(d.bytes.out, d.bytes.previous)}
         sub={`${formatBytes(d.bytes.in)} empfangen`}
@@ -183,47 +184,47 @@
         onclick={() => (metric = 'bytes')}
       />
       <KpiCard
-        label="Antwortzeit (Median)"
+        label={t('Antwortzeit (Median)')}
         value={d.latency.median === null ? '–' : `${fmt(d.latency.median)} ms`}
         delta={delta(d.latency.median, d.latency.previous)}
         upIsBad
-        sub={d.latency.p95 === null ? 'keine Anfragen' : `95 % unter ${fmt(Math.ceil(d.latency.p95))} ms`}
+        sub={d.latency.p95 === null ? t('keine Anfragen') : t('95 % unter {0} ms', fmt(Math.ceil(d.latency.p95)))}
         spark={latencySpark}
       />
       <KpiCard
-        label="Serverfehler (5xx)"
-        value={`${d.errors.share.toLocaleString('de-DE', { maximumFractionDigits: 2 })} %`}
+        label={t('Serverfehler (5xx)')}
+        value={`${d.errors.share.toLocaleString(locale, { maximumFractionDigits: 2 })} %`}
         tone={d.errors.share >= 5 ? 'bad' : d.errors.share >= 1 ? 'warn' : 'neutral'}
-        sub={d.errors.count ? `${fmt(d.errors.count)} Anfragen` : 'keine Serverfehler'}
+        sub={d.errors.count ? t('{0} Anfragen', fmt(d.errors.count)) : t('keine Serverfehler')}
       />
       <KpiCard
-        label="Komprimiert ausgeliefert"
-        value={d.compression.share === null ? '–' : `${d.compression.share.toLocaleString('de-DE')} %`}
-        sub={d.compression.encodings.length ? d.compression.encodings.join(' & ') : 'keine Kompression'}
+        label={t('Komprimiert ausgeliefert')}
+        value={d.compression.share === null ? '–' : `${d.compression.share.toLocaleString(locale)} %`}
+        sub={d.compression.encodings.length ? d.compression.encodings.join(' & ') : t('keine Kompression')}
       />
     </section>
 
     <section class="grid-main">
       <div class="card">
-        <h2>{METRIC[metric].label} pro {range === '24h' ? 'Stunde' : range === '7d' ? '6 Stunden' : 'Tag'}</h2>
-        <LineChart {buckets} series={lineSeries} label={`${METRIC[metric].label} im Zeitraum`} format={METRIC[metric].format} />
+        <h2>{t('{0} pro {1}', METRIC[metric].label, range === '24h' ? t('Stunde') : range === '7d' ? t('6 Stunden') : t('Tag'))}</h2>
+        <LineChart {buckets} series={lineSeries} label={t('{0} im Zeitraum', METRIC[metric].label)} format={METRIC[metric].format} />
       </div>
       <div class="card">
         <div class="row">
-          <h2>Abgelehnt</h2>
+          <h2>{t('Abgelehnt')}</h2>
           <span class="spacer"></span>
-          <span class="muted small">{fmt(d.denied)} im Zeitraum</span>
+          <span class="muted small">{t('{0} im Zeitraum', fmt(d.denied))}</span>
         </div>
-        <ColumnChart {buckets} series={deniedSeries} label="Abgelehnte Anfragen nach Grund" />
+        <ColumnChart {buckets} series={deniedSeries} label={t('Abgelehnte Anfragen nach Grund')} />
       </div>
     </section>
 
     <section class="grid-lists">
       <div class="card">
         <div class="row">
-          <h2>Herkunft</h2>
+          <h2>{t('Herkunft')}</h2>
           <span class="spacer"></span>
-          <a class="small" href="#/stats-map">Karte öffnen</a>
+          <a class="small" href="#/stats-map">{t('Karte öffnen')}</a>
         </div>
         {#if d.countries.length}
           <ul class="bars">
@@ -232,7 +233,7 @@
                 <div class="bar-top">
                   <a class="plain-link" href={`#/stats-map?country=${c.country}`}>{countryName(c.country)}</a>
                   <span class="val">
-                    {#if c.denied}<span class="warn-text">{fmt(c.denied)} abgelehnt</span>{/if}
+                    {#if c.denied}<span class="warn-text">{t('{0} abgelehnt', fmt(c.denied))}</span>{/if}
                     {fmt(c.count)}
                   </span>
                 </div>
@@ -241,13 +242,13 @@
             {/each}
           </ul>
         {:else}
-          <p class="muted small">Keine Länder – GeoIP fehlt oder nur lokale Adressen.</p>
+          <p class="muted small">{t('Keine Länder – GeoIP fehlt oder nur lokale Adressen.')}</p>
         {/if}
-        {#if d.unknown_country}<p class="muted tiny">{fmt(d.unknown_country)} ohne Land (private oder lokale Adressen)</p>{/if}
+        {#if d.unknown_country}<p class="muted tiny">{t('{0} ohne Land (private oder lokale Adressen)', fmt(d.unknown_country))}</p>{/if}
       </div>
 
       <div class="card">
-        <h2>Pfade</h2>
+        <h2>{t('Pfade')}</h2>
         {#if d.paths.length}
           <ul class="bars">
             {#each d.paths as p (p.path)}
@@ -255,8 +256,8 @@
                 <div class="bar-top">
                   <a class="mono path" href={logsLink(`host:${d.host} ${p.path.replaceAll('*', '')}`)} title={p.path}>{p.path}</a>
                   <span class="val">
-                    {#if p.errors}<span class="warn-text">{fmt(p.errors)} Fehler</span>{/if}
-                    {#if p.denied}<span class="muted">{fmt(p.denied)} abgelehnt</span>{/if}
+                    {#if p.errors}<span class="warn-text">{t('{0} Fehler', fmt(p.errors))}</span>{/if}
+                    {#if p.denied}<span class="muted">{t('{0} abgelehnt', fmt(p.denied))}</span>{/if}
                     {fmt(p.count)}
                   </span>
                 </div>
@@ -265,12 +266,12 @@
             {/each}
           </ul>
         {:else}
-          <p class="muted small">Keine Anfragen im Zeitraum.</p>
+          <p class="muted small">{t('Keine Anfragen im Zeitraum.')}</p>
         {/if}
       </div>
 
       <div class="card">
-        <h2>Top abgelehnte IPs</h2>
+        <h2>{t('Top abgelehnte IPs')}</h2>
         {#if d.top_denied_ips.length}
           <ul class="ips">
             {#each d.top_denied_ips as ip (ip.ip)}
@@ -287,18 +288,18 @@
                     class="ban"
                     disabled={banning !== null || banned.has(ip.ip)}
                     onclick={() => ban(ip.ip)}
-                  >{banned.has(ip.ip) ? 'Gesperrt' : banning === ip.ip ? '…' : 'Sperren'}</button>
+                  >{banned.has(ip.ip) ? t('Gesperrt') : banning === ip.ip ? '…' : t('Sperren')}</button>
                 {/if}
               </li>
             {/each}
           </ul>
         {:else}
-          <p class="muted small">Nichts abgelehnt im Zeitraum.</p>
+          <p class="muted small">{t('Nichts abgelehnt im Zeitraum.')}</p>
         {/if}
       </div>
     </section>
   {:else if !error}
-    <p class="muted">Lädt …</p>
+    <p class="muted">{t('Lädt …')}</p>
   {/if}
 </AppShell>
 

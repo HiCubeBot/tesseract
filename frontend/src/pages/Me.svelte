@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../lib/i18n';
   // „Mein Zugang“: für Personen, die per Gerätezertifikat angemeldet sind – Rolle, eigene
   // Geräte und die Hosts, für die sie freigegeben sind.
   import AppShell from '../lib/components/AppShell.svelte';
@@ -20,29 +21,29 @@
 </script>
 
 <AppShell active="me">
-  <PageHeader title="Mein Zugang" subtitle="Angemeldet per Gerätezertifikat – ohne Passwort." />
+  <PageHeader title={t('Mein Zugang')} subtitle={t('Angemeldet per Gerätezertifikat – ohne Passwort.')} />
 
   {#if !session.viaCert}
-    <Alert tone="info" title="Nur für Personen" text="Diese Seite gibt es für Personen, die Tesseract per Gerätezertifikat öffnen." />
+    <Alert tone="info" title={t('Nur für Personen')} text={t('Diese Seite gibt es für Personen, die Tesseract per Gerätezertifikat öffnen.')} />
   {/if}
-  {#if error}<Alert tone="bad" title="Fehler" text={error} />{/if}
+  {#if error}<Alert tone="bad" title={t('Fehler')} text={error} />{/if}
 
   {#if data}
     <section class="card" aria-labelledby="role-title">
       <h2 id="role-title">{data.person} · {UI_ROLES[data.role]}</h2>
       <p class="muted small">{UI_ROLE_HINTS[data.role]}</p>
-      <p class="small">Dieses Gerät: <strong>{data.current_device}</strong>. Wird es gesperrt oder läuft sein Zertifikat ab, ist der Zugriff sofort weg.</p>
+      <p class="small">{t('Dieses Gerät:')} <strong>{data.current_device}</strong>{t('. Wird es gesperrt oder läuft sein Zertifikat ab, ist der Zugriff sofort weg.')}</p>
     </section>
 
     <section class="card" aria-labelledby="dev-title">
-      <h2 id="dev-title">Meine Geräte</h2>
+      <h2 id="dev-title">{t('Meine Geräte')}</h2>
       <ul class="list">
         {#each data.devices as d (d.id)}
           <li>
             <span class="grow">
               <strong>{d.name}</strong>
-              {#if d.name === data.current_device}<span class="muted small"> · dieses Gerät</span>{/if}
-              <span class="muted small block">gültig bis {d.unlimited ? 'unbegrenzt' : formatDay(d.not_after)}</span>
+              {#if d.name === data.current_device}<span class="muted small"> {t('· dieses Gerät')}</span>{/if}
+              <span class="muted small block">{t('gültig bis {0}', d.unlimited ? 'unbegrenzt' : formatDay(d.not_after))}</span>
             </span>
             <StatusPill tone={DEVICE_STATUS[d.status].tone} label={DEVICE_STATUS[d.status].label} />
           </li>
@@ -51,7 +52,7 @@
     </section>
 
     <section class="card" aria-labelledby="hosts-title">
-      <h2 id="hosts-title">Freigegebene Dienste</h2>
+      <h2 id="hosts-title">{t('Freigegebene Dienste')}</h2>
       {#if data.hosts.length}
         <ul class="list">
           {#each data.hosts as h (h)}
@@ -59,7 +60,7 @@
           {/each}
         </ul>
       {:else}
-        <p class="muted small">Für dich ist noch kein Dienst freigegeben.</p>
+        <p class="muted small">{t('Für dich ist noch kein Dienst freigegeben.')}</p>
       {/if}
     </section>
   {/if}

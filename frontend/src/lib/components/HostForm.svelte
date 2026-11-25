@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../i18n';
   import { coveringWildcard, zoneFor, type CustomCert, type DnsZone, type HostInput, type NodeInfo } from '../api';
 
   interface Props {
@@ -54,7 +55,7 @@
 
 <div class="form" class:compact>
   <label class="field" for="{id}-domain">
-    Domain
+    {t('Domain')}
     <input
       id="{id}-domain"
       class="input mono"
@@ -70,15 +71,15 @@
 
   {#if customCerts.length}
     <label class="field" for="{id}-custom">
-      Zertifikat
+      {t('Zertifikat')}
       <select
         id="{id}-custom"
         class="input"
         value={value.custom_cert_id === null ? '' : String(value.custom_cert_id)}
         onchange={(e) => (value.custom_cert_id = e.currentTarget.value ? Number(e.currentTarget.value) : null)}
       >
-        <option value="">automatisch (Let's Encrypt / Caddy)</option>
-        {#each customCerts as c (c.id)}<option value={String(c.id)}>Eigenes: {c.name} ({c.names.join(', ')})</option>{/each}
+        <option value="">{t('automatisch (Let\'s Encrypt / Caddy)')}</option>
+        {#each customCerts as c (c.id)}<option value={String(c.id)}>{t('Eigenes: {0} ({1})', c.name, c.names.join(', '))}</option>{/each}
       </select>
     </label>
   {/if}
@@ -87,25 +88,25 @@
     <!-- eigenes Zertifikat: keine Prüfart nötig -->
   {:else if covered}
     <div class="field">
-      Zertifikat
-      <span class="wild">Geteiltes Wildcard-Zertifikat <code class="mono">{covered}</code> – kein eigenes nötig</span>
+      {t('Zertifikat')}
+      <span class="wild">{t('Geteiltes Wildcard-Zertifikat')} <code class="mono">{covered}</code> {t('– kein eigenes nötig')}</span>
     </div>
   {:else}
   <label class="field" for="{id}-challenge">
-    Zertifikat von Let's Encrypt prüfen über
+    {t('Zertifikat von Let\'s Encrypt prüfen über')}
     <select id="{id}-challenge" class="input" bind:value={value.tls_challenge}>
-      <option value="http" disabled={wildcard}>HTTP-01 – Port 80 muss von außen erreichbar sein</option>
-      <option value="dns" disabled={!dnsAvailable}>DNS-01 über Cloudflare – auch Wildcards (*.domain){dnsAvailable ? '' : ' · Token fehlt'}</option>
+      <option value="http" disabled={wildcard}>{t('HTTP-01 – Port 80 muss von außen erreichbar sein')}</option>
+      <option value="dns" disabled={!dnsAvailable}>{t('DNS-01 über Cloudflare – auch Wildcards (*.domain){0}', dnsAvailable ? '' : t(' · Token fehlt'))}</option>
     </select>
     {#if wildcard && !dnsAvailable}
-      <span class="field-error">Wildcard-Domains brauchen DNS-01 – Cloudflare-Token unter Einstellungen › Integrationen eintragen.</span>
+      <span class="field-error">{t('Wildcard-Domains brauchen DNS-01 – Cloudflare-Token unter Einstellungen › Integrationen eintragen.')}</span>
     {/if}
   </label>
   {/if}
 
   {#if !compact}
     <fieldset class="nodes">
-      <legend>Auf welchem Node läuft der Dienst?</legend>
+      <legend>{t('Auf welchem Node läuft der Dienst?')}</legend>
       <div class="node-grid">
         {#each nodes as n (n.id)}
           <label class="node" class:on={value.node_id === n.id}>
@@ -115,7 +116,7 @@
             </span>
             <span class="muted small">{n.location}</span>
             <span class="small" class:ok={n.in_sync} class:warn={!n.in_sync}>
-              {n.in_sync ? 'synchron' : 'nicht synchron'}
+              {n.in_sync ? 'synchron' : t('nicht synchron')}
             </span>
           </label>
         {/each}
@@ -123,7 +124,7 @@
     </fieldset>
   {:else}
     <label class="field" for="{id}-node">
-      Node
+      {t('Node')}
       <select id="{id}-node" class="input" bind:value={value.node_id}>
         {#each nodes as n (n.id)}<option value={n.id}>{n.name}</option>{/each}
       </select>
@@ -132,14 +133,14 @@
 
   <div class="target">
     <label class="field" for="{id}-scheme">
-      Protokoll
+      {t('Protokoll')}
       <select id="{id}-scheme" class="input" bind:value={value.upstream_scheme}>
-        <option value="http">http</option>
-        <option value="https">https</option>
+        <option value="http">{t('http')}</option>
+        <option value="https">{t('https')}</option>
       </select>
     </label>
     <label class="field" for="{id}-host">
-      Ziel-Adresse (vom Node aus)
+      {t('Ziel-Adresse (vom Node aus)')}
       <input
         id="{id}-host"
         class="input mono"
@@ -152,7 +153,7 @@
       />
     </label>
     <label class="field" for="{id}-port">
-      Port
+      {t('Port')}
       <input
         id="{id}-port"
         class="input mono"
@@ -168,78 +169,78 @@
   {#if value.upstream_scheme === 'https'}
     <label class="check insecure">
       <input type="checkbox" bind:checked={value.upstream_insecure} />
-      <span>Zertifikat des Ziels nicht prüfen <span class="muted">– für selbst signierte Zertifikate (z. B. Proxmox, Unifi, NAS). Die Verbindung bleibt verschlüsselt, aber ohne Schutz gegen Abhören im Netz zwischen Node und Ziel.</span></span>
+      <span>{t('Zertifikat des Ziels nicht prüfen')} <span class="muted">{t('– für selbst signierte Zertifikate (z. B. Proxmox, Unifi, NAS). Die Verbindung bleibt verschlüsselt, aber ohne Schutz gegen Abhören im Netz zwischen Node und Ziel.')}</span></span>
     </label>
   {/if}
 
   {#if dnsZones.length}
     <fieldset class="dns">
-      <legend>DNS-Eintrag bei Cloudflare</legend>
+      <legend>{t('DNS-Eintrag bei Cloudflare')}</legend>
       <label class="check">
         <input type="checkbox" checked={!!value.dns_type} onchange={(e) => toggleDns(e.currentTarget.checked)} disabled={!zone && !value.dns_type} />
-        Automatisch anlegen{zone ? ` (Domain ${zone.zone})` : ''}
+        {t('Automatisch anlegen{0}', zone ? t(' (Domain {0})', zone.zone) : '')}
       </label>
       {#if !zone && value.domain.includes('.')}
-        <span class="muted small">Für diese Domain ist nichts eingerichtet – Einstellungen › Integrationen › DNS-Einträge.</span>
+        <span class="muted small">{t('Für diese Domain ist nichts eingerichtet – Einstellungen › Integrationen › DNS-Einträge.')}</span>
       {/if}
       {#if value.dns_type}
         <div class="dns-grid">
           <label class="field">
-            Art
+            {t('Art')}
             <select class="input" bind:value={value.dns_type}>
-              <option value="cname">CNAME – Name zeigt auf einen anderen Namen</option>
-              <option value="address">A / AAAA – Name zeigt auf IP-Adressen</option>
+              <option value="cname">{t('CNAME – Name zeigt auf einen anderen Namen')}</option>
+              <option value="address">{t('A / AAAA – Name zeigt auf IP-Adressen')}</option>
             </select>
           </label>
           <label class="field">
-            {value.dns_type === 'cname' ? 'Ziel' : 'IP-Adressen'}
+            {value.dns_type === 'cname' ? t('Ziel') : t('IP-Adressen')}
             <input
               class="input mono"
               bind:value={value.dns_target}
-              placeholder={dnsDefault || (value.dns_type === 'cname' ? 'home.beispiel.de' : '203.0.113.7, 2001:db8::7')}
+              placeholder={dnsDefault || (value.dns_type === 'cname' ? 'home.beispiel.de' : t('203.0.113.7, 2001:db8::7'))}
               spellcheck="false"
               autocomplete="off"
             />
             <span class="muted small">
               {#if value.dns_type === 'address' && !value.dns_target && zone?.ip_source !== 'custom'}
-                leer = öffentliche IPs des Nodes{dnsDefault ? '' : ' – am Node noch keine eingetragen (Nodes › Bearbeiten)'}
+                {t('leer = öffentliche IPs des Nodes{0}', dnsDefault ? '' : t(' – am Node noch keine eingetragen (Nodes › Bearbeiten)'))}
               {:else}
-                leer = Standard der Domain
+                {t('leer = Standard der Domain')}
               {/if}
             </span>
           </label>
         </div>
         <label class="check">
           <input type="checkbox" bind:checked={value.dns_proxied} />
-          <span>Über den Cloudflare-Proxy <span class="muted">– nicht mit Zertifikat (mTLS) oder „Nur intern“</span></span>
+          <span>{t('Über den Cloudflare-Proxy')} <span class="muted">{t('– nicht mit Zertifikat (mTLS) oder „Nur intern“')}</span></span>
         </label>
       {/if}
     </fieldset>
   {/if}
 
   <fieldset class="dns">
-    <legend>Überwachung</legend>
+    <legend>{t('Überwachung')}</legend>
     <label class="check">
       <input type="checkbox" bind:checked={value.monitor} />
-      <span>Erreichbarkeit überwachen <span class="muted">– prüft jede Minute, ob das Ziel vom Node aus antwortet</span></span>
+      <span>{t('Erreichbarkeit überwachen')} <span class="muted">{t('– prüft jede Minute, ob das Ziel vom Node aus antwortet')}</span></span>
     </label>
     <label class="check">
       <input type="checkbox" bind:checked={value.status_public} />
-      <span>Auf der öffentlichen Statusseite zeigen <span class="muted">– nur Name und Erreichbarkeit, ohne Domain; die Seite selbst wird unter Einstellungen › Allgemein eingeschaltet</span></span>
+      <span>{t('Auf der öffentlichen Statusseite zeigen')} <span class="muted">{t('– nur Name und Erreichbarkeit, ohne Domain; die Seite selbst wird unter Einstellungen › Allgemein eingeschaltet')}</span></span>
     </label>
     {#if value.status_public}
       <label class="field">
-        Name auf der Statusseite
-        <input class="input" bind:value={value.status_name} maxlength="64" placeholder={value.domain.split('.')[0] || 'z. B. Cloud'} />
-        <span class="muted small">leer = Domain</span>
+        {t('Name auf der Statusseite')}
+        <input class="input" bind:value={value.status_name} maxlength="64" placeholder={value.domain.split('.')[0] || t('z. B. Cloud')} />
+        <span class="muted small">{t('leer = Domain')}</span>
       </label>
     {/if}
   </fieldset>
 
   <div class="options">
-    <label class="check"><input type="checkbox" bind:checked={value.websockets} />WebSockets erlauben</label>
-    <label class="check"><input type="checkbox" bind:checked={value.force_https} />HTTP → HTTPS umleiten</label>
-    <label class="check"><input type="checkbox" bind:checked={value.compression} />Kompression (gzip/zstd)</label>
+    <label class="check"><input type="checkbox" bind:checked={value.websockets} />{t('WebSockets erlauben')}</label>
+    <label class="check"><input type="checkbox" bind:checked={value.force_https} />{t('HTTP → HTTPS umleiten')}</label>
+    <label class="check"><input type="checkbox" bind:checked={value.compression} />{t('Kompression (gzip/zstd)')}</label>
   </div>
 </div>
 

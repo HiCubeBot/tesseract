@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../i18n';
   /**
    * Zoombare Herkunftskarte: Mausrad/Pinch bzw. Knöpfe zum Zoomen, Ziehen zum Verschieben.
    * Punkte: Städte (mit Stadt-Datenbank) oder Länder. Nahe Punkte werden je nach Zoom zu einem
@@ -293,24 +294,24 @@
           {/if}
         {/each}
       </svg>
-      <div class="zoom" role="group" aria-label="Zoom">
-        <button type="button" aria-label="Hineinzoomen" onclick={() => zoomAt(1.6, W / 2, H / 2)}>+</button>
-        <button type="button" aria-label="Herauszoomen" onclick={() => zoomAt(1 / 1.6, W / 2, H / 2)}>−</button>
-        <button type="button" aria-label="Ganze Welt" title="Ganze Welt" onclick={reset} disabled={k === 1}>⌂</button>
+      <div class="zoom" role="group" aria-label={t('Zoom')}>
+        <button type="button" aria-label={t('Hineinzoomen')} onclick={() => zoomAt(1.6, W / 2, H / 2)}>+</button>
+        <button type="button" aria-label={t('Herauszoomen')} onclick={() => zoomAt(1 / 1.6, W / 2, H / 2)}>−</button>
+        <button type="button" aria-label={t('Ganze Welt')} title={t('Ganze Welt')} onclick={reset} disabled={k === 1}>⌂</button>
       </div>
       {#if hover}
         <div class="tip" style:left="{(sx(hover.x) / W) * 100}%" style:top="{(sy(hover.y) / H) * 100}%">
-          <strong>{hover.lead.label}{hover.members > 1 ? ` und ${hover.members - 1} weitere` : ''}</strong>
+          <strong>{hover.lead.label}{hover.members > 1 ? t(' und {0} weitere', hover.members - 1) : ''}</strong>
           {#if hover.lead.label !== countryName(hover.lead.country)}<span class="muted">{countryName(hover.lead.country)}</span>{/if}
           <span>{fmt(hover.count)} {unit}</span>
         </div>
       {/if}
     </div>
   {:else}
-    <div class="loading" style:height="{H}px">Karte wird geladen …</div>
+    <div class="loading" style:height="{H}px">{t('Karte wird geladen …')}</div>
   {/if}
   <figcaption class="muted">
-    Kreisfläche = Anzahl · Mausrad, Doppelklick oder +/− zum Zoomen, Ziehen zum Verschieben{onSelect ? ' · Land anklicken für Details' : ''}
+    {t('Kreisfläche = Anzahl · Mausrad, Doppelklick oder +/− zum Zoomen, Ziehen zum Verschieben{0}', onSelect ? t(' · Land anklicken für Details') : '')}
   </figcaption>
 </figure>
 

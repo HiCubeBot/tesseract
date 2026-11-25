@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { locale, t } from '../lib/i18n';
   // Statistik › Betrieb: Summen seit Beginn, Erreichbarkeit der Nodes und Hosts (Uptime-Monitor),
   // Zertifikate, Rekorde und Vorfälle.
   import { onDestroy } from 'svelte';
@@ -94,44 +95,46 @@
   const hosts = $derived(showAll ? (mon?.hosts ?? []) : (mon?.hosts ?? []).slice(0, 8));
   const downNow = $derived((mon?.hosts ?? []).filter((h) => h.status === 'down').length);
 
-  const pct = (v: number | null) => (v === null ? '–' : `${v.toLocaleString('de-DE', { maximumFractionDigits: 1 })} %`);
-  const dayText = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const pct = (v: number | null) => (v === null ? '–' : `${v.toLocaleString(locale, { maximumFractionDigits: 1 })} %`);
+  const dayText = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
   const hourText = (h: string) => {
     const d = new Date(h);
-    return `${d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}, ${d.getHours()}–${d.getHours() + 1} Uhr`;
+    return t('{0}, {1}–{2} Uhr', d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' }), d.getHours(), d.getHours() + 1);
   };
   const short = (h: string | null | undefined) => (h ? h.split('.')[0] : '?');
   function summary(r: Row): string {
-    if (r.status === 'down') return `nicht erreichbar seit ${formatAgo(r.since)}${r.error ? ` · ${r.error}` : ''}`;
-    if (r.status === 'unknown') return r.error ?? 'noch nicht geprüft';
-    if (!r.outages) return 'kein Ausfall';
-    return `${r.outages} Ausfall${r.outages > 1 ? 'e' : ''} (${r.down_minutes} Min.)`;
+    if (r.status === 'down') return t('nicht erreichbar seit {0}{1}', formatAgo(r.since), r.error ? ` · ${r.error}` : '');
+    if (r.status === 'unknown') return r.error ?? t('noch nicht geprüft');
+    if (!r.outages) return t('kein Ausfall');
+    return r.outages === 1
+      ? t('1 Ausfall ({0} Min.)', r.down_minutes)
+      : t('{0} Ausfälle ({1} Min.)', r.outages, r.down_minutes);
   }
 </script>
 
 <AppShell active="stats">
-  <PageHeader title="Statistik" subtitle="Läuft alles? Erreichbarkeit, Zertifikate und Rekorde." />
+  <PageHeader title={t('Statistik')} subtitle={t('Läuft alles? Erreichbarkeit, Zertifikate und Rekorde.')} />
   <StatsTabs current="#/stats-ops" />
 
-  {#if error}<Alert tone="bad" title="Fehler" text={error} />{/if}
+  {#if error}<Alert tone="bad" title={t('Fehler')} text={error} />{/if}
 
   {#if ops}
     <div class="kpis">
       <KpiCard
-        label={ops.first_day ? `Anfragen seit ${new Date(`${ops.first_day}T00:00:00`).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}` : 'Anfragen'}
+        label={ops.first_day ? t('Anfragen seit {0}', new Date(`${ops.first_day}T00:00:00`).toLocaleDateString(locale, { month: 'long', year: 'numeric' })) : t('Anfragen')}
         value={compact(ops.requests)}
-        sub={`Ø ${fmt(ops.per_day_requests)} am Tag`}
+        sub={t('Ø {0} am Tag', fmt(ops.per_day_requests))}
       />
-      <KpiCard label="Daten ausgeliefert" value={formatBytes(ops.bytes_out)} sub={`Ø ${formatBytes(ops.per_day_bytes)} am Tag`} />
+      <KpiCard label={t('Daten ausgeliefert')} value={formatBytes(ops.bytes_out)} sub={t('Ø {0} am Tag', formatBytes(ops.per_day_bytes))} />
       <KpiCard
-        label="Abgelehnt"
+        label={t('Abgelehnt')}
         value={fmt(ops.denied)}
-        sub={ops.requests ? `${((100 * ops.denied) / ops.requests).toLocaleString('de-DE', { maximumFractionDigits: 2 })} % aller Anfragen` : '–'}
+        sub={ops.requests ? t('{0} % aller Anfragen', ((100 * ops.denied) / ops.requests).toLocaleString(locale, { maximumFractionDigits: 2 })) : '–'}
       />
       <KpiCard
-        label="Beobachtet seit"
-        value={`${fmt(ops.days)} ${ops.days === 1 ? 'Tag' : 'Tagen'}`}
-        sub={ops.first_day ? `erster Tag: ${dayText(ops.first_day)}` : 'noch keine Tageswerte'}
+        label={t('Beobachtet seit')}
+        value={`${fmt(ops.days)} ${ops.days === 1 ? t('Tag') : t('Tagen')}`}
+        sub={ops.first_day ? t('erster Tag: {0}', dayText(ops.first_day)) : t('noch keine Tageswerte')}
       />
     </div>
   {/if}
@@ -141,9 +144,9 @@
       <div class="col">
       <section class="card" aria-labelledby="nodes-title">
         <div class="row">
-          <h2 id="nodes-title">Erreichbarkeit der Nodes</h2>
+          <h2 id="nodes-title">{t('Erreichbarkeit der Nodes')}</h2>
           <span class="spacer"></span>
-          <span class="muted small">Verbindung zum Controller · letzte 30 Tage</span>
+          <span class="muted small">{t('Verbindung zum Controller · letzte 30 Tage')}</span>
         </div>
         <ul class="rows">
           {#each mon.nodes as n (n.name)}
@@ -154,7 +157,7 @@
                   <i class="dot {n.status}"></i>{n.status === 'down' ? 'getrennt' : n.status === 'up' ? 'verbunden' : 'unbekannt'} · {summary(n)}
                 </span>
               </div>
-              <UptimeBars days={n.days} label={`Erreichbarkeit ${n.name} je Tag`} />
+              <UptimeBars days={n.days} label={t('Erreichbarkeit {0} je Tag', n.name)} />
               <span class="pct">{pct(n.pct)}</span>
             </li>
           {/each}
@@ -164,11 +167,11 @@
 
       <section class="card" aria-labelledby="hosts-title">
         <div class="row">
-          <h2 id="hosts-title">Erreichbarkeit der Hosts</h2>
+          <h2 id="hosts-title">{t('Erreichbarkeit der Hosts')}</h2>
           <span class="spacer"></span>
-          <span class="muted small">Dienst antwortet nicht oder Node getrennt · letzte 30 Tage</span>
+          <span class="muted small">{t('Dienst antwortet nicht oder Node getrennt · letzte 30 Tage')}</span>
         </div>
-        {#if downNow}<Alert tone="bad" title={`${downNow} ${downNow === 1 ? 'Dienst' : 'Dienste'} gerade nicht erreichbar`} />{/if}
+        {#if downNow}<Alert tone="bad" title={t('{0} {1} gerade nicht erreichbar', downNow, downNow === 1 ? t('Dienst') : t('Dienste'))} />{/if}
         <ul class="rows">
           {#each hosts as h (h.domain)}
             <li>
@@ -176,16 +179,16 @@
                 <a class="mono name" href={`#/hosts/${h.id}`}>{h.domain}</a>
                 <span class="small sub" class:bad={h.status === 'down'}><i class="dot {h.status}"></i>{summary(h)}</span>
               </div>
-              <UptimeBars days={h.days} label={`Erreichbarkeit ${h.domain} je Tag`} />
+              <UptimeBars days={h.days} label={t('Erreichbarkeit {0} je Tag', h.domain)} />
               <span class="pct">{pct(h.pct)}</span>
             </li>
           {:else}
-            <li class="muted small">Keine überwachten Hosts. Die Überwachung lässt sich je Host unter „Allgemein“ einschalten.</li>
+            <li class="muted small">{t('Keine überwachten Hosts. Die Überwachung lässt sich je Host unter „Allgemein“ einschalten.')}</li>
           {/each}
         </ul>
         {#if mon.hosts.length > 8}
           <button type="button" class="link" onclick={() => (showAll = !showAll)}>
-            {showAll ? 'Weniger anzeigen' : `Alle ${mon.hosts.length} Hosts anzeigen`}
+            {showAll ? t('Weniger anzeigen') : t('Alle {0} Hosts anzeigen', mon.hosts.length)}
           </button>
         {/if}
         {@render legend()}
@@ -195,31 +198,31 @@
       <div class="col">
       <section class="card" aria-labelledby="certs-title">
         <div class="row">
-          <h2 id="certs-title">Zertifikate</h2>
+          <h2 id="certs-title">{t('Zertifikate')}</h2>
           <span class="spacer"></span>
-          <span class="muted small">letzte 30 Tage</span>
+          <span class="muted small">{t('letzte 30 Tage')}</span>
         </div>
         {#if certs === null}
-          <p class="muted small">Lädt …</p>
+          <p class="muted small">{t('Lädt …')}</p>
         {:else}
           <div class="cert-kpi">
             <span class="big">{renewed.length}</span>
-            <span class="muted">{renewed.length === 1 ? 'Erneuerung' : 'Erneuerungen'}</span>
-            {#if certErrors}<span class="warn-pill">⚠ {certErrors} Node{certErrors > 1 ? 's' : ''} nicht geprüft</span>{/if}
+            <span class="muted">{renewed.length === 1 ? t('Erneuerung') : t('Erneuerungen')}</span>
+            {#if certErrors}<span class="warn-pill">{t('⚠ {0} Node{1} nicht geprüft', certErrors, certErrors > 1 ? 's' : '')}</span>{/if}
           </div>
-          <span class="eyebrow">Nächste Abläufe</span>
+          <span class="eyebrow">{t('Nächste Abläufe')}</span>
           <ul class="certs">
             {#each expiring as c (c.names.join() + c.not_after)}
               <li>
                 <span class="mono ellipsis" title={c.names.join(', ')}>{c.names[0]}</span>
                 <span class="muted">{dayText(c.not_after.slice(0, 10))}</span>
-                <span class:warn-text={c.status !== 'ok'}>in {c.days_left} Tagen</span>
+                <span class:warn-text={c.status !== 'ok'}>{t('in {0} Tagen', c.days_left)}</span>
               </li>
             {:else}
-              <li class="muted">Keine Zertifikate gefunden.</li>
+              <li class="muted">{t('Keine Zertifikate gefunden.')}</li>
             {/each}
           </ul>
-          <a class="small" href="#/certificates">Alle Zertifikate</a>
+          <a class="small" href="#/certificates">{t('Alle Zertifikate')}</a>
         {/if}
       </section>
 
@@ -227,19 +230,19 @@
         {@const r = ops.records}
         <section class="card" aria-labelledby="rec-title">
           <div class="row">
-            <h2 id="rec-title">Rekorde</h2>
+            <h2 id="rec-title">{t('Rekorde')}</h2>
             <span class="spacer"></span>
-            <span class="muted small">seit Beginn der Aufzeichnung</span>
+            <span class="muted small">{t('seit Beginn der Aufzeichnung')}</span>
           </div>
           <dl class="records">
-            {#if r.day}<div><dt>Stärkster Tag<small>{dayText(r.day.day)} · meist {short(r.day.host)}</small></dt><dd>{compact(r.day.requests)}<small>Anfragen</small></dd></div>{/if}
-            {#if r.hour}<div><dt>Stärkste Stunde<small>{hourText(r.hour.hour)} · meist {short(r.hour.host)}</small></dt><dd>{fmt(r.hour.requests)}<small>Anfragen</small></dd></div>{/if}
-            {#if r.bytes_day}<div><dt>Meiste Daten an einem Tag<small>{dayText(r.bytes_day.day)}</small></dt><dd>{formatBytes(r.bytes_day.bytes)}<small>ausgeliefert</small></dd></div>{/if}
-            {#if r.denied_hour}<div><dt>Größte Abweisungs-Welle<small>{hourText(r.denied_hour.hour)} · meist {short(r.denied_hour.host)}</small></dt><dd>{fmt(r.denied_hour.denied)}<small>abgelehnt in 1 Std.</small></dd></div>{/if}
-            {#if r.fastest}<div><dt>Schnellster Host<small>{r.fastest.host} · letzte 30 Tage</small></dt><dd>{fmt(r.fastest.median_ms)} ms<small>Median</small></dd></div>{/if}
-            {#if r.slowest}<div><dt>Langsamster Host<small>{r.slowest.host} · letzte 30 Tage</small></dt><dd>{fmt(r.slowest.median_ms)} ms<small>Median</small></dd></div>{/if}
+            {#if r.day}<div><dt>{t('Stärkster Tag')}<small>{t('{0} · meist {1}', dayText(r.day.day), short(r.day.host))}</small></dt><dd>{compact(r.day.requests)}<small>{t('Anfragen')}</small></dd></div>{/if}
+            {#if r.hour}<div><dt>{t('Stärkste Stunde')}<small>{t('{0} · meist {1}', hourText(r.hour.hour), short(r.hour.host))}</small></dt><dd>{fmt(r.hour.requests)}<small>{t('Anfragen')}</small></dd></div>{/if}
+            {#if r.bytes_day}<div><dt>{t('Meiste Daten an einem Tag')}<small>{dayText(r.bytes_day.day)}</small></dt><dd>{formatBytes(r.bytes_day.bytes)}<small>{t('ausgeliefert')}</small></dd></div>{/if}
+            {#if r.denied_hour}<div><dt>{t('Größte Abweisungs-Welle')}<small>{t('{0} · meist {1}', hourText(r.denied_hour.hour), short(r.denied_hour.host))}</small></dt><dd>{fmt(r.denied_hour.denied)}<small>{t('abgelehnt in 1 Std.')}</small></dd></div>{/if}
+            {#if r.fastest}<div><dt>{t('Schnellster Host')}<small>{t('{0} · letzte 30 Tage', r.fastest.host)}</small></dt><dd>{t('{0} ms', fmt(r.fastest.median_ms))}<small>{t('Median')}</small></dd></div>{/if}
+            {#if r.slowest}<div><dt>{t('Langsamster Host')}<small>{t('{0} · letzte 30 Tage', r.slowest.host)}</small></dt><dd>{t('{0} ms', fmt(r.slowest.median_ms))}<small>{t('Median')}</small></dd></div>{/if}
           </dl>
-          {#if !r.day}<p class="muted small">Rekorde gibt es ab dem ersten vollständigen Tag.</p>{/if}
+          {#if !r.day}<p class="muted small">{t('Rekorde gibt es ab dem ersten vollständigen Tag.')}</p>{/if}
         </section>
       {/if}
       </div>
@@ -247,57 +250,55 @@
 
     <div class="grid">
       <section class="card" aria-labelledby="inc-title">
-        <h2 id="inc-title">Letzte Ausfälle</h2>
+        <h2 id="inc-title">{t('Letzte Ausfälle')}</h2>
         {#if mon.incidents.length}
           <ul class="incidents">
             {#each mon.incidents as i (i.kind + i.ref + i.started_at)}
               <li>
                 <i class="dot {i.ended_at ? 'up' : 'down'}"></i>
                 <span class="mono">{i.ref}</span>
-                <span class="muted small">{i.kind === 'node' ? 'Node' : 'Host'} · {new Date(i.started_at).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })} · {i.ended_at ? `${i.minutes} Min.` : 'dauert an'}{i.error ? ` · ${i.error}` : ''}</span>
+                <span class="muted small">{i.kind === 'node' ? t('Node') : t('Host')} · {new Date(i.started_at).toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' })} · {i.ended_at ? t('{0} Min.', i.minutes) : t('dauert an')}{i.error ? ` · ${i.error}` : ''}</span>
               </li>
             {/each}
           </ul>
         {:else}
-          <p class="muted small">Bisher kein Ausfall erkannt.</p>
+          <p class="muted small">{t('Bisher kein Ausfall erkannt.')}</p>
         {/if}
       </section>
 
       {#if ops}
         <section class="card" aria-labelledby="status-title">
-          <h2 id="status-title">Öffentliche Statusseite</h2>
+          <h2 id="status-title">{t('Öffentliche Statusseite')}</h2>
           {#if !ops.status_enabled}
             <p class="muted small">
-              Ausgeschaltet. Unter <a href="#/settings">Einstellungen › Allgemein</a> einschalten{ops.status_hosts
-                ? ` – ${ops.status_hosts} ${ops.status_hosts === 1 ? 'Dienst ist' : 'Dienste sind'} schon dafür ausgewählt`
-                : ''}.
+              {t('Ausgeschaltet. Unter')} <a href="#/settings">{t('Einstellungen › Allgemein')}</a> {t('einschalten{0}.', ops.status_hosts
+                ? t(' – {0} {1} schon dafür ausgewählt', ops.status_hosts, ops.status_hosts === 1 ? t('Dienst ist') : t('Dienste sind'))
+                : '')}
             </p>
           {:else if ops.status_hosts}
             <p class="small">
-              {ops.status_hosts} {ops.status_hosts === 1 ? 'Dienst steht' : 'Dienste stehen'} auf der Statusseite – ohne Anmeldung erreichbar, auch wenn die Oberfläche
-              nur aus bestimmten Netzen geht.
+              {t('{0} {1} auf der Statusseite – ohne Anmeldung erreichbar, auch wenn die Oberfläche nur aus bestimmten Netzen geht.', ops.status_hosts, ops.status_hosts === 1 ? t('Dienst steht') : t('Dienste stehen'))}
             </p>
             <a class="small mono" href={ops.status_url} target="_blank" rel="noopener">{ops.status_url}</a>
           {:else}
             <p class="muted small">
-              Noch kein Dienst freigegeben. Je Host unter „Allgemein › Überwachung“ „Auf der öffentlichen Statusseite zeigen“ wählen. Die Seite zeigt nur den Namen und die
-              Erreichbarkeit, keine Domains oder Adressen.
+              {t('Noch kein Dienst freigegeben. Je Host unter „Allgemein › Überwachung“ „Auf der öffentlichen Statusseite zeigen“ wählen. Die Seite zeigt nur den Namen und die Erreichbarkeit, keine Domains oder Adressen.')}
             </p>
           {/if}
         </section>
       {/if}
     </div>
   {:else if !error}
-    <p class="muted">Lädt …</p>
+    <p class="muted">{t('Lädt …')}</p>
   {/if}
 </AppShell>
 
 {#snippet legend()}
   <div class="legend">
-    <span><i class="sq ok"></i>ohne Ausfall</span>
-    <span><i class="sq warn"></i>unter 30 Min.</span>
-    <span><i class="sq bad"></i>ab 30 Min.</span>
-    <span><i class="sq none"></i>keine Daten</span>
+    <span><i class="sq ok"></i>{t('ohne Ausfall')}</span>
+    <span><i class="sq warn"></i>{t('unter 30 Min.')}</span>
+    <span><i class="sq bad"></i>{t('ab 30 Min.')}</span>
+    <span><i class="sq none"></i>{t('keine Daten')}</span>
   </div>
 {/snippet}
 

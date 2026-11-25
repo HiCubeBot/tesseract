@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../i18n';
   import Button from './Button.svelte';
   import ChipInput from './ChipInput.svelte';
   import { api, CLOUDFLARE_RANGES, type IpList } from '../api';
@@ -20,8 +21,8 @@
 
   function open(l: IpList | null, template?: 'cloudflare') {
     editId = l ? l.id : 'new';
-    name = l?.name ?? (template === 'cloudflare' ? 'Cloudflare' : '');
-    description = l?.description ?? (template === 'cloudflare' ? 'Netze von Cloudflare (Proxy)' : '');
+    name = l?.name ?? (template === 'cloudflare' ? t('Cloudflare') : '');
+    description = l?.description ?? (template === 'cloudflare' ? t('Netze von Cloudflare (Proxy)') : '');
     entries = l ? [...l.entries] : template === 'cloudflare' ? [...CLOUDFLARE_RANGES] : [];
     error = '';
   }
@@ -34,7 +35,7 @@
       const body = { name, description, entries };
       if (editId === 'new') await api.post('/ip-lists', body);
       else await api.put(`/ip-lists/${editId}`, body);
-      toasts.show('ok', `Liste „${name}“ gespeichert.`);
+      toasts.show('ok', t('Liste „{0}“ gespeichert.', name));
       editId = null;
       onChange();
     } catch (err) {
@@ -45,7 +46,7 @@
   }
 
   async function remove(l: IpList) {
-    if (!confirm(`Liste „${l.name}“ löschen?`)) return;
+    if (!confirm(t('Liste „{0}“ löschen?', l.name))) return;
     try {
       await api.del(`/ip-lists/${l.id}`);
       onChange();
@@ -61,40 +62,39 @@
       <span class="stack">
         <strong>{l.name}</strong>
         <span class="muted small">
-          {l.entries.length} Einträge{l.description ? ` · ${l.description}` : ''}
-          {l.used_by.length ? ` · genutzt von ${l.used_by.join(', ')}` : ''}
+          {t('{0} Einträge{1} {2}', l.entries.length, l.description ? ` · ${l.description}` : '', l.used_by.length ? t(' · genutzt von {0}', l.used_by.join(', ')) : '')}
         </span>
       </span>
       <span class="spacer"></span>
-      <Button variant="ghost" size="sm" label="Bearbeiten" onClick={() => open(l)} />
-      <Button variant="ghost" size="sm" label="Löschen" disabled={l.used_by.length > 0} onClick={() => remove(l)} />
+      <Button variant="ghost" size="sm" label={t('Bearbeiten')} onClick={() => open(l)} />
+      <Button variant="ghost" size="sm" label={t('Löschen')} disabled={l.used_by.length > 0} onClick={() => remove(l)} />
     </li>
   {:else}
-    <li class="muted small">Noch keine Listen.</li>
+    <li class="muted small">{t('Noch keine Listen.')}</li>
   {/each}
 </ul>
 
 {#if editId !== null}
   <form class="card editor" onsubmit={save}>
     <div class="grid">
-      <label class="field">Name<input class="input" required maxlength="64" bind:value={name} /></label>
-      <label class="field">Beschreibung<input class="input" maxlength="255" bind:value={description} /></label>
+      <label class="field">{t('Name')}<input class="input" required maxlength="64" bind:value={name} /></label>
+      <label class="field">{t('Beschreibung')}<input class="input" maxlength="255" bind:value={description} /></label>
     </div>
     <div class="field">
-      Einträge (IP oder Netz)
-      <ChipInput bind:values={entries} label="Eintrag hinzufügen" placeholder="198.51.100.0/24" />
+      {t('Einträge (IP oder Netz)')}
+      <ChipInput bind:values={entries} label={t('Eintrag hinzufügen')} placeholder="198.51.100.0/24" />
     </div>
     {#if error}<p class="field-error" role="alert">{error}</p>{/if}
     <div class="row">
-      <Button type="submit" label={busy ? 'Speichert …' : 'Speichern'} disabled={busy} />
-      <Button variant="ghost" label="Abbrechen" onClick={() => (editId = null)} />
+      <Button type="submit" label={busy ? t('Speichert …') : t('Speichern')} disabled={busy} />
+      <Button variant="ghost" label={t('Abbrechen')} onClick={() => (editId = null)} />
     </div>
   </form>
 {:else}
   <div class="row">
-    <Button variant="secondary" size="sm" icon="plus" label="Neue Liste" onClick={() => open(null)} />
+    <Button variant="secondary" size="sm" icon="plus" label={t('Neue Liste')} onClick={() => open(null)} />
     {#if !lists.some((l) => l.name === 'Cloudflare')}
-      <Button variant="ghost" size="sm" label="Vorlage: Cloudflare" onClick={() => open(null, 'cloudflare')} />
+      <Button variant="ghost" size="sm" label={t('Vorlage: Cloudflare')} onClick={() => open(null, 'cloudflare')} />
     {/if}
   </div>
 {/if}
