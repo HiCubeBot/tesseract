@@ -160,6 +160,9 @@ class NodeSpec:
     controller_waf_mode: str = "off"
     # Netze, aus denen die Oberfläche erreichbar ist; leer = alle (TESSERACT_ADMIN_NETWORKS)
     controller_networks: tuple[str, ...] = ()
+    # Fingerabdrücke der Geräte von Personen mit Zugriff auf Tesseract (uiaccess.py) – sie
+    # kommen auch von außerhalb der controller_networks durch (Anmeldung nur per Zertifikat)
+    controller_cert_users: tuple[str, ...] = ()
     # Node-Schnittstelle von controller_networks ausnehmen (TESSERACT_AGENT_API_PUBLIC)
     controller_agents_open: bool = True
     # Öffentliche Statusseite eingeschaltet (Einstellungen › Allgemein)
@@ -765,16 +768,17 @@ def public_paths(spec: "NodeSpec", agents_open: bool = True) -> tuple[str, ...]:
 def _admin_networks_route(spec: "NodeSpec") -> JSON:
     """Oberfläche nur aus diesen Netzen: sonst Verbindung abbrechen, keine Antwort. Die
     öffentlichen Pfade (Einladung, Verlängern, Agents …) bleiben überall erreichbar.
-    Geprüft wird die echte Verbindungs-IP (remote_ip), nicht X-Forwarded-For."""
+    Geprüft wird die echte Verbindungs-IP (remote_ip), nicht X-Forwarded-For.
+    Personen mit Zugriff per Gerätezertifikat kommen von überall durch – erkannt am
+    Fingerabdruck, den Caddy nach Prüfung gegen die eigene CA setzt."""
+    exceptions: list[JSON] = [
+        {"remote_ip": {"ranges": list(spec.controller_networks)}},
+        {"path": list(public_paths(spec, spec.controller_agents_open))},
+    ]
+    if spec.controller_cert_users:
+        exceptions.append({"vars": {FINGERPRINT: list(spec.controller_cert_users)}})
     return {
-        "match": [
-            {
-                "not": [
-                    {"remote_ip": {"ranges": list(spec.controller_networks)}},
-                    {"path": list(public_paths(spec, spec.controller_agents_open))},
-                ]
-            }
-        ],
+        "match": [{"not": exceptions}],
         # im Log wie „nur intern“ (gleiche Wirkung: von außen keine Antwort)
         "handle": [_tagged({"handler": "static_response", "abort": True}, "internal")],
         "terminal": True,

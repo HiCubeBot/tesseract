@@ -4,6 +4,15 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.26.3] – 2026-11-25
+
+### Behoben
+- **Zugriff per Gerätezertifikat von unterwegs:** Mit `TESSERACT_ADMIN_NETWORKS` brach Caddy
+  auch für Personen mit „Zugriff auf Tesseract“ jede Verbindung von außerhalb ab („Empty
+  Response“, z. B. über mobile Daten). Ihre Geräte sind jetzt ausgenommen – erkannt am
+  Fingerabdruck des Zertifikats. Für alle anderen, auch die Passwort-Anmeldung, gelten die
+  Admin-Netze weiter.
+
 ## [1.26.2] – 2026-11-25
 
 ### Behoben

@@ -138,3 +138,30 @@ def test_admin_mtls_allows_ui_devices(auth_client: TestClient, caddy: FakeCaddy)
         cfg = node_config(db, node, app.state.settings)
     text = str(cfg)
     assert fp in text
+
+
+def test_cert_users_listed_for_admin_networks(auth_client: TestClient, caddy: FakeCaddy) -> None:
+    """Nur Geräte von Personen mit Rolle stehen in der Ausnahme von TESSERACT_ADMIN_NETWORKS."""
+    import json
+
+    from tesseract.db.models import Node
+    from tesseract.services import node_config
+
+    ids = _setup(auth_client)
+    anna, ben = ids["anna"], ids["ben"]
+    fp_anna = _fp(_issue(auth_client, anna["id"], "laptop"))
+    fp_ben = _fp(_issue(auth_client, ben["id"], "handy"))
+    _person(auth_client, auth_client.get(f"/api/persons/{anna['id']}").json(), "read")
+
+    app = auth_client.app
+    settings = app.state.settings.model_copy(
+        update={"admin_networks": "192.168.178.0/24", "controller_domain": "tesseract.example.org"}
+    )
+    with app.state.db.sessionmaker() as db:
+        node = db.query(Node).filter(Node.kind == "local").first()
+        cfg = node_config(db, node, settings)
+    route = next(
+        r for r in cfg["apps"]["http"]["servers"]["https"]["routes"] if r.get("@id") == "controller"
+    )
+    gate = json.dumps(route["handle"][0]["routes"][0])
+    assert '"abort": true' in gate and fp_anna in gate and fp_ben not in gate

@@ -147,3 +147,24 @@ def test_agent_api_can_be_restricted_too() -> None:
     assert "/api/agent/*" not in paths and "/install/*" not in paths
     # Gäste (Einladung, Verlängern) bleiben erreichbar
     assert "/e/*" in paths and "/v" in paths
+
+
+def test_cert_users_pass_admin_networks() -> None:
+    """Personen mit Zugriff per Gerätezertifikat erreichen die Oberfläche auch von unterwegs."""
+    from dataclasses import replace
+
+    from tesseract.caddy.config import FINGERPRINT
+
+    spec = NodeSpec(
+        admin_listen="x",
+        controller_domain="tesseract.example.org",
+        controller_upstream="tesseract:8000",
+        controller_networks=("192.168.178.0/24",),
+    )
+    gate = _servers(build_config(spec))["https"]["routes"][0]["handle"][0]["routes"][0]
+    assert len(gate["match"][0]["not"]) == 2  # ohne Personen: keine Ausnahme
+
+    fp = "ab" * 32
+    spec = replace(spec, controller_cert_users=(fp,))
+    gate = _servers(build_config(spec))["https"]["routes"][0]["handle"][0]["routes"][0]
+    assert gate["match"][0]["not"][2] == {"vars": {FINGERPRINT: [fp]}}

@@ -577,6 +577,7 @@ def node_config(db: Session, node: Node, settings: Settings, bans: bool = True) 
         controller_networks=()
         if settings.admin_networks_open
         else tuple(settings.admin_network_list),
+        controller_cert_users=tuple(sorted({d.fingerprint for d in ui_devices(db)})),
         controller_agents_open=settings.agent_api_public,
         controller_status_open=bool(general["status_page_enabled"]),
         trusted_proxies=tuple(

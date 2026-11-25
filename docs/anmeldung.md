@@ -75,8 +75,10 @@ Login-Formular (Standard: kein Zugriff).
 - Gilt die Rolle für die Person, zählt jedes ihrer aktiven Geräte.
 - Das Audit-Log zeigt Person und Gerät, z. B. `Anna (iPhone)`.
 - Mit „Oberfläche nur mit Admin-Zertifikat“ lässt Caddy auch die Geräte dieser Personen durch;
-  die Passwort-Anmeldung bleibt dann weiter dem Admin-Gerät vorbehalten. `TESSERACT_ADMIN_NETWORKS`
-  gilt wie für alle.
+  die Passwort-Anmeldung bleibt dann weiter dem Admin-Gerät vorbehalten.
+- `TESSERACT_ADMIN_NETWORKS` gilt für diese Geräte nicht: Sie erreichen die Oberfläche auch von
+  unterwegs (z. B. mobile Daten), erkannt am Fingerabdruck ihres Zertifikats. Alle anderen –
+  auch die Passwort-Anmeldung – bleiben auf die Admin-Netze beschränkt.
 - Die Gruppe „Admin“ bleibt, was sie war: Ihre Geräte sind der zweite Faktor für Admin-Konten
   (Passwort/Passkey/SSO), sie melden niemanden ohne Passwort an.
 - Notausgang: Passwort-Anmeldung als Admin bleibt immer möglich; `tesseract admin mtls off`
