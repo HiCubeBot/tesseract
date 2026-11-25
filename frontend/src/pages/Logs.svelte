@@ -285,7 +285,7 @@
           <dd><span class="mono">{d.ip}</span>{#if d.country} · {countryName(d.country)}{/if}</dd>
           {#if d.device}<dt>{t('Gerät')}</dt><dd>{d.device} · {d.person}</dd>{/if}
           {#if d.user_agent}<dt>{t('Browser')}</dt><dd class="small">{d.user_agent}</dd>{/if}
-          {#if d.proto}<dt>{t('Protokoll')}</dt><dd>HTTP/{d.proto}</dd>{/if}
+          {#if d.proto}<dt>{t('Protokoll')}</dt><dd>{`HTTP/${d.proto}`}</dd>{/if}
           <dt>{t('Diese IP (24 h)')}</dt>
           <dd>{t('{0} Anfragen, {1} abgelehnt', d.ip_requests, d.ip_denied)}{#if d.ip_banned} · <strong>{t('gesperrt')}</strong>{/if}</dd>
         </dl>
