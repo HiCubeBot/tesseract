@@ -160,6 +160,7 @@
  "Passwort-Anmeldung lässt sich erst abschalten, wenn SSO oder ein Passkey eingerichtet ist": "Password sign-in can only be turned off once SSO or a passkey is set up",
  "Person": "Person",
  "Person nicht gefunden": "Person not found",
+ "Profil": "Profile",
  "Proxy-Hosts": "Proxy hosts",
  "RSA-Schlüssel braucht mindestens 2048 Bit": "RSA key needs at least 2048 bits",
  "Restic: Passwort des Repositorys angeben": "Restic: specify the repository password",

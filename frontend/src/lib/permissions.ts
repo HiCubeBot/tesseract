@@ -18,9 +18,10 @@ const READ = [
   'stats-usage',
   'stats-map',
   'stats-ops',
-  'me'
+  'me',
+  'profile'
 ];
-const OWN = ['hosts', 'hosts/:id/stats', 'hosts/:id/history', 'me'];
+const OWN = ['hosts', 'hosts/:id/stats', 'hosts/:id/history', 'me', 'profile'];
 
 export function pageAllowed(role: UiRole | undefined, pattern: string): boolean {
   if (!role || role === 'admin') return true;

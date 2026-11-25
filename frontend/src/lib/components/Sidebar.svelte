@@ -1,20 +1,14 @@
 <script lang="ts">
   import { locale, t } from '../i18n';
   import Icon from './Icon.svelte';
-  import LangSwitch from './LangSwitch.svelte';
   import { icons } from '../icons';
   import { session } from '../session.svelte';
-  import { theme, THEME_LABELS } from '../theme.svelte';
   import { counts } from '../counts.svelte';
   import { pageAllowed } from '../permissions';
   import { UI_ROLES } from '../api';
 
-  // Symbole: Monitor (System), Sonne (hell), Mond (dunkel)
-  const THEME_ICONS = {
-    system: 'M3 5h18v11H3zM8 20h8M12 16v4',
-    light: 'M12 8a4 4 0 1 0 0 8a4 4 0 1 0 0-8M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4',
-    dark: 'M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z'
-  } as const;
+  // Profil: Person mit Zahnrad-Andeutung
+  const PROFILE_ICON = 'M12 12a4 4 0 1 0 0-8a4 4 0 0 0 0 8zM4 20c0-3.3 3.6-6 8-6s8 2.7 8 6';
 
   type NavId =
     | 'main'
@@ -27,7 +21,8 @@
     | 'stats'
     | 'audit'
     | 'settings'
-    | 'me';
+    | 'me'
+    | 'profile';
 
   interface Props {
     active?: NavId;
@@ -106,16 +101,16 @@
         {session.viaCert ? `${session.user?.device ?? ''} · ${UI_ROLES[session.role]}` : t('Controller')}
       </span>
     </div>
-    <button
-      type="button"
+    <a
+      href="#/profile"
       class="logout"
-      onclick={() => theme.next()}
-      aria-label={t('Farbschema: {0} – umschalten', THEME_LABELS[theme.choice])}
-      title={t('Farbschema: {0}', THEME_LABELS[theme.choice])}
+      class:on={active === 'profile'}
+      aria-current={active === 'profile' ? 'page' : undefined}
+      aria-label={t('Profil: Sprache und Farbschema')}
+      title={t('Profil: Sprache und Farbschema')}
     >
-      <Icon d={THEME_ICONS[theme.choice]} />
-    </button>
-    <LangSwitch />
+      <Icon d={PROFILE_ICON} />
+    </a>
     {#if session.user && !session.viaCert}
       <button type="button" class="logout" onclick={() => session.logout()} aria-label={t('Abmelden')} title={t('Abmelden')}>
         <Icon d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10" />
@@ -223,8 +218,12 @@
     justify-content: center;
     cursor: pointer;
   }
-  .logout:hover {
+  .logout:hover,
+  .logout.on {
     color: var(--text);
+  }
+  .logout.on {
+    background: var(--surface-active);
   }
   .avatar {
     width: 30px;

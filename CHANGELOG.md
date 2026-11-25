@@ -4,6 +4,14 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.26.0] – 2026-11-25
+
+### Geändert
+- **Profil statt Knopfleiste:** Unten in der Seitenleiste stehen nur noch zwei Knöpfe – Profil
+  und Abmelden. Die neue Seite Profil (`#/profile`) zeigt das Konto und stellt Sprache
+  (Wie Browser, Deutsch, English) und Farbschema (Wie System, Hell, Dunkel) ein; für Admins mit
+  Links zu Passwort und Passkeys. Auch für Personen, die per Gerätezertifikat angemeldet sind.
+
 ## [1.25.1] – 2026-11-25
 
 ### Hinzugefügt

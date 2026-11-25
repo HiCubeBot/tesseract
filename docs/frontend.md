@@ -139,8 +139,8 @@ Quelle ist Deutsch: Der deutsche Text ist zugleich der Schlüssel (`src/lib/i18n
 - **Texte vom Backend** (API-Fehler, Ereignisse, Metriken, Seitentitel): `en.api.json`, über
   `tApi(text)` – auch mit Platzhaltern („IP-Liste 5 unbekannt“ ↔ „IP-Liste {0} unbekannt“).
   API-Fehler laufen in `lib/api.ts` automatisch durch `tApi`.
-- **Sprache:** automatisch nach Browser (`navigator.languages`), umschaltbar in der Seitenleiste
-  und auf der Anmeldeseite, gespeichert im Browser. Umschalten lädt die Seite neu – so greifen
+- **Sprache:** automatisch nach Browser (`navigator.languages`), einstellbar unter Profil
+  (`#/profile`) und auf der Anmeldeseite, gespeichert im Browser. Umschalten lädt die Seite neu – so greifen
   auch Texte in Konstanten. Zahlen, Daten und Ländernamen über `locale` und `Intl`.
 - **Prüfung:** `npm run check` ruft `node scripts/i18n.mjs check` auf und meldet feste Texte
   ohne `t()` sowie Schlüssel ohne englische Übersetzung. `npm run i18n -- keys` listet alle

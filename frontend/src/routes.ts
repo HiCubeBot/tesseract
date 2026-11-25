@@ -60,6 +60,7 @@ import SettingsBackupPage from "./pages/SettingsBackup.svelte";
 import SettingsAuthPage from "./pages/SettingsAuth.svelte";
 import SettingsLdapPage from "./pages/SettingsLdap.svelte";
 import MePage from "./pages/Me.svelte";
+import ProfilePage from "./pages/Profile.svelte";
 
 export interface Page {
   /** Muster ohne "#/", Parameter mit ":" – z. B. "hosts/:id/history" */
@@ -103,6 +104,7 @@ export const pages: Page[] = [
   { pattern: "access", title: "Zugriffsmatrix", component: AccessPage },
   { pattern: "settings-ca", title: "Einstellungen · Zertifizierungsstelle", component: SettingsCAPage },
   { pattern: "me", title: "Mein Zugang", component: MePage },
+  { pattern: "profile", title: "Profil", component: ProfilePage },
 ];
 
 export function matchPage(path: string): { page: Page; params: Record<string, string> } | null {
