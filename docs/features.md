@@ -50,7 +50,7 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | Geräte | Ein Gerät = ein Client-Zertifikat, gehört genau einer Person | 2 |
 | Geräteliste | Suche nach Gerät/Person/Fingerabdruck; Status (aktiv, läuft bald ab, gesperrt); zuletzt gesehen | 2 |
 | Zertifikat erneut abrufen | `.p12` und Passwort verschlüsselt aufbewahrt (abschaltbar): unter Geräte jederzeit wieder herunterladen, Passwort anzeigen, Kopie löschen; „Aufs Handy“ per QR-Code (Link 15 Min., 3 Abrufe, ohne Passwort) | 1.22 |
-| Gerät sperren / verlängern | Einzelnes Zertifikat widerrufen; verlängern ohne neue Registrierung (neue .p12, Freigaben bleiben), Erinnerung 30/7 Tage vorher | 2 / 6 |
+| Gerät sperren / entsperren / verlängern | Einzelnes Zertifikat widerrufen und bei Bedarf wieder freigeben (1.25.1); verlängern ohne neue Registrierung (neue .p12, Freigaben bleiben), Erinnerung 30/7 Tage vorher | 2 / 6 |
 | Gäste verlängern selbst | Link `https://<controller>/v` auf dem Gerät öffnen – das noch gültige Zertifikat ist der Ausweis, ohne Einladung und Freigabe. Ab einstellbaren Tagen vor Ablauf (Standard 30), nach einem CA-Wechsel sofort; abschaltbar (Einstellungen › Zertifizierungsstelle) | 1.2 |
 | Gültigkeit | Befristet (z. B. 1 Jahr) oder „unbegrenzt“ (begrenzt durch Zwischenzertifikat) | 2 |
 | Export gesperrter Zertifikate | Liste der widerrufenen Zertifikate | 2 |

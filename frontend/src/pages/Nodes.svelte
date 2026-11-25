@@ -501,10 +501,7 @@
       <li>{t('Node hier bestätigen. Danach überträgt der Controller die Config.')}</li>
     </ol>
     <pre class="code">{`tesseract-agent join \\\n  --controller ${controllerHint} \\\n  --token [BEITRITTS-TOKEN]`}</pre>
-    <div class="row">
-      <Button label={t('Node hinzufügen')} icon="plus" onClick={startAdd} />
-      <span class="muted small">{t('Token ist 30 Minuten gültig und nur einmal verwendbar.')}</span>
-    </div>
+    <p class="muted small">{t('Token ist 30 Minuten gültig und nur einmal verwendbar.')}</p>
   </section>
 
   {#if loaded && nodes.length === 1}

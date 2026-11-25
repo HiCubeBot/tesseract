@@ -15,9 +15,11 @@
     items: { country: string; count: number }[];
     label: string;
     color?: string;
+    /** Text im Tooltip, {0} = Anzahl – je nach Auswahl „Anfragen“, „abgelehnt“, „angenommen“ */
+    countText?: string;
   }
 
-  let { items, label, color = '#9085E9' }: Props = $props();
+  let { items, label, color = '#9085E9', countText = t('{0} Anfragen') }: Props = $props();
 
   type Country = Feature<Geometry, { name: string }> & { code: string };
   let countries = $state<Country[]>([]);
@@ -104,7 +106,7 @@
     {#if hover && hovered}
       <div class="tip" style:left="{hover.x}px" style:top="{hover.y}px">
         <strong>{countryName(hovered.country)}</strong>
-        <span>{t('{0} abgelehnt', fmt(hovered.count))}</span>
+        <span>{countText.replace('{0}', fmt(hovered.count))}</span>
       </div>
     {/if}
   {:else}

@@ -469,6 +469,43 @@ def revoke(
     return device_out(d)
 
 
+@router.post("/devices/{device_id}/unrevoke")
+def unrevoke(
+    device_id: int,
+    request: Request,
+    db: DB,
+    actor: CurrentActor,
+    settings: AppSettings,
+) -> DeviceOut:
+    """Gesperrtes Gerät wieder freigeben – dasselbe Zertifikat gilt wieder (nur bis zu seinem
+    Ablauf). Eine hinterlegte .p12 gibt es danach nicht mehr; „Verlängern“ stellt eine neue aus."""
+    d: Device = _get(db, Device, device_id, "Gerät")
+    if d.revoked_at is None:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Das Gerät ist nicht gesperrt")
+    if d.person.disabled:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "Die Person ist gesperrt – erst die Person entsperren"
+        )
+    if active_device_count(db, d.person_id) >= d.person.max_devices:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "Es ist kein Platz für ein weiteres Gerät frei"
+        )
+    reason = d.revoke_reason
+    d.revoked_at = None
+    d.revoke_reason = ""
+    audit.record(
+        db,
+        actor=actor.name,
+        action="device_unrevoked",
+        target=f"{d.person.name} · {d.name}",
+        details={"serial": d.serial, "was": reason},
+        ip=actor.ip,
+    )
+    db.commit()
+    _reapply(request, db, settings)
+    return device_out(d)
+
+
 @router.delete("/devices/{device_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_device(device_id: int, db: DB, actor: CurrentActor) -> None:
     """Gerät endgültig entfernen – nur, wenn es gesperrt oder abgelaufen ist.

@@ -482,7 +482,7 @@
                   <li class="confirm">
                     <ConfirmDialog
                       title={t('„{0}“ sperren?', d.name)}
-                      text={t('Das Zertifikat wird sofort aus allen Freigaben entfernt. Das lässt sich nicht rückgängig machen.')}
+                      text={t('Das Zertifikat wird sofort aus allen Freigaben entfernt. Unter Geräte › Gesperrt lässt es sich wieder entsperren.')}
                       word="sperren"
                       confirmLabel={t('Gerät sperren')}
                       onConfirm={() => revoke(t('vom Admin gesperrt'))}

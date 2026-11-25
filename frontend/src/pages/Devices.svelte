@@ -26,6 +26,14 @@
   let shown = $state<IssuedDevice | null>(null);
 
   async function showCert(d: Device) {
+    // Ohne hinterlegte Kopie (Gerät älter als 1.22 oder „Aufbewahren“ aus): neu ausstellen
+    if (!d.p12_stored) {
+      const ok = confirm(
+        t('Für „{0}“ ist keine Kopie hinterlegt (vor Version 1.22 ausgestellt oder „Aufbewahren“ ist aus). Jetzt ein neues Zertifikat ausstellen? Freigaben bleiben, das alte gilt danach nicht mehr.', d.name)
+      );
+      if (ok) await renew(d);
+      return;
+    }
     try {
       const c = await api.get<{ filename: string; password: string; p12_base64: string }>(`/devices/${d.id}/certificate`);
       renewed = null;
@@ -110,6 +118,23 @@
     }
   }
 
+  let unrevoking = $state<number | null>(null);
+
+  /** Gesperrtes Gerät wieder freigeben – dasselbe Zertifikat gilt wieder */
+  async function unrevoke(d: Device) {
+    if (!confirm(t('„{0}“ von {1} entsperren? Das bisherige Zertifikat gilt dann wieder für alle Freigaben.', d.name, d.person_name))) return;
+    unrevoking = d.id;
+    try {
+      await api.post(`/devices/${d.id}/unrevoke`);
+      toasts.show('ok', t('„{0}“ entsperrt.', d.name));
+      await load();
+    } catch (e) {
+      toasts.show('bad', e instanceof Error ? e.message : String(e), 10000);
+    } finally {
+      unrevoking = null;
+    }
+  }
+
   async function remove(d: Device) {
     if (!confirm(t('„{0}“ von {1} endgültig löschen?', d.name, d.person_name))) return;
     try {
@@ -160,7 +185,7 @@
   {#if revoke}
     <ConfirmDialog
       title={t('„{0}“ von {1} sperren?', revoke.name, revoke.person_name)}
-      text={t('Das Zertifikat wird sofort aus allen Freigaben entfernt. Das lässt sich nicht rückgängig machen.')}
+      text={t('Das Zertifikat wird sofort aus allen Freigaben entfernt. Unter Geräte › Gesperrt lässt es sich wieder entsperren.')}
       word="sperren"
       confirmLabel={t('Gerät sperren')}
       onConfirm={doRevoke}
@@ -193,12 +218,12 @@
               </td>
               <td><a href={`#/users/${d.person_id}`}>{d.person_name}</a></td>
               <td class="mono small muted" title={d.fingerprint}>{shortFp(d.fingerprint)}</td>
-              <td class="nowrap">{d.unlimited ? 'unbegrenzt' : formatDay(d.not_after)}</td>
+              <td class="nowrap">{d.unlimited ? t('unbegrenzt') : formatDay(d.not_after)}</td>
               <td>
                 {#if expiresSoon(d)}<StatusPill tone="warn" label={t('läuft bald ab')} />{:else}<StatusPill tone={st.tone} label={st.label} />{/if}
               </td>
               <td class="right">
-                {#if d.p12_stored && d.status !== 'revoked'}
+                {#if d.status !== 'revoked'}
                   <Button variant="ghost" size="sm" label={t('Zertifikat')} onClick={() => showCert(d)} />
                 {/if}
                 {#if d.status === 'active' || d.status === 'expired'}
@@ -206,6 +231,9 @@
                 {/if}
                 {#if d.status === 'active'}
                   <Button variant="ghost" size="sm" label={t('Sperren')} onClick={() => (revoke = d)} />
+                {:else if d.status === 'revoked'}
+                  <Button variant="ghost" size="sm" label={unrevoking === d.id ? t('Entsperrt …') : t('Entsperren')} disabled={unrevoking !== null} onClick={() => unrevoke(d)} />
+                  <Button variant="ghost" size="sm" label={t('Löschen')} onClick={() => remove(d)} />
                 {:else}
                   <Button variant="ghost" size="sm" label={t('Löschen')} onClick={() => remove(d)} />
                 {/if}

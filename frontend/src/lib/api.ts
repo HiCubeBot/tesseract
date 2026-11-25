@@ -691,6 +691,7 @@ export const ACTION_LABELS: Record<string, string> = {
   person_deleted: t('Person gelöscht'),
   device_issued: t('Gerätezertifikat ausgestellt'),
   device_revoked: t('Gerät gesperrt'),
+  device_unrevoked: t('Gerät entsperrt'),
   device_deleted: t('Gerät gelöscht'),
   access_changed: t('Zugriff geändert'),
   invite_created: t('Einladung erstellt'),

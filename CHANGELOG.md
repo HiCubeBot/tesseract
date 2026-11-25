@@ -4,6 +4,21 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.25.1] – 2026-11-25
+
+### Hinzugefügt
+- **Geräte entsperren:** Gesperrte Geräte lassen sich unter Geräte wieder freigeben – das
+  bisherige Zertifikat gilt dann wieder für alle Freigaben (Audit `device_unrevoked`). Nicht
+  möglich, solange die Person gesperrt ist oder ihr Geräte-Kontingent voll ist.
+
+### Behoben
+- Geräteliste: „Zertifikat“ steht jetzt bei jedem nicht gesperrten Gerät. Ohne hinterlegte Kopie
+  (vor 1.22 ausgestellt oder „Aufbewahren“ aus) bietet der Knopf an, ein neues auszustellen.
+- Nodes: „Node hinzufügen“ war doppelt vorhanden – jetzt nur noch oben.
+- Statistik › Karte: Der Tooltip zeigt bei „Alle“ „… Anfragen“ statt „… abgelehnt“, bei
+  „Angenommen“ „… angenommen“.
+- Übersetzung: Auswahl Alle/Abgelehnt/Angenommen, „unbegrenzt“ und der leere Kartentext.
+
 ## [1.25.0] – 2026-11-25
 
 ### Hinzugefügt

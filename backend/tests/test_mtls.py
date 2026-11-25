@@ -261,3 +261,35 @@ def test_internal_networks_without_certificate(auth_client: TestClient, caddy: F
     assert not any("remote_ip" in n for n in nots)
     versions = auth_client.get(f"/api/hosts/{h['id']}/versions").json()
     assert versions[0]["changes"][0]["field"] == "internal_no_cert"
+
+
+def test_unrevoke_device(auth_client: TestClient, caddy: FakeCaddy) -> None:
+    """Gesperrtes Gerät wieder entsperren: es steht sofort wieder in der Freigabeliste."""
+    ids = _setup(auth_client)
+    phone = _issue(auth_client, ids["anna"]["id"], "handy")
+    auth_client.post(
+        "/api/hosts", json={**HOST, "access": "mtls", "grant_group_ids": [ids["fam"]["id"]]}
+    )
+    assert (
+        auth_client.post(f"/api/devices/{phone['id']}/unrevoke").status_code == 409
+    )  # nicht gesperrt
+    auth_client.post(f"/api/devices/{phone['id']}/revoke", json={"reason": "verloren"})
+    fps = _gate(caddy, "fotos.example.org")["match"][0]["not"][0]["vars"][FINGERPRINT]
+    assert _fp(phone) not in fps
+
+    r = auth_client.post(f"/api/devices/{phone['id']}/unrevoke")
+    assert r.status_code == 200, r.text
+    assert r.json()["status"] == "active" and r.json()["revoke_reason"] == ""
+    fps = _gate(caddy, "fotos.example.org")["match"][0]["not"][0]["vars"][FINGERPRINT]
+    assert _fp(phone) in fps
+    actions = [e["action"] for e in auth_client.get("/api/audit?limit=3").json()]
+    assert "device_unrevoked" in actions
+
+    # gesperrte Person: erst die Person entsperren
+    auth_client.post(f"/api/devices/{phone['id']}/revoke", json={})
+    auth_client.put(
+        f"/api/persons/{ids['anna']['id']}",
+        json={"name": "Anna", "group_ids": [ids["fam"]["id"]], "disabled": True},
+    )
+    r = auth_client.post(f"/api/devices/{phone['id']}/unrevoke")
+    assert r.status_code == 409 and "Person" in r.text

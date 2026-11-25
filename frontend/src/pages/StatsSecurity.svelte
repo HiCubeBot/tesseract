@@ -50,7 +50,9 @@
 
   // Karte: alle Anfragen, nur abgelehnte oder nur angenommene
   const WHICH = ['all', 'denied', 'allowed'] as const;
-  const WHICH_LABELS = ['Alle', 'Abgelehnt', 'Angenommen'];
+  const WHICH_LABELS = [t('Alle'), t('Abgelehnt'), t('Angenommen')];
+  // Tooltip der Karte: Summe aus beidem heißt „Anfragen“, nicht „abgelehnt“
+  const WHICH_COUNT = [t('{0} Anfragen'), t('{0} abgelehnt'), t('{0} angenommen')];
   const WHICH_COLORS = ['#3987E5', '#D95926', '#199E70'];
   let which = $state(0);
   let geo = $state<{ countries: { country: string; count: number }[]; unknown: number } | null>(null);
@@ -232,12 +234,17 @@
           <WorldMap
             {items}
             color={WHICH_COLORS[which]}
+            countText={WHICH_COUNT[which]}
             label={t('Weltkarte: {0} Anfragen nach Herkunftsland', WHICH_LABELS[which].toLowerCase())}
           />
           <BarList
             color={WHICH_COLORS[which]}
             items={items.slice(0, 8).map((c) => ({ label: countryName(c.country), value: c.count, href: `#/stats-map?country=${c.country}` }))}
-            empty={t('Keine {0} Anfragen mit bekanntem Land im Zeitraum. Private und lokale Adressen (z. B. 127.0.0.1, 192.168.…) haben kein Land.', which === 1 ? 'abgelehnten' : which === 2 ? 'angenommenen' : '')}
+            empty={[
+              t('Keine Anfragen mit bekanntem Land im Zeitraum. Private und lokale Adressen (z. B. 127.0.0.1, 192.168.…) haben kein Land.'),
+              t('Keine abgelehnten Anfragen mit bekanntem Land im Zeitraum. Private und lokale Adressen (z. B. 127.0.0.1, 192.168.…) haben kein Land.'),
+              t('Keine angenommenen Anfragen mit bekanntem Land im Zeitraum. Private und lokale Adressen (z. B. 127.0.0.1, 192.168.…) haben kein Land.')
+            ][which]}
           />
         </div>
         {#if geo?.unknown}
