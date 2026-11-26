@@ -4,6 +4,13 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.30.1] – 2026-11-26
+
+### Behoben
+- Kennzahl-Karten ohne Verlaufslinie (z. B. Statistik › Betrieb): Der Untertitel klebte am
+  unteren Rand und wurde abgeschnitten. Der Abstand unten entfällt jetzt nur noch, wenn eine
+  Verlaufslinie bündig abschließt.
+
 ## [1.30.0] – 2026-11-26
 
 ### Hinzugefügt

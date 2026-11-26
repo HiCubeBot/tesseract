@@ -45,6 +45,7 @@
   class="kpi {tone}"
   class:selected
   class:clickable={!!onclick}
+  class:has-spark={spark.length > 1}
   aria-pressed={onclick ? selected : undefined}
   role={onclick ? undefined : 'group'}
   aria-label={onclick ? undefined : label}
@@ -68,7 +69,7 @@
     flex-direction: column;
     gap: 2px;
     min-width: 0;
-    padding: 12px 14px 0;
+    padding: 12px 14px;
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     background: var(--surface);
@@ -76,6 +77,10 @@
     font: inherit;
     text-align: left;
     overflow: hidden;
+  }
+  /* Verlaufslinie sitzt bündig am unteren Rand – nur dann ohne Abstand unten */
+  .kpi.has-spark {
+    padding-bottom: 0;
   }
   .clickable {
     cursor: pointer;
