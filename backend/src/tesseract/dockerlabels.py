@@ -12,6 +12,7 @@ labels:
   tesseract.waf: "block"                  # off | detect | block
   tesseract.tls: "dns"                    # http | dns
   tesseract.robots: "deny-ai"             # off | allow | deny | deny-ai (robots.txt)
+  tesseract.bot: "true"                   # Bot-Schutz mit Anubis
   tesseract.enable: "false"               # Container überspringen
 ```
 
@@ -153,6 +154,8 @@ def parse(container: dict[str, Any], groups: dict[str, int], persons: dict[str, 
         if mode not in ("off", "allow", "deny", "deny_ai"):
             raise LabelError("tesseract.robots: off, allow, deny oder deny-ai")
         spec["robots"] = mode
+    if "bot" in labels:
+        spec["bot_protection"] = _bool(labels["bot"], "tesseract.bot")
     if "grants" in labels:
         gids, pids = [], []
         for name in [n.strip() for n in labels["grants"].split(",") if n.strip()]:

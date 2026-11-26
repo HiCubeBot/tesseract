@@ -81,9 +81,10 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | IP-Filter | Modus Sperren / Nur erlauben; IP, CIDR oder benannte IP-Liste | 3 |
 | Auto-Sperre | z. B. IP für 24 h sperren nach 20 WAF-Treffern in 10 Min. | 3 |
 | IP von Hand sperren | IP oder Netz für 1 Stunde bis 1 Jahr oder dauerhaft sperren (bis zum Entsperren); gilt auf allen Nodes | 3 / 1.3.1 |
+| Bot-Schutz (Anubis) | Pro Host Proof-of-Work vor dem Dienst gegen KI-Crawler und Scraper, wahlweise nur für bestimmte Pfade; Ausnahme-Pfade für Apps/APIs, Geräte mit Zertifikat, interne Netze und erwünschte Bots ohne Prüfung; ein Anubis je Node (Compose-Profil `anubis`); Grund „Bot-Schutz“ in Logs und Statistik mit geprüften, abgewiesenen und bestandenen Anfragen; Docker-Label `tesseract.bot` ([deployment.md](deployment.md#bot-schutz-mit-anubis-optional)) | 1.29 |
 | Authelia als Host-Middleware | Optional pro Host: Caddy fragt vor dem Dienst per `forward_auth` eine bestehende Authelia-Instanz. Nutzer, Regeln und Zwei-Faktor pflegt man in Authelia selbst; Tesseract richtet nur die Weiterleitung ein. Schützt nur Hosts, nicht die Tesseract-Oberfläche (siehe Admin-SSO unter 10.) | 3 |
 | robots.txt | Caddy beantwortet `/robots.txt` selbst, noch vor Zertifikat und WAF: Aus (Dienst antwortet), Alles erlauben, Alles verbieten, KI-Crawler verbieten (Liste unter Einstellungen pflegbar), Nur bestimmte Pfade sperren oder eigener Text mit Syntaxprüfung und Vorschau; optional `Sitemap:`; robots.txt des Dienstes als Ausgangspunkt übernehmen. Standard für neue Hosts und „mTLS-Hosts: alles verbieten“ unter Einstellungen; Docker-Label `tesseract.robots` | 1.23 |
-| Visualisierung „Weg einer Anfrage“ | Zeigt die Reihenfolge IP-Filter → mTLS → WAF → Auth → Dienst | 3 |
+| Visualisierung „Weg einer Anfrage“ | Zeigt die Reihenfolge IP-Filter → mTLS → WAF → Bot-Schutz → Auth → Dienst | 3 |
 
 ## 6. Nodes
 

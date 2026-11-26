@@ -1108,7 +1108,7 @@ wheels = [
 
 [[package]]
 name = "tesseract"
-version = "1.28.0"
+version = "1.29.0"
 source = { editable = "." }
 dependencies = [
     { name = "alembic" },

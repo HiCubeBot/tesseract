@@ -122,8 +122,127 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks: [internal]
 
+  # Optional: Bot-Schutz mit Anubis (Proof-of-Work vor öffentlichen Hosts, gegen KI-Crawler).
+  # Starten mit: docker compose --profile anubis up -d
+  # dann unter Einstellungen › Integrationen „http://anubis:8923“ eintragen und je Host
+  # unter Sicherheit einschalten. Ein Anubis prüft für alle Hosts dieses Nodes.
+  anubis:
+    image: ghcr.io/techarohq/anubis:${ANUBIS_VERSION:-v1.28.2}
+    profiles: [anubis]
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    environment:
+      BIND: ":8923"
+      # Subrequest-Modus: Caddy fragt nur an (forward_auth), Anubis leitet nichts weiter
+      TARGET: " "
+      POLICY_FNAME: /policy.yaml
+      # Cookie gilt für den jeweiligen Host – ein Anubis für viele Domains
+      COOKIE_DYNAMIC_DOMAIN: "true"
+      DIFFICULTY: ${ANUBIS_DIFFICULTY:-4}
+      # Fester Schlüssel (64 Hex-Zeichen), damit bestandene Prüfungen einen Neustart überleben:
+      # openssl rand -hex 32
+      ED25519_PRIVATE_KEY_HEX: ${ANUBIS_KEY:-}
+    configs:
+      - source: anubis-policy
+        target: /policy.yaml
+    networks: [internal]
+
 networks:
   internal:
+
+configs:
+  # Bot-Schutz: Standard-Policy von Anubis v1.28.2, aber DENY mit 403 – Caddy fragt Anubis per
+  # forward_auth, und dabei hieße 2xx „durchlassen“ (Anubis antwortet sonst mit 200).
+  anubis-policy:
+    content: |
+      bots:
+        -
+          import: (data)/bots/_deny-pathological.yaml
+        - import: (data)/bots/aggressive-brazilian-scrapers.yaml
+        - import: (data)/common/domain-fronting.yaml
+        - import: (data)/meta/ai-block-aggressive.yaml
+        - import: (data)/crawlers/_allow-good.yaml
+        - import: (data)/clients/x-firefox-ai.yaml
+        - import: (data)/crawlers/xai.yaml
+        - import: (data)/common/keep-internet-working.yaml
+        - name: countries-with-aggressive-scrapers
+          action: WEIGH
+          geoip:
+            countries:
+              - BR
+              - CN
+          weight:
+            adjust: 10
+        - name: aggressive-asns-without-functional-abuse-contact
+          action: WEIGH
+          asns:
+            match:
+              - 13335
+              - 136907
+              - 45102
+          weight:
+            adjust: 10
+        - name: generic-browser
+          user_agent_regex: >-
+            Mozilla|Opera
+          action: WEIGH
+          weight:
+            adjust: 10
+      dnsbl: false
+      honeypot:
+        enabled: true
+        implementation: naive
+      openGraph:
+        enabled: false
+        considerHost: false
+        ttl: 24h
+      status_codes:
+        CHALLENGE: 200
+        DENY: 403
+      store:
+        backend: memory
+        parameters: {}
+      thresholds:
+        - name: minimal-suspicion
+          expression: weight <= 0
+          action: ALLOW
+        - name: mild-suspicion
+          expression:
+            all:
+              - weight > 0
+              - weight < 10
+          action: CHALLENGE
+          challenge:
+            algorithm: metarefresh
+            difficulty: 1
+        - name: moderate-suspicion
+          expression:
+            all:
+              - weight >= 10
+              - weight < 20
+          action: CHALLENGE
+          challenge:
+            algorithm: fast
+            difficulty: 2
+        - name: mild-proof-of-work
+          expression:
+            all:
+              - weight >= 20
+              - weight < 30
+          action: CHALLENGE
+          challenge:
+            algorithm: fast
+            difficulty: 4
+        - name: extreme-suspicion
+          expression: weight >= 30
+          action: CHALLENGE
+          challenge:
+            algorithm: fast
+            difficulty: 6
 
 volumes:
   tesseract-data:

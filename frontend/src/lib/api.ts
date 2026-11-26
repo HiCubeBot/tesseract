@@ -173,6 +173,10 @@ export interface Host {
   robots_paths: string[];
   robots_sitemap: string;
   robots_text: string;
+  /** Bot-Schutz mit Anubis: nur diese Pfade (leer = alle), diese Pfade nie */
+  bot_protection: boolean;
+  bot_paths: string[];
+  bot_exempt: string[];
   custom_cert_id: number | null;
   wildcard_cert: string | null;
   areas: (AreaInput & { id: number })[];
@@ -519,6 +523,10 @@ export interface GeneralSettings {
   trusted_proxy_list_ids: number[];
   authelia_url: string;
   authelia_headers: string[];
+  /** Bot-Schutz: Anubis vom Node aus (leer = aus), erwünschte Bots, interne Netze ohne Prüfung */
+  anubis_url: string;
+  bot_allow_agents: string[];
+  bot_skip_internal: boolean;
   cloudflare_token_set: boolean;
   docker_enabled: boolean;
   docker_auto_activate: boolean;
@@ -631,6 +639,9 @@ export const FIELD_LABELS: Record<string, string> = {
   ip_entries: 'IPs/Netze',
   ip_lists: t('IP-Listen'),
   authelia: t('Login über Authelia'),
+  bot_protection: t('Bot-Schutz (Anubis)'),
+  bot_paths: t('Bot-Schutz: nur Pfade'),
+  bot_exempt: t('Bot-Schutz: Ausnahme-Pfade'),
   tls_challenge: t('Zertifikats-Prüfung'),
   internal: t('Nur intern'),
   internal_no_cert: t('Intern ohne Zertifikat'),
@@ -923,7 +934,7 @@ export const ENROLLMENT_STATUS: Record<Enrollment['status'], { label: string; to
 
 // ---------- Phase 5: Logs ----------
 
-export type LogReason = 'ok' | 'waf' | 'ip' | 'ban' | 'mtls' | 'internal' | 'websocket' | 'authelia';
+export type LogReason = 'ok' | 'waf' | 'ip' | 'ban' | 'mtls' | 'internal' | 'websocket' | 'authelia' | 'bot';
 
 export interface LogEntry {
   id: number;
@@ -1036,7 +1047,8 @@ export const LOG_REASONS: Record<LogReason, { label: string; tone: 'ok' | 'waf' 
   internal: { label: t('nicht intern'), tone: 'ip' },
   mtls: { label: t('ohne Zertifikat'), tone: 'mtls' },
   websocket: { label: t('WebSocket gesperrt'), tone: 'bad' },
-  authelia: { label: t('Authelia fehlt'), tone: 'bad' }
+  authelia: { label: t('Authelia fehlt'), tone: 'bad' },
+  bot: { label: t('Bot-Schutz'), tone: 'waf' }
 };
 
 /** Land (ISO-Code) als Name auf Deutsch */

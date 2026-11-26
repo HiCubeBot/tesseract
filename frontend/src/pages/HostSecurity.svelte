@@ -44,6 +44,7 @@
   let ipIndex = $state(0);
   let ipLists = $state<IpList[]>([]);
   let autheliaUrl = $state('');
+  let anubisUrl = $state('');
   let groups = $state<Group[]>([]);
   let persons = $state<Person[]>([]);
 
@@ -58,6 +59,7 @@
         api.get<Person[]>('/persons')
       ]);
       autheliaUrl = general.authelia_url;
+      anubisUrl = general.anubis_url;
       form = toInput(host);
       modeIndex = modes.indexOf(host.waf_mode);
       ipIndex = ipModes.indexOf(host.ip_mode);
@@ -87,7 +89,10 @@
     'robots',
     'robots_paths',
     'robots_sitemap',
-    'robots_text'
+    'robots_text',
+    'bot_protection',
+    'bot_paths',
+    'bot_exempt'
   ] as const;
   const areasInvalid = $derived(!!form && form.areas.some((a) => !a.paths.length));
   const pick = (o: Record<string, unknown>) => JSON.stringify(KEYS.map((k) => o[k]));
@@ -119,15 +124,20 @@
   const steps = $derived(
     host
       ? [
-          { label: t('Intern'), on: host.internal, note: host.internal ? t('nur LAN/VPN') : 'aus' },
+          { label: t('Intern'), on: host.internal, note: host.internal ? t('nur LAN/VPN') : t('aus') },
           { label: t('IP-Filter'), on: (form?.ip_mode ?? host.ip_mode) !== 'off', note: IP_MODES[form?.ip_mode ?? host.ip_mode] },
           {
             label: t('Zertifikat'),
             on: host.access === 'mtls' || host.paths.length > 0,
-            note: host.access === 'mtls' ? 'mTLS' : host.paths.length ? t('einzelne Pfade') : 'aus'
+            note: host.access === 'mtls' ? 'mTLS' : host.paths.length ? t('einzelne Pfade') : t('aus')
           },
           { label: t('Coraza WAF'), on: (form?.waf_mode ?? host.waf_mode) !== 'off', note: WAF_MODES[form?.waf_mode ?? host.waf_mode] },
-          { label: t('Authelia'), on: form?.authelia ?? host.authelia, note: (form?.authelia ?? host.authelia) ? t('Login') : 'aus' },
+          {
+            label: t('Bot-Schutz'),
+            on: form?.bot_protection ?? host.bot_protection,
+            note: (form?.bot_protection ?? host.bot_protection) ? t('Anubis') : t('aus')
+          },
+          { label: t('Authelia'), on: form?.authelia ?? host.authelia, note: (form?.authelia ?? host.authelia) ? t('Login') : t('aus') },
           { label: t('Dienst'), on: true, note: `${host.upstream_host}:${host.upstream_port}` }
         ]
       : []
@@ -251,6 +261,35 @@
       {/if}
     </section>
 
+
+    <section class="card" aria-labelledby="bot-title">
+      <h2 id="bot-title">{t('Bot-Schutz (Anubis)')}</h2>
+      {#if anubisUrl}
+        <Toggle
+          label={t('Bot-Schutz einschalten')}
+          description={t('Browser lösen vor dem Dienst eine kurze Rechenaufgabe (Proof-of-Work) – Besucher merken davon kaum etwas, Scraper und KI-Crawler werden teuer oder abgewiesen. Läuft nach der WAF, vor Authelia.')}
+          bind:checked={form.bot_protection}
+        />
+        {#if form.bot_protection}
+          <div class="field">
+            {t('Nur unter diesen Pfaden (leer = ganzer Host)')}
+            <ChipInput label={t('Pfad hinzufügen')} bind:values={form.bot_paths} placeholder="/blog" />
+          </div>
+          <div class="field">
+            {t('Nie unter diesen Pfaden – Apps, APIs, WebDAV, Feeds')}
+            <ChipInput label={t('Pfad hinzufügen')} bind:values={form.bot_exempt} placeholder="/api" />
+          </div>
+          <p class="muted small">
+            {t('Ohne Prüfung kommen außerdem durch: Geräte mit freigegebenem Zertifikat, interne Netze und erwünschte Bots – beides unter Einstellungen › Integrationen. Apps ohne Browser (z. B. Bitwarden, Home Assistant) brauchen eine Ausnahme für ihre Pfade.')}
+          </p>
+        {/if}
+      {:else}
+        <p class="muted small">
+          {t('Noch keine Anubis-Instanz eingetragen –')}
+          <a href="#/settings-integrations">{t('Einstellungen › Integrationen')}</a>.
+        </p>
+      {/if}
+    </section>
 
     <section class="card" aria-labelledby="auth-title">
       <h2 id="auth-title">{t('Authelia')}</h2>

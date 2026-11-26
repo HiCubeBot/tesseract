@@ -64,6 +64,9 @@ SNAPSHOT_FIELDS = (
     "robots_paths",
     "robots_sitemap",
     "robots_text",
+    "bot_protection",
+    "bot_paths",
+    "bot_exempt",
     "dns_type",
     "dns_target",
     "dns_proxied",
@@ -132,6 +135,11 @@ GENERAL_DEFAULTS: dict[str, Any] = {
     "robots_default": "off",
     "robots_mtls_deny": True,
     "robots_ai_bots": [],
+    # Bot-Schutz: Adresse von Anubis vom Node aus (leer = aus), erwünschte Bots (User-Agent,
+    # Teilstring), interne Netze ohne Prüfung
+    "anubis_url": "",
+    "bot_allow_agents": [],
+    "bot_skip_internal": True,
 }
 CLOUDFLARE_CONTEXT = "cloudflare-token"
 ADMIN_GROUP = "Admin"
@@ -445,6 +453,9 @@ def host_spec(
         waf_paranoia=getattr(host, "waf_paranoia", 1),
         waf_exclusions=tuple(getattr(host, "waf_exclusions", None) or ()),
         waf_exceptions=tuple(waf_exceptions or ()),
+        bot_protection=bool(getattr(host, "bot_protection", False)),
+        bot_paths=tuple(getattr(host, "bot_paths", None) or ()),
+        bot_exempt=tuple(getattr(host, "bot_exempt", None) or ()),
         ip_mode=getattr(host, "ip_mode", "off"),
         ip_ranges=tuple(ip_ranges or ()),
         authelia=bool(getattr(host, "authelia", False)),
@@ -588,6 +599,9 @@ def node_config(db: Session, node: Node, settings: Settings, bans: bool = True) 
             resolve_ranges(db, general["trusted_proxies"], general["trusted_proxy_list_ids"])
         ),
         authelia_url=general["authelia_url"],
+        anubis_url=general["anubis_url"],
+        bot_allow_agents=tuple(general["bot_allow_agents"] or ()),
+        bot_skip_internal=bool(general["bot_skip_internal"]),
         authelia_headers=tuple(general["authelia_headers"]),
         cloudflare_token=cloudflare_token(db, settings),
         banned=tuple(active_bans(db)) if bans else (),

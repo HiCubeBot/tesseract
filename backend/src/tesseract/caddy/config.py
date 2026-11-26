@@ -19,6 +19,7 @@ import copy
 import hashlib
 import ipaddress
 import json
+import re
 from dataclasses import dataclass, field, replace
 from typing import Any
 
@@ -100,6 +101,10 @@ class HostSpec:
     waf_exclusions: tuple[int, ...] = ()
     # gezielte Ausnahmen (id, Regel, Ziel, Pfad) – siehe wafrules.py
     waf_exceptions: tuple[tuple[int, int, str, str], ...] = ()
+    # Bot-Schutz mit Anubis: an/aus, nur diese Pfade (leer = alle), diese Pfade nie
+    bot_protection: bool = False
+    bot_paths: tuple[str, ...] = ()
+    bot_exempt: tuple[str, ...] = ()
     # IP-Filter: "off" | "block" | "allow", aufgelöste Netze (CIDR)
     ip_mode: str = "off"
     ip_ranges: tuple[str, ...] = ()
@@ -173,6 +178,11 @@ class NodeSpec:
     trusted_proxies: tuple[str, ...] = ()
     # Authelia-Instanz, z. B. "http://authelia:9091" oder "https://auth.example.org"
     authelia_url: str = ""
+    # Bot-Schutz: Anubis vom Node aus (leer = aus), erwünschte Bots (User-Agent-Teilstrings),
+    # interne Netze ohne Prüfung
+    anubis_url: str = ""
+    bot_allow_agents: tuple[str, ...] = ()
+    bot_skip_internal: bool = True
     authelia_headers: tuple[str, ...] = (
         "Remote-User",
         "Remote-Groups",
@@ -566,6 +576,141 @@ def authelia_handler(url: str, headers: tuple[str, ...] | list[str]) -> JSON:
     return handler
 
 
+# ---------- Bot-Schutz (Anubis) ----------
+
+ANUBIS_PREFIX = "/.within.website/"
+ANUBIS_CHECK = "/.within.website/x/cmd/anubis/api/check"
+ANUBIS_PASS = "/.within.website/x/cmd/anubis/api/pass-challenge"
+
+
+@dataclass(frozen=True)
+class BotContext:
+    """Was alle Hosts eines Nodes für den Bot-Schutz brauchen."""
+
+    url: str = ""
+    allow_agents: tuple[str, ...] = ()
+    skip_networks: tuple[str, ...] = ()
+
+
+def bot_context(spec: "NodeSpec") -> BotContext:
+    return BotContext(
+        url=spec.anubis_url,
+        allow_agents=spec.bot_allow_agents,
+        skip_networks=spec.internal_networks if spec.bot_skip_internal else (),
+    )
+
+
+def anubis_routes(host: HostSpec, ctx: BotContext | None) -> list[JSON]:
+    """Bot-Schutz vor dem Dienst – wie Caddys `forward_auth` mit Anubis im Subrequest-Modus.
+
+    1. `/.within.website/*` (Prüfseite, Skripte, Bestätigung) geht direkt an Anubis.
+    2. Alle anderen Anfragen fragt Caddy bei Anubis an (`…/api/check`):
+       2xx → weiter zum Dienst · 401 → Weiterleitung zur Prüfseite · sonst (z. B. 403 für
+       bekannte schlechte Bots) Anubis' Antwort an den Client. Beides im Log als Grund „bot“.
+    Ohne Prüfung: Ausnahme-Pfade, Geräte mit freigegebenem Zertifikat, interne Netze (wenn
+    eingeschaltet) und erwünschte Bots per User-Agent."""
+    if not host.bot_protection:
+        return []
+    if ctx is None or not ctx.url:
+        # gewünscht, aber nicht eingerichtet → lieber zu als offen (wie bei Authelia)
+        return [
+            {
+                "handle": [
+                    _tagged(
+                        {
+                            "handler": "static_response",
+                            "status_code": 503,
+                            "body": "Bot-Schutz (Anubis) ist nicht eingerichtet",
+                        },
+                        "bot",
+                    )
+                ],
+                "terminal": True,
+            }
+        ]
+    dial, tls = _upstream_from_url(ctx.url)
+    real_ip = {"X-Real-Ip": ["{http.vars.client_ip}"]}
+
+    def proxy(extra: JSON | None = None) -> JSON:
+        h: JSON = {
+            "handler": "reverse_proxy",
+            "upstreams": [{"dial": dial}],
+            "headers": {"request": {"set": dict(real_ip)}},
+        }
+        if tls:
+            h["transport"] = {"protocol": "http", "tls": {}}
+        if extra:
+            h.update(extra)
+        return h
+
+    assets = {
+        "match": [{"path": [ANUBIS_PREFIX + "*"]}],
+        "handle": [proxy()],
+        "terminal": True,
+    }
+    check = proxy(
+        {
+            "rewrite": {"method": "GET", "uri": ANUBIS_CHECK},
+            "handle_response": [
+                # bestanden: nichts tun – die Kette läuft weiter zum Dienst
+                {"match": {"status_code": [2]}, "routes": [{"handle": [{"handler": "vars"}]}]},
+                {
+                    "match": {"status_code": [401]},
+                    "routes": [
+                        {
+                            "handle": [
+                                _tagged(
+                                    {
+                                        "handler": "static_response",
+                                        "status_code": 307,
+                                        "headers": {
+                                            "Location": [
+                                                ANUBIS_PREFIX + "?redir={http.request.uri}"
+                                            ],
+                                            "Cache-Control": ["no-store"],
+                                        },
+                                    },
+                                    "bot",
+                                )
+                            ]
+                        }
+                    ],
+                },
+                {
+                    "match": {"status_code": [4, 5]},
+                    "routes": [{"handle": [_tagged({"handler": "copy_response"}, "bot")]}],
+                },
+            ],
+        }
+    )
+    check["headers"]["request"]["set"].update(
+        {
+            "X-Forwarded-Method": ["{http.request.method}"],
+            "X-Forwarded-Uri": ["{http.request.uri}"],
+        }
+    )
+    skip: list[JSON] = []
+    if host.bot_exempt:
+        skip.append({"path": path_patterns(host.bot_exempt)})
+    fps = [fp for fp, _ in host.all_allowed]
+    if fps:
+        skip.append({"vars": {FINGERPRINT: fps}})
+    if ctx.skip_networks:
+        skip.append({"remote_ip": {"ranges": list(ctx.skip_networks)}})
+    if ctx.allow_agents:
+        pattern = "(?i)(" + "|".join(re.escape(a) for a in ctx.allow_agents) + ")"
+        skip.append({"header_regexp": {"User-Agent": {"pattern": pattern}}})
+    matcher: JSON = {}
+    if skip:
+        matcher["not"] = skip
+    if host.bot_paths:
+        matcher["path"] = path_patterns(host.bot_paths)
+    guarded: JSON = {"handle": [check]}
+    if matcher:
+        guarded["match"] = [matcher]
+    return [assets, guarded]
+
+
 def area_spec(host: HostSpec, area: AreaSpec) -> HostSpec:
     """Host-Einstellungen mit den Abweichungen des Bereichs."""
     changes: dict = {"areas": ()}
@@ -586,8 +731,11 @@ def area_spec(host: HostSpec, area: AreaSpec) -> HostSpec:
     return replace(host, **changes)
 
 
-def host_handlers(host: HostSpec, authelia: JSON | None = None) -> list[JSON]:
-    """Die Handler-Kette eines Hosts (ohne Host-Matcher)."""
+def host_handlers(
+    host: HostSpec, authelia: JSON | None = None, bot: BotContext | None = None
+) -> list[JSON]:
+    """Die Handler-Kette eines Hosts (ohne Host-Matcher):
+    IP-Filter → Zertifikat → WAF → Bot-Schutz → Authelia → Dienst."""
     routes: list[JSON] = []
     # Bereiche zuerst: eigene, vollständige Kette für ihre Pfade
     for area in host.areas:
@@ -596,7 +744,7 @@ def host_handlers(host: HostSpec, authelia: JSON | None = None) -> list[JSON]:
         routes.append(
             {
                 "match": [{"path": path_patterns(area.paths)}],
-                "handle": host_handlers(area_spec(host, area), authelia),
+                "handle": host_handlers(area_spec(host, area), authelia, bot),
                 "terminal": True,
             }
         )
@@ -608,6 +756,7 @@ def host_handlers(host: HostSpec, authelia: JSON | None = None) -> list[JSON]:
         routes.append(gate)
     if host.waf_mode in ("detect", "block"):
         routes.append({"handle": [waf_handler(host)]})
+    routes += anubis_routes(host, bot)
     if host.authelia and authelia is not None:
         routes.append({"handle": [authelia]})
     elif host.authelia:
@@ -685,9 +834,12 @@ def robots_route(body: str) -> JSON:
 
 
 def host_route(
-    host: HostSpec, authelia: JSON | None = None, internal: tuple[str, ...] = ()
+    host: HostSpec,
+    authelia: JSON | None = None,
+    internal: tuple[str, ...] = (),
+    bot: BotContext | None = None,
 ) -> JSON:
-    handle = host_handlers(host, authelia)
+    handle = host_handlers(host, authelia, bot)
     if host.robots:
         handle[0]["routes"].insert(0, robots_route(host.robots))
     if host.internal:
@@ -920,8 +1072,9 @@ def build_config(spec: NodeSpec) -> JSON:
         authelia_handler(spec.authelia_url, spec.authelia_headers) if spec.authelia_url else None
     )
     nets = spec.internal_networks
+    bot = bot_context(spec)
     for host in hosts:
-        https_routes.append(host_route(host, authelia, nets))
+        https_routes.append(host_route(host, authelia, nets, bot))
         # Geschützte Hosts nie unverschlüsselt ausliefern (über HTTP gibt es kein Zertifikat)
         if host.force_https or host.needs_client_auth or host.internal:
             redirect = _redirect_route(host.domain)
@@ -935,7 +1088,7 @@ def build_config(spec: NodeSpec) -> JSON:
                 ]
             http_routes.append(redirect)
         else:
-            route = host_route(host, authelia, nets)
+            route = host_route(host, authelia, nets, bot)
             route["@id"] = f"host-{host.id}-http"
             http_routes.append(route)
 

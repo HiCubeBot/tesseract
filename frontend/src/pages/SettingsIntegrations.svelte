@@ -45,6 +45,9 @@
         trusted_proxy_list_ids: general.trusted_proxy_list_ids,
         authelia_url: general.authelia_url,
         authelia_headers: general.authelia_headers,
+        anubis_url: general.anubis_url,
+        bot_allow_agents: general.bot_allow_agents,
+        bot_skip_internal: general.bot_skip_internal,
         autoban_enabled: general.autoban_enabled,
         autoban_hits: Number(general.autoban_hits),
         autoban_window_minutes: Number(general.autoban_window_minutes),
@@ -272,6 +275,31 @@
     </form>
 
     <DockerCard />
+
+    <form class="card" onsubmit={save} aria-labelledby="anubis-title">
+      <h2 id="anubis-title">{t('Bot-Schutz (Anubis)')}</h2>
+      <p class="muted small">
+        {t('Anubis stellt Browsern vor dem Dienst eine kurze Rechenaufgabe und hält so KI-Crawler und Scraper fern. Ein Anubis je Node prüft für alle Hosts – starten mit')}
+        <code>docker compose --profile anubis up -d</code>{t(', einschalten je Host unter Sicherheit.')}
+      </p>
+      <label class="field">
+        {t('Adresse von Anubis (vom Node aus, leer = aus)')}
+        <input class="input mono" placeholder="http://anubis:8923" bind:value={general.anubis_url} />
+      </label>
+      <Toggle
+        label={t('Interne Netze ohne Prüfung')}
+        description={t('Anfragen aus den internen Netzen (oben) kommen ohne Rechenaufgabe durch.')}
+        bind:checked={general.bot_skip_internal}
+      />
+      <div class="field">
+        {t('Erwünschte Bots (Teil des User-Agents, ohne Prüfung)')}
+        <ChipInput bind:values={general.bot_allow_agents} label={t('Bot hinzufügen')} placeholder={'Uptime-Kuma'} mono={false} />
+        <span class="muted small">{t('Bekannte Suchmaschinen lässt Anubis schon von sich aus durch; der User-Agent lässt sich fälschen.')}</span>
+      </div>
+      <div class="row">
+        <Button type="submit" label={saving ? t('Speichert …') : t('Speichern')} disabled={saving} />
+      </div>
+    </form>
 
     <form class="card" onsubmit={save} aria-labelledby="authelia-title">
       <h2 id="authelia-title">{t('Authelia')}</h2>

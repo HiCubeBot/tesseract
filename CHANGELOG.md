@@ -4,6 +4,22 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.29.0] – 2026-11-26
+
+### Hinzugefügt
+- **Bot-Schutz mit Anubis** ([#29](https://github.com/HiCubeBot/tesseract/issues/29)): pro Host
+  unter Sicherheit einschaltbar, wahlweise nur für bestimmte Pfade. Browser lösen vor dem Dienst
+  eine kurze Proof-of-Work-Aufgabe, KI-Crawler und Scraper werden teuer oder abgewiesen.
+- Ein Anubis je Node (Compose-Profil `anubis`, auch auf Agent-Nodes), Caddy fragt per
+  `forward_auth` – ein Container für alle Hosts. Mitgelieferte Policy = Standard von Anubis,
+  aber `DENY: 403` (bei `forward_auth` hieße 200 „durchlassen“).
+- Ausnahmen ohne Prüfung: Pfade je Host (Apps, APIs, WebDAV), Geräte mit freigegebenem
+  Zertifikat, interne Netze (abschaltbar) und erwünschte Bots per User-Agent (Einstellungen ›
+  Integrationen). Reihenfolge: IP-Filter → Zertifikat → WAF → Bot-Schutz → Authelia → Dienst.
+- Grund „Bot-Schutz“ in Logs, Statistik und Karte; Statistik › Sicherheit zeigt geprüfte,
+  abgewiesene und bestandene Anfragen. Docker-Label `tesseract.bot`; Migration 0032
+- `.env`: `ANUBIS_DIFFICULTY`, `ANUBIS_KEY`, `ANUBIS_VERSION`
+
 ## [1.28.0] – 2026-11-26
 
 ### Hinzugefügt

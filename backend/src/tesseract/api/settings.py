@@ -35,6 +35,10 @@ class GeneralIn(BaseModel):
     trusted_proxies: list[str] = Field(default_factory=list, max_length=200)
     trusted_proxy_list_ids: list[int] = Field(default_factory=list, max_length=20)
     authelia_url: str = Field("", max_length=255)
+    # Bot-Schutz (Anubis): Adresse vom Node aus, erwünschte Bots, interne Netze ohne Prüfung
+    anubis_url: str | None = Field(None, max_length=255)
+    bot_allow_agents: list[str] | None = Field(None, max_length=100)
+    bot_skip_internal: bool | None = None
     # None = unverändert lassen, "" = löschen
     cloudflare_token: str | None = Field(None, max_length=255)
     docker_enabled: bool | None = None
@@ -57,6 +61,31 @@ class GeneralIn(BaseModel):
     robots_default: Literal["off", "allow", "deny", "deny_ai"] | None = None
     robots_mtls_deny: bool | None = None
     robots_ai_bots: list[str] | None = Field(None, max_length=200)
+
+    @field_validator("anubis_url")
+    @classmethod
+    def _anubis(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip().rstrip("/")
+        if v and not re.match(r"^https?://[A-Za-z0-9.\-\[\]:]+$", v):
+            raise ValueError("Anubis-Adresse wie http://anubis:8923")
+        return v
+
+    @field_validator("bot_allow_agents")
+    @classmethod
+    def _agents(cls, v: list[str] | None) -> list[str] | None:
+        if v is None:
+            return None
+        out = []
+        for a in v:
+            a = a.strip()
+            if not a:
+                continue
+            if len(a) > 64 or not re.match(r"^[A-Za-z0-9 ._/+()-]+$", a):
+                raise ValueError(f"Ungültiger User-Agent-Teil: {a}")
+            out.append(a)
+        return list(dict.fromkeys(out))
 
     @field_validator("robots_ai_bots")
     @classmethod
@@ -154,6 +183,9 @@ class GeneralOut(BaseModel):
     trusted_proxies: list[str]
     trusted_proxy_list_ids: list[int]
     authelia_url: str
+    anubis_url: str = ""
+    bot_allow_agents: list[str] = Field(default_factory=list)
+    bot_skip_internal: bool = True
     authelia_headers: list[str]
     cloudflare_token_set: bool
     docker_enabled: bool
@@ -204,6 +236,9 @@ def get_settings_general(db: DB, _: CurrentActor, settings: AppSettings) -> Gene
         trusted_proxies=g["trusted_proxies"],
         trusted_proxy_list_ids=g["trusted_proxy_list_ids"],
         authelia_url=g["authelia_url"],
+        anubis_url=g["anubis_url"],
+        bot_allow_agents=list(g["bot_allow_agents"] or []),
+        bot_skip_internal=bool(g["bot_skip_internal"]),
         authelia_headers=g["authelia_headers"],
         cloudflare_token_set=bool(g["cloudflare_token_enc"]),
         docker_enabled=g["docker_enabled"],
@@ -263,7 +298,8 @@ def put_settings_general(
         if not (
             v is None
             and (
-                k.startswith(("docker_", "robots_"))
+                k.startswith(("docker_", "robots_", "bot_"))
+                or k == "anubis_url"
                 or k in ("status_page_enabled", "device_keep_p12")
             )
         )
@@ -330,6 +366,10 @@ def put_settings_general(
         "trusted_proxies",
         "trusted_proxy_list_ids",
         "authelia_url",
+        # Bot-Schutz: Routen aller geschützten Hosts
+        "anubis_url",
+        "bot_allow_agents",
+        "bot_skip_internal",
         "authelia_headers",
         "cloudflare_token_enc",
         "internal_networks",

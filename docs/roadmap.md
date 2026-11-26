@@ -25,6 +25,7 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 | 1.10 | Nodes über DNS | Node-Schnittstelle wahlweise von den Admin-Netzen ausgenommen, DNS-Eintrag für die Tesseract-Domain – **fertig** |
 | 1.11 | Herkunftskarte | Karte zeigt alle Anfragen, Filter Abgelehnt / Angenommen – **fertig** |
 | 1.12 | Intern ohne Zertifikat | mTLS-Hosts wahlweise aus den internen Netzen ohne Zertifikat – **fertig** |
+| 1.29 | Bot-Schutz | Anubis vor öffentlichen Hosts gegen KI-Crawler, mit Ausnahmen und Statistik ([#29](https://github.com/HiCubeBot/tesseract/issues/29)) – **fertig** |
 | 1.28 | WAF-Regeln | Regel-Katalog mit Treffern, zentrale und gezielte Ausnahmen mit Ablauf ([#36](https://github.com/HiCubeBot/tesseract/issues/36)) – **fertig** |
 | 1.27 | `.env` migrieren | `tesseract env migrate` bringt die `.env` nach Updates auf den Stand der Vorlage, eigene Werte bleiben ([#35](https://github.com/HiCubeBot/tesseract/issues/35)) – **fertig** |
 | 1.25 | Mehrsprachigkeit | Oberfläche auf Deutsch und Englisch, Sprache nach Browser oder umschaltbar, Benachrichtigungen und Kein-Zugang-Seite ebenfalls ([#31](https://github.com/HiCubeBot/tesseract/issues/31)) – **fertig** |

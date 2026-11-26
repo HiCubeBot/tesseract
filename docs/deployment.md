@@ -103,6 +103,36 @@ docker build -t tesseract-agent:dev agent
   Compose-Stack schon so). Dieselben Pfade landen in der Config jedes Nodes; der Agent liest
   sie über `TESSERACT_AGENT_WAF_LOG` und `TESSERACT_AGENT_ACCESS_LOG`.
 
+## Bot-Schutz mit Anubis (optional)
+
+[Anubis](https://github.com/TecharoHQ/anubis) stellt Browsern vor dem Dienst eine kurze
+Proof-of-Work-Aufgabe. Besucher merken davon kaum etwas, KI-Crawler und Scraper werden teuer oder
+abgewiesen. Ein Anubis-Container je Node prüft für alle Hosts dieses Nodes (Subrequest-Modus,
+Caddy fragt per `forward_auth`).
+
+```bash
+docker compose --profile anubis up -d          # Controller-Stack
+docker compose --profile anubis up -d          # auf jedem weiteren Node mit geschützten Hosts
+```
+
+1. Unter Einstellungen › Integrationen › Bot-Schutz die Adresse eintragen: `http://anubis:8923`
+   (gilt für alle Nodes – dort heißt der Container gleich).
+2. Je Host unter Sicherheit › „Bot-Schutz einschalten“, optional nur für bestimmte Pfade.
+3. **Ausnahmen** für Apps ohne Browser (Bitwarden, Home Assistant, WebDAV, Feeds, APIs): deren
+   Pfade unter „Nie unter diesen Pfaden“ eintragen. Ohne Prüfung kommen außerdem Geräte mit
+   freigegebenem Zertifikat, die internen Netze (abschaltbar) und erwünschte Bots per User-Agent.
+
+- Reihenfolge: IP-Filter → Zertifikat → WAF → Bot-Schutz → Authelia → Dienst.
+- Policy: die Standard-Policy von Anubis (bekannte schlechte Bots abweisen, gute Suchmaschinen
+  durchlassen, Browser prüfen), mitgeliefert in der Compose-Datei – mit `DENY: 403`, denn bei
+  `forward_auth` hieße die Anubis-Voreinstellung 200 „durchlassen“.
+- `.env`: `ANUBIS_DIFFICULTY` (Standard 4), `ANUBIS_KEY` (64 Hex-Zeichen, `openssl rand -hex 32`,
+  damit bestandene Prüfungen einen Neustart überleben), `ANUBIS_VERSION`.
+- Ist ein Host geschützt, aber keine Anubis-Adresse eingetragen oder Anubis nicht erreichbar,
+  antwortet der Host mit einem Fehler statt ungeschützt – lieber zu als offen.
+- Statistik › Sicherheit zeigt, wie viele Anfragen zur Prüfung geschickt, abgewiesen und
+  bestanden wurden; im Log steht der Grund „Bot-Schutz“.
+
 ## GeoIP (optional)
 
 Für Länder in Logs, Statistik und auf der Herkunftskarte braucht der Controller eine

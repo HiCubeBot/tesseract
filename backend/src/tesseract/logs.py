@@ -31,7 +31,7 @@ log = logging.getLogger("tesseract.logs")
 VIOLATION = "WAF rule violation detected"
 # Sammelregeln des CRS (Score-Auswertung) – keine sinnvollen Ausnahmen
 CRS_SCORE_RULES = {949110, 949111, 959100, 980130, 980140, 980170}
-REASONS = ("ok", "waf", "ip", "ban", "mtls", "internal", "websocket", "authelia")
+REASONS = ("ok", "waf", "ip", "ban", "mtls", "internal", "websocket", "authelia", "bot")
 _FIELD_RE = re.compile(r'\[(\w+) "((?:[^"\\]|\\.)*)"\]')
 # „Matched Data: … found within ARGS:q: …“ → ARGS:q
 _TARGET_RE = re.compile(r"found within ([A-Z_]+(?::[^:\s]{1,128})?)")

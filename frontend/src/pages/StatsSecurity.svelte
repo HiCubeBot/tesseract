@@ -31,6 +31,8 @@
     attacks: { name: string; count: number }[];
     top_rules: { rule: number; count: number }[];
     by_host: { host: string; total: number; mtls: number; waf: number; ip: number; other: number }[];
+    /** Bot-Schutz (Anubis): zur Prüfung geschickt, abgewiesen, bestanden */
+    bot?: { challenged: number; denied: number; passed: number };
     geoip: boolean;
     geoip_attribution: string | null;
     previous: { total: number; denied: number };
@@ -167,6 +169,13 @@
         sparkColor={SERIES.waf.color}
       />
       <KpiCard label={t('Vom IP-Filter')} value={fmt(sumOf('ip'))} sub={t('eigene Einträge, Listen, Sperren')} spark={spark('ip')} sparkColor={SERIES.ip.color} />
+      {#if data.bot && (data.bot.challenged || data.bot.denied || data.bot.passed)}
+        <KpiCard
+          label={t('Bot-Schutz')}
+          value={fmt(data.bot.challenged + data.bot.denied)}
+          sub={t('{0} zur Prüfung · {1} abgewiesen · {2} bestanden', fmt(data.bot.challenged), fmt(data.bot.denied), fmt(data.bot.passed))}
+        />
+      {/if}
       <KpiCard
         label={t('Fehlanmeldungen')}
         value={fmt(data.login_failed)}

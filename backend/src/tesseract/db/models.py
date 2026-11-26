@@ -223,6 +223,11 @@ class Host(Base):
     robots_paths: Mapped[list[str]] = mapped_column(JSON, default=list, server_default="[]")
     robots_sitemap: Mapped[str] = mapped_column(String(500), default="", server_default="")
     robots_text: Mapped[str] = mapped_column(Text, default="", server_default="")
+    # Bot-Schutz mit Anubis (Proof-of-Work vor dem Dienst); nur diese Pfade (leer = alle),
+    # diese Pfade nie (Apps, APIs, WebDAV …) – siehe caddy/config.py anubis_routes
+    bot_protection: Mapped[bool] = mapped_column(default=False, server_default="0")
+    bot_paths: Mapped[list[str]] = mapped_column(JSON, default=list, server_default="[]")
+    bot_exempt: Mapped[list[str]] = mapped_column(JSON, default=list, server_default="[]")
     # Eigenes Zertifikat statt automatisch (Let's Encrypt/Caddy-CA)
     custom_cert_id: Mapped[int | None] = mapped_column(
         ForeignKey("custom_certs.id", ondelete="SET NULL")

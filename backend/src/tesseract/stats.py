@@ -12,10 +12,11 @@ from typing import Any
 from sqlalchemy import Select, case, func, select
 from sqlalchemy.orm import Session
 
+from tesseract.caddy.config import ANUBIS_PASS
 from tesseract.db.models import Device, LogEntry, Node, Person, utcnow
 
 RANGES = {"24h": timedelta(hours=24), "7d": timedelta(days=7), "30d": timedelta(days=30)}
-DENIED_REASONS = ("waf", "ip", "ban", "mtls", "internal", "websocket", "authelia")
+DENIED_REASONS = ("waf", "ip", "ban", "mtls", "internal", "websocket", "authelia", "bot")
 # Angriffsarten nach CRS-Regelbereich
 ATTACK_FAMILIES = [
     (913, "Scanner"),
@@ -146,7 +147,28 @@ def security(db: Session, range_: str, node: str | None) -> dict[str, Any]:
 
     total = db.scalar(_with(base, func.count())) or 0
     denied_total = db.scalar(_with(denied, func.count())) or 0
+    # Bot-Schutz (Anubis): zur Prüfung geschickt (307), abgewiesen (sonst), Prüfung bestanden
+    bot = {"challenged": 0, "denied": 0, "passed": 0}
+    for code, n in db.execute(
+        _with(base.where(LogEntry.reason == "bot"), LogEntry.status, func.count()).group_by(
+            LogEntry.status
+        )
+    ):
+        bot["challenged" if code == 307 else "denied"] += n
+    bot["passed"] = (
+        db.scalar(
+            _with(
+                base.where(
+                    LogEntry.uri.like(ANUBIS_PASS + "%"),
+                    LogEntry.status.between(300, 399),
+                ),
+                func.count(),
+            )
+        )
+        or 0
+    )
     return {
+        "bot": bot,
         "since": since,
         "total": total,
         "denied": denied_total,

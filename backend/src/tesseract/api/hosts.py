@@ -172,6 +172,10 @@ class HostIn(BaseModel):
     robots_paths: list[str] = Field(default_factory=list, max_length=50)
     robots_sitemap: str = Field("", max_length=500)
     robots_text: str = Field("", max_length=robots_mod.MAX_LENGTH)
+    # Bot-Schutz mit Anubis: nur diese Pfade (leer = alle), diese Pfade nie
+    bot_protection: bool = False
+    bot_paths: list[str] = Field(default_factory=list, max_length=MAX_PATHS)
+    bot_exempt: list[str] = Field(default_factory=list, max_length=MAX_PATHS)
     custom_cert_id: int | None = None
     areas: list[AreaIn] = Field(default_factory=list, max_length=20)
     enabled: bool = True
@@ -207,6 +211,11 @@ class HostIn(BaseModel):
                 raise ValueError(f"robots.txt: ungültiger Pfad {p}")
             out.append(p)
         return list(dict.fromkeys(out))
+
+    @field_validator("bot_paths", "bot_exempt")
+    @classmethod
+    def _bot_paths(cls, v: list[str]) -> list[str]:
+        return _clean_paths(v)
 
     @field_validator("robots_sitemap")
     @classmethod
@@ -321,6 +330,9 @@ class HostOut(BaseModel):
     robots_paths: list[str] = Field(default_factory=list)
     robots_sitemap: str = ""
     robots_text: str = ""
+    bot_protection: bool = False
+    bot_paths: list[str] = Field(default_factory=list)
+    bot_exempt: list[str] = Field(default_factory=list)
     custom_cert_id: int | None
     # Geteiltes Wildcard-Zertifikat, das diesen Host abdeckt (sonst None)
     wildcard_cert: str | None
@@ -489,6 +501,11 @@ def _check_grants(db: Session, body: HostIn) -> None:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
             "Erst unter Einstellungen › Integrationen die Authelia-Adresse eintragen",
+        )
+    if body.bot_protection and not get_general(db)["anubis_url"]:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Erst unter Einstellungen › Integrationen die Adresse von Anubis eintragen",
         )
     for model, ids, what in (
         (Group, body.grant_group_ids, "Gruppe"),
