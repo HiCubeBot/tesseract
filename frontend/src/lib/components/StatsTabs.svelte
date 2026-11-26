@@ -11,6 +11,7 @@
     { href: '#/stats-traffic', label: t('Traffic & Leistung') },
     { href: '#/stats-usage', label: t('Nutzung') },
     { href: '#/stats-map', label: t('Karte') },
+    { href: '#/stats-bots', label: t('Bot-Schutz') },
     { href: '#/stats-ops', label: t('Betrieb') },
     { href: '#/logs', label: t('Logs') }
   ];

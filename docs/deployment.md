@@ -148,8 +148,9 @@ docker compose --profile anubis up -d
   damit bestandene Prüfungen einen Neustart überleben), `ANUBIS_VERSION`.
 - Ist ein Host geschützt, aber keine Anubis-Adresse eingetragen oder Anubis nicht erreichbar,
   antwortet der Host mit einem Fehler statt ungeschützt – lieber zu als offen.
-- Statistik › Sicherheit zeigt, wie viele Anfragen zur Prüfung geschickt, abgewiesen und
-  bestanden wurden; im Log steht der Grund „Bot-Schutz“.
+- Statistik › Bot-Schutz zeigt, wie viele Anfragen zur Prüfung geschickt, abgewiesen und
+  bestanden wurden, wer nie bestanden hat, dazu Verlauf, Hosts, Länder, Clients und Adressen;
+  im Log steht der Grund „Bot-Schutz“.
 
 ## GeoIP (optional)
 

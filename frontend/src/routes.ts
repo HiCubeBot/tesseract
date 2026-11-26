@@ -62,6 +62,7 @@ import SettingsLdapPage from "./pages/SettingsLdap.svelte";
 import MePage from "./pages/Me.svelte";
 import ProfilePage from "./pages/Profile.svelte";
 import WafPage from "./pages/Waf.svelte";
+import StatsBotsPage from "./pages/StatsBots.svelte";
 
 export interface Page {
   /** Muster ohne "#/", Parameter mit ":" – z. B. "hosts/:id/history" */
@@ -86,6 +87,7 @@ export const pages: Page[] = [
   { pattern: "stats-usage", title: "Statistik · Nutzung", component: StatsUsagePage },
   { pattern: "stats-map", title: "Statistik · Karte", component: StatsMapPage },
   { pattern: "stats-ops", title: "Statistik · Betrieb", component: StatsOpsPage },
+  { pattern: "stats-bots", title: "Statistik · Bot-Schutz", component: StatsBotsPage },
   { pattern: "settings-metrics", title: "Einstellungen · Metriken", component: SettingsMetricsPage },
   { pattern: "settings-notify", title: "Einstellungen · Benachrichtigungen", component: SettingsNotifyPage },
   { pattern: "settings-backup", title: "Einstellungen · Backup", component: SettingsBackupPage },

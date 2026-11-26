@@ -4,6 +4,16 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.30.0] – 2026-11-26
+
+### Hinzugefügt
+- **Statistik › Bot-Schutz:** eigener Reiter für Anubis – zur Prüfung geschickt, abgewiesen,
+  bestanden (mit Quote) und „nie bestanden“ (geprüfte Adressen, die die Aufgabe nie gelöst
+  haben – meist Bots ohne JavaScript), jeweils mit Vergleich zum Vorzeitraum und Verlauf.
+  Dazu je Host, Herkunftsländer, abgefangene Clients (User-Agent mit Erkennung als Bot, App
+  oder Browser) und die häufigsten Adressen mit Ergebnis. Zeitraum 24 h / 7 / 30 Tage, je Node.
+  Hinweis, wenn Anubis noch nicht eingerichtet oder kein Host geschützt ist.
+
 ## [1.29.2] – 2026-11-26
 
 ### Behoben

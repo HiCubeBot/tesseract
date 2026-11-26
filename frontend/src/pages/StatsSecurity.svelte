@@ -171,6 +171,7 @@
       <KpiCard label={t('Vom IP-Filter')} value={fmt(sumOf('ip'))} sub={t('eigene Einträge, Listen, Sperren')} spark={spark('ip')} sparkColor={SERIES.ip.color} />
       {#if data.bot && (data.bot.challenged || data.bot.denied || data.bot.passed)}
         <KpiCard
+          onclick={() => (location.hash = '#/stats-bots')}
           label={t('Bot-Schutz')}
           value={fmt(data.bot.challenged + data.bot.denied)}
           sub={t('{0} zur Prüfung · {1} abgewiesen · {2} bestanden', fmt(data.bot.challenged), fmt(data.bot.denied), fmt(data.bot.passed))}

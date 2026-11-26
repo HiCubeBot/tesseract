@@ -18,6 +18,7 @@ const READ = [
   'stats-usage',
   'stats-map',
   'stats-ops',
+  'stats-bots',
   'me',
   'profile'
 ];

@@ -190,3 +190,67 @@ def test_compose_has_anubis_with_deny_403() -> None:
         # Inline-Config (configs: content) geht nicht in einen read_only-Container
         service = text.split("  anubis:\n", 1)[1].split("    configs:", 1)[0]
         assert "read_only: true" not in service
+
+
+def test_bot_statistics(auth_client: TestClient) -> None:
+    from datetime import timedelta
+
+    app = auth_client.app
+    with app.state.db.sessionmaker() as db:
+        node = db.query(Node).first()
+
+        def log(ip, uri, status, reason, ua="Mozilla/5.0 Firefox", host="blog.example.org", ago=0):
+            db.add(
+                LogEntry(
+                    ts=utcnow() - timedelta(hours=ago),
+                    node_id=node.id,
+                    host=host,
+                    uri=uri,
+                    status=status,
+                    ip=ip,
+                    reason=reason,
+                    waf_rules=[],
+                    user_agent=ua,
+                    country="DE",
+                )
+            )
+
+        pas = "/.within.website/x/cmd/anubis/api/pass-challenge?result=x"
+        log("198.51.100.1", "/", 307, "bot")  # Mensch: geprüft …
+        log("198.51.100.1", pas, 302, "ok")  # … und bestanden
+        log("198.51.100.2", "/", 307, "bot")  # nie bestanden
+        log("198.51.100.2", "/x", 307, "bot")
+        db.add(
+            LogEntry(
+                ts=utcnow(),
+                node_id=node.id,
+                host="blog.example.org",
+                uri="/y",
+                status=307,
+                ip="198.51.100.2",
+                reason="bot",
+                waf_rules=[],
+                user_agent="Mozilla/5.0 Firefox",
+                country="NL",
+            )
+        )
+        log("198.51.100.3", "/", 403, "bot", ua="GPTBot/1.2")  # abgewiesen
+        log("198.51.100.4", pas, 403, "ok")  # Lösung falsch
+        log("198.51.100.9", "/", 307, "bot", ago=30)  # Vorzeitraum
+        db.commit()
+
+    s = auth_client.get("/api/stats/bots?range=24h").json()
+    assert s["totals"] == {"challenged": 4, "denied": 1, "passed": 1, "failed": 1}
+    assert s["previous"]["challenged"] == 1
+    assert s["pass_rate"] == 25.0
+    assert s["visitors"] == {"challenged": 2, "passed": 1, "never_passed": 1, "denied": 1}
+    assert s["by_host"][0]["host"] == "blog.example.org" and s["by_host"][0]["passed"] == 1
+    gpt = next(a for a in s["agents"] if a["user_agent"].startswith("GPTBot"))
+    assert gpt["denied"] == 1 and gpt["kind"] == "bot"
+    assert s["countries"] == [{"country": "DE", "count": 4}, {"country": "NL", "count": 1}]
+    assert {i["ip"]: i["passed"] for i in s["top_ips"]}["198.51.100.1"] is True
+    assert s["anubis"] is False and s["protected_hosts"] == []
+    assert len(s["hourly"]) >= 1
+    # je IP nur ein Eintrag, auch wenn das Land wechselt
+    ips = [i["ip"] for i in s["top_ips"]]
+    assert len(ips) == len(set(ips))

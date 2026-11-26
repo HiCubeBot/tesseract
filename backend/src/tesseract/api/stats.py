@@ -121,6 +121,17 @@ def records(db: DB, _: CurrentActor) -> dict[str, Any]:
     return statsview.records(db)
 
 
+@router.get("/bots")
+def bots(db: DB, _: CurrentActor, range: Range = "24h", node: str = "") -> dict[str, Any]:
+    """Bot-Schutz (Anubis): Prüfungen, Abweisungen, bestanden – immer aus der eigenen Datenbank."""
+    from tesseract import botstats
+
+    return {
+        **botstats.bots(db, range, node or None),
+        "anubis": bool(get_general(db)["anubis_url"]),
+    }
+
+
 @router.get("/usage")
 def usage(request: Request, db: DB, _: CurrentActor, range: Range = "7d") -> dict[str, Any]:
     store = _store(request, db)
