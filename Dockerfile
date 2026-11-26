@@ -34,6 +34,8 @@ RUN groupadd --system tesseract && useradd --system --gid tesseract --home /app 
 WORKDIR /app
 COPY --from=backend --chown=tesseract:tesseract /app /app
 COPY --from=frontend --chown=tesseract:tesseract /app/frontend/dist /app/static
+# Vorlage für „tesseract env migrate“ – passt so immer zur Version des Images
+COPY --chown=tesseract:tesseract .env.example /app/.env.example
 RUN mkdir -p /data && chown tesseract:tesseract /data
 
 ENV PATH="/app/.venv/bin:$PATH" \

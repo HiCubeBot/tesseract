@@ -134,6 +134,7 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 | Metriken | Prometheus-Endpunkt für Controller und alle Nodes, Schutz per Bearer-Token / mTLS / IP-Liste, `prometheus.yml`-Snippet, Grafana-Dashboard (JSON) | 5 |
 | Git-Spiegel | Hosts, Caddy-Config pro Node, IP-Listen und Einstellungen lesbar in einem Git-Repository (HTTPS-Token oder SSH-Deploy-Key); jede Änderung ein Commit mit den Einträgen aus dem Audit-Log als Nachricht. Ohne Schlüssel, Tokens, Personen und IP-Sperren | 1.2 |
 | Backup | Zeitplan (stündlich/täglich/wöchentlich), Ziele lokal, S3-kompatibel und Restic-Repository (1.6), verschlüsselt mit Passphrase (AES-256-GCM, scrypt); Root-Schlüssel nie enthalten; Wiederherstellungstest; Wiederherstellen aus Ziel oder Datei, auch per Kommandozeile | 6 |
+| `.env` migrieren | `tesseract env migrate` bringt die `.env` nach einem Update auf den Stand der `.env.example` (auch im Image): eigene Werte bleiben exakt erhalten, unbekannte Variablen in eigenem Abschnitt, Sicherung vorher, Probelauf | 1.27 |
 
 ## 10. Admin-Zugang
 

@@ -25,6 +25,7 @@ für sich nutzbar ist. Details zu den einzelnen Features: [features.md](features
 | 1.10 | Nodes über DNS | Node-Schnittstelle wahlweise von den Admin-Netzen ausgenommen, DNS-Eintrag für die Tesseract-Domain – **fertig** |
 | 1.11 | Herkunftskarte | Karte zeigt alle Anfragen, Filter Abgelehnt / Angenommen – **fertig** |
 | 1.12 | Intern ohne Zertifikat | mTLS-Hosts wahlweise aus den internen Netzen ohne Zertifikat – **fertig** |
+| 1.27 | `.env` migrieren | `tesseract env migrate` bringt die `.env` nach Updates auf den Stand der Vorlage, eigene Werte bleiben ([#35](https://github.com/HiCubeBot/tesseract/issues/35)) – **fertig** |
 | 1.25 | Mehrsprachigkeit | Oberfläche auf Deutsch und Englisch, Sprache nach Browser oder umschaltbar, Benachrichtigungen und Kein-Zugang-Seite ebenfalls ([#31](https://github.com/HiCubeBot/tesseract/issues/31)) – **fertig** |
 | 1.24 | Personen per Zertifikat | Einzelne Personen öffnen Tesseract nur per Gerätezertifikat – Rollen Lesen, Eigene Dienste, Admin ([#33](https://github.com/HiCubeBot/tesseract/issues/33)) – **fertig** |
 | 1.23 | robots.txt | robots.txt pro Host direkt von Caddy: Vorlagen (alles erlauben/verbieten, KI-Crawler, Pfade), eigener Text mit Prüfung, Standard in den Einstellungen ([#32](https://github.com/HiCubeBot/tesseract/issues/32)) – **fertig** |

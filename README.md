@@ -152,6 +152,17 @@ docker compose logs tesseract | grep "Erster Start"
 
 Prefer building yourself? Clone the repository and run `docker compose up -d --build`.
 
+**Upgrading:** new versions may add settings to `.env.example`. Bring your `.env` up to date –
+all your values are kept, unknown entries move to a section at the end, a backup is written
+first:
+
+```bash
+docker compose pull
+docker compose run --rm --no-deps --user "$(id -u):$(id -g)" -v "$PWD:/work" tesseract \
+  tesseract env migrate /work/.env --dry-run   # drop --dry-run to write
+docker compose up -d
+```
+
 Further nodes are added from the web interface (*Nodes › Neuen Node verbinden*) with a one-line
 installer and a join token. Details: [docs/installation.md](docs/installation.md),
 [docs/agent.md](docs/agent.md), [docs/operations.md](docs/operations.md).

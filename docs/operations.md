@@ -22,6 +22,36 @@ docker compose up -d
   Zertifikats-Erneuerung ab 0.3) brauchen den neuen Agent.
 - Was sich je Version ändert: [CHANGELOG.md](../CHANGELOG.md).
 
+### `.env` nach einem Update migrieren
+
+Neue Versionen bringen oft neue Variablen und Kommentare in der `.env.example` mit.
+`tesseract env migrate` baut die `.env` auf Grundlage der aktuellen Vorlage neu auf und übernimmt
+dabei **alle eigenen Werte** – exakt, auch mit Anführungszeichen, `#` oder Leerzeichen:
+
+- In der Vorlage nur auskommentierte Variablen werden aktiviert, wenn du sie gesetzt hattest.
+- Neue Variablen kommen mit Standardwert bzw. auskommentiert dazu.
+- Variablen, die die Vorlage nicht (mehr) kennt, landen unverändert in einem eigenen Abschnitt
+  „Eigene/veraltete Einträge“ am Ende.
+- Vorher wird gesichert: `.env.bak-JJJJMMTT-HHMMSS`. Geheimnisse erscheinen in der Ausgabe nie
+  im Klartext.
+
+Mit Docker – die passende `.env.example` liegt im Image des Controllers:
+
+```bash
+docker compose pull
+# erst ansehen, was sich ändert …
+docker compose run --rm --no-deps --user "$(id -u):$(id -g)" -v "$PWD:/work" tesseract \
+  tesseract env migrate /work/.env --dry-run
+# … dann schreiben
+docker compose run --rm --no-deps --user "$(id -u):$(id -g)" -v "$PWD:/work" tesseract \
+  tesseract env migrate /work/.env
+docker compose up -d
+```
+
+`--user` sorgt dafür, dass die neue `.env` und die Sicherung dir gehören. Im Checkout geht es
+auch ohne Docker: `cd backend && uv run tesseract env migrate ../.env --dry-run`. Eine andere
+Vorlage gibt `--example PFAD` an.
+
 ## Sichern und Wiederherstellen
 
 Siehe **Einstellungen › Backup**. Kurz:

@@ -4,6 +4,17 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.27.0] – 2026-11-26
+
+### Hinzugefügt
+- **`.env` nach einem Update migrieren** ([#35](https://github.com/HiCubeBot/tesseract/issues/35)):
+  `tesseract env migrate .env [--dry-run]` baut die `.env` auf Grundlage der aktuellen
+  `.env.example` neu auf und übernimmt alle eigenen Werte exakt. Auskommentierte Variablen der
+  Vorlage werden aktiviert, wenn sie gesetzt waren; unbekannte landen in „Eigene/veraltete
+  Einträge“ am Ende; vorher eine Sicherung `.env.bak-…`. Geheimnisse in der Ausgabe maskiert.
+  Die `.env.example` liegt jetzt im Image (`/app/.env.example`) – Aufruf per Docker siehe
+  [docs/operations.md](docs/operations.md#env-nach-einem-update-migrieren).
+
 ## [1.26.4] – 2026-11-25
 
 ### Behoben

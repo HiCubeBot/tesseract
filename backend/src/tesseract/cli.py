@@ -174,7 +174,20 @@ def run(argv: list[str] | None = None) -> None:
     restore = bk_sub.add_parser("restore", help="Sicherung zurückspielen (Controller gestoppt!)")
     restore.add_argument("file")
 
+    env = sub.add_parser("env", help=".env verwalten")
+    env_sub = env.add_subparsers(dest="env_cmd", required=True)
+    mig = env_sub.add_parser(
+        "migrate", help=".env auf den Stand der .env.example bringen, eigene Werte bleiben"
+    )
+    mig.add_argument("file", nargs="?", default=".env", help="die .env (Standard: ./.env)")
+    mig.add_argument("--example", help="Vorlage (Standard: .env.example aus Image bzw. Repo)")
+    mig.add_argument("--dry-run", action="store_true", help="nur zeigen, nichts schreiben")
+
     args = parser.parse_args(argv)
+    if args.cmd == "env":
+        from tesseract import envmigrate
+
+        raise SystemExit(envmigrate.run(args.file, args.example, args.dry_run))
     if args.cmd == "admin" and args.admin_cmd == "password-login":
         admin_password_login_on()
     elif args.cmd == "admin" and args.admin_cmd == "mtls":
