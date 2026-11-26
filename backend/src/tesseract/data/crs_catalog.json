@@ -1,0 +1,5579 @@
+{
+ "coraza_caddy": "v2.6.2",
+ "crs": "4.25.0",
+ "rules": [
+  {
+   "id": 901001,
+   "file": "REQUEST-901-INITIALIZATION.conf",
+   "category": "Sonstige",
+   "msg": "CRS is deployed without configuration! Please copy the crs-setup.conf.example template to crs-setup.conf, and include the crs-setup.conf file in your webserver configuration before including the CRS rules. See the INSTALL file in the CRS directory for detailed instructions",
+   "paranoia": null,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": []
+  },
+  {
+   "id": 901340,
+   "file": "REQUEST-901-INITIALIZATION.conf",
+   "category": "Sonstige",
+   "msg": "Enabling body inspection",
+   "paranoia": null,
+   "severity": null,
+   "phase": 1,
+   "tags": []
+  },
+  {
+   "id": 901350,
+   "file": "REQUEST-901-INITIALIZATION.conf",
+   "category": "Sonstige",
+   "msg": "Enabling forced body inspection for ASCII content",
+   "paranoia": null,
+   "severity": null,
+   "phase": 1,
+   "tags": []
+  },
+  {
+   "id": 901450,
+   "file": "REQUEST-901-INITIALIZATION.conf",
+   "category": "Sonstige",
+   "msg": "Sampling: Disable the rule engine based on sampling_percentage %{TX.sampling_percentage} and random number %{TX.sampling_rnd100}",
+   "paranoia": null,
+   "severity": null,
+   "phase": 1,
+   "tags": []
+  },
+  {
+   "id": 901500,
+   "file": "REQUEST-901-INITIALIZATION.conf",
+   "category": "Sonstige",
+   "msg": "Detection paranoia level configured is lower than the paranoia level itself. This is illegal. Blocking request. Aborting",
+   "paranoia": null,
+   "severity": null,
+   "phase": 1,
+   "tags": []
+  },
+  {
+   "id": 911100,
+   "file": "REQUEST-911-METHOD-ENFORCEMENT.conf",
+   "category": "Methoden",
+   "msg": "Method is not allowed by policy",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-generic",
+    "capec/1000/210/272/220/274"
+   ]
+  },
+  {
+   "id": 913100,
+   "file": "REQUEST-913-SCANNER-DETECTION.conf",
+   "category": "Scanner",
+   "msg": "Found User-Agent associated with security scanner",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-reputation-scanner",
+    "capec/1000/118/224/541/310"
+   ]
+  },
+  {
+   "id": 920100,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Invalid HTTP Request Line",
+   "paranoia": 1,
+   "severity": "WARNING",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920120,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Attempted multipart/form-data bypass",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920121,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Attempted multipart/form-data bypass",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920160,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Content-Length HTTP header is not numeric",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920170,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "GET or HEAD Request with Body Content",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920171,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "GET or HEAD Request with Transfer-Encoding",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920180,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "POST without Content-Length and Transfer-Encoding headers",
+   "paranoia": 1,
+   "severity": "WARNING",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920181,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Content-Length and Transfer-Encoding headers present",
+   "paranoia": 1,
+   "severity": "WARNING",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920190,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Range: Invalid Last Byte Value",
+   "paranoia": 1,
+   "severity": "WARNING",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920200,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Range: Too many fields (6 or more)",
+   "paranoia": 2,
+   "severity": "WARNING",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920201,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Range: Too many fields for pdf request (63 or more)",
+   "paranoia": 2,
+   "severity": "WARNING",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920202,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Range: Too many fields for pdf request (6 or more)",
+   "paranoia": 4,
+   "severity": "WARNING",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920210,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Multiple/Conflicting Connection Header Data Found",
+   "paranoia": 1,
+   "severity": "WARNING",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920230,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Multiple URL Encoding Detected",
+   "paranoia": 2,
+   "severity": "WARNING",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/255/153/267/120"
+   ]
+  },
+  {
+   "id": 920240,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "URL Encoding Abuse Attack Attempt",
+   "paranoia": 2,
+   "severity": "WARNING",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/255/153/267/72"
+   ]
+  },
+  {
+   "id": 920250,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "UTF8 Encoding Abuse Attack Attempt",
+   "paranoia": 1,
+   "severity": "WARNING",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/255/153/267"
+   ]
+  },
+  {
+   "id": 920260,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Unicode Full/Half Width Abuse Attack Attempt",
+   "paranoia": 1,
+   "severity": "WARNING",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-iis",
+    "platform-windows",
+    "attack-protocol",
+    "capec/1000/255/153/267/72"
+   ]
+  },
+  {
+   "id": 920270,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Invalid character in request (null character)",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920271,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Invalid character in request (non printable characters)",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920272,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Invalid character in request (outside of printable chars below ascii 127)",
+   "paranoia": 3,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920273,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Invalid character in request (outside of very strict set)",
+   "paranoia": 4,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920274,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Invalid character in request headers (outside of very strict set)",
+   "paranoia": 4,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920275,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Invalid character in request headers (outside of very strict set)",
+   "paranoia": 4,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920280,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Request Missing a Host Header",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920290,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Empty Host Header",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920300,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Request Missing an Accept Header",
+   "paranoia": 3,
+   "severity": "NOTICE",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920310,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Request Has an Empty Accept Header",
+   "paranoia": 1,
+   "severity": "NOTICE",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920311,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Request Has an Empty Accept Header",
+   "paranoia": 1,
+   "severity": "NOTICE",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920320,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Missing User Agent Header",
+   "paranoia": 2,
+   "severity": "NOTICE",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920330,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Empty User Agent Header",
+   "paranoia": 1,
+   "severity": "NOTICE",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920340,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Content-Type header missing from request with non-zero Content-Length",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920350,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Host header is a numeric IP address",
+   "paranoia": 1,
+   "severity": "WARNING",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920360,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Argument name too long",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920370,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Argument value too long",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920380,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Too many arguments in request",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920390,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Total arguments size exceeded",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920400,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Uploaded file size too large",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920410,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Total uploaded files size too large",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920420,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Request content type is not allowed by policy",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/255/153"
+   ]
+  },
+  {
+   "id": 920430,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "HTTP protocol version is not allowed by policy",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920440,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "URL file extension is restricted by policy",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920450,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "HTTP header is restricted by policy (%{MATCHED_VAR})",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920451,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "HTTP header is restricted by policy (%{MATCHED_VAR})",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920460,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Abnormal character escapes in request",
+   "paranoia": 4,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/153/267"
+   ]
+  },
+  {
+   "id": 920470,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Illegal Content-Type header",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/255/153"
+   ]
+  },
+  {
+   "id": 920480,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Request content type charset is not allowed by policy",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/255/153"
+   ]
+  },
+  {
+   "id": 920490,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Request header x-up-devcap-post-charset detected in combination with prefix \\'UP\\' to User-Agent",
+   "paranoia": 3,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "language-aspnet",
+    "platform-windows",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920500,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Attempt to access a backup or working file",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920510,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Invalid Cache-Control request header",
+   "paranoia": 3,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "header-allowlist",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920520,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Accept-Encoding header exceeded sensible length",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/255/153"
+   ]
+  },
+  {
+   "id": 920521,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Illegal Accept-Encoding header",
+   "paranoia": 3,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/255/153"
+   ]
+  },
+  {
+   "id": 920530,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Multiple charsets detected in content type header",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/255/153"
+   ]
+  },
+  {
+   "id": 920540,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Possible Unicode character bypass detected",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/255/153/267/72"
+   ]
+  },
+  {
+   "id": 920600,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Illegal Accept header: charset parameter",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol"
+   ]
+  },
+  {
+   "id": 920610,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Raw (unencoded) fragment in request URI",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol"
+   ]
+  },
+  {
+   "id": 920620,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Multiple Content-Type Request Headers",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol"
+   ]
+  },
+  {
+   "id": 920640,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Content-Type header missing from request with body",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920650,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "HTTP method override attempt via _method parameter",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 920660,
+   "file": "REQUEST-920-PROTOCOL-ENFORCEMENT.conf",
+   "category": "Protokoll",
+   "msg": "Obsolete Request-Range header detected",
+   "paranoia": 1,
+   "severity": "WARNING",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272"
+   ]
+  },
+  {
+   "id": 921110,
+   "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+   "category": "Protokoll-Angriff",
+   "msg": "HTTP Request Smuggling Attack",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272/220/33"
+   ]
+  },
+  {
+   "id": 921120,
+   "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+   "category": "Protokoll-Angriff",
+   "msg": "HTTP Response Splitting Attack",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272/220/34"
+   ]
+  },
+  {
+   "id": 921130,
+   "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+   "category": "Protokoll-Angriff",
+   "msg": "HTTP Response Splitting Attack",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272/220/34"
+   ]
+  },
+  {
+   "id": 921140,
+   "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+   "category": "Protokoll-Angriff",
+   "msg": "HTTP Header Injection Attack via headers",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272/220/273"
+   ]
+  },
+  {
+   "id": 921150,
+   "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+   "category": "Protokoll-Angriff",
+   "msg": "HTTP Header Injection Attack via payload (CR/LF detected)",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272/220/33"
+   ]
+  },
+  {
+   "id": 921151,
+   "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+   "category": "Protokoll-Angriff",
+   "msg": "HTTP Header Injection Attack via payload (CR/LF detected)",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272/220/33"
+   ]
+  },
+  {
+   "id": 921160,
+   "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+   "category": "Protokoll-Angriff",
+   "msg": "HTTP Header Injection Attack via payload (CR/LF and header-name detected)",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272/220/33"
+   ]
+  },
+  {
+   "id": 921180,
+   "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+   "category": "Protokoll-Angriff",
+   "msg": "HTTP Parameter Pollution (%{MATCHED_VAR_NAME})",
+   "paranoia": 3,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/152/137/15/460"
+   ]
+  },
+  {
+   "id": 921190,
+   "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+   "category": "Protokoll-Angriff",
+   "msg": "HTTP Splitting (CR/LF in request filename detected)",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272/220/34"
+   ]
+  },
+  {
+   "id": 921200,
+   "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+   "category": "Protokoll-Angriff",
+   "msg": "LDAP Injection Attack",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-ldap",
+    "platform-multi",
+    "capec/1000/152/248/136"
+   ]
+  },
+  {
+   "id": 921210,
+   "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+   "category": "Protokoll-Angriff",
+   "msg": "HTTP Parameter Pollution after detecting bogus char after parameter array",
+   "paranoia": 3,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/152/137/15/460"
+   ]
+  },
+  {
+   "id": 921220,
+   "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+   "category": "Protokoll-Angriff",
+   "msg": "HTTP Parameter Pollution possible via array notation",
+   "paranoia": 4,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/152/137/15/460"
+   ]
+  },
+  {
+   "id": 921230,
+   "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+   "category": "Protokoll-Angriff",
+   "msg": "HTTP Range Header detected",
+   "paranoia": 3,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/210/272/220"
+   ]
+  },
+  {
+   "id": 921240,
+   "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+   "category": "Protokoll-Angriff",
+   "msg": "mod_proxy attack attempt detected",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-apache",
+    "attack-protocol",
+    "capec/1000/210/272/220/33"
+   ]
+  },
+  {
+   "id": 921250,
+   "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+   "category": "Protokoll-Angriff",
+   "msg": "Old Cookies V1 usage attempt detected",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "attack-protocol",
+    "capec/1000/210/272/220/33"
+   ]
+  },
+  {
+   "id": 921421,
+   "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+   "category": "Protokoll-Angriff",
+   "msg": "Content-Type header: Dangerous content type outside the mime type declaration",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/255/153"
+   ]
+  },
+  {
+   "id": 921422,
+   "file": "REQUEST-921-PROTOCOL-ATTACK.conf",
+   "category": "Protokoll-Angriff",
+   "msg": "Content-Type header: Dangerous content type outside the mime type declaration",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-protocol",
+    "capec/1000/255/153"
+   ]
+  },
+  {
+   "id": 922100,
+   "file": "REQUEST-922-MULTIPART-ATTACK.conf",
+   "category": "Multipart",
+   "msg": "Multipart content type global _charset_ definition is not allowed by policy",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-multipart-header",
+    "capec/1000/255/153"
+   ]
+  },
+  {
+   "id": 922110,
+   "file": "REQUEST-922-MULTIPART-ATTACK.conf",
+   "category": "Multipart",
+   "msg": "Illegal MIME Multipart Header content-type: charset parameter",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-multipart-header",
+    "attack-protocol",
+    "capec/272/220"
+   ]
+  },
+  {
+   "id": 922120,
+   "file": "REQUEST-922-MULTIPART-ATTACK.conf",
+   "category": "Multipart",
+   "msg": "Content-Transfer-Encoding was deprecated by rfc7578 in 2015 and should not be used",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-multipart-header",
+    "attack-deprecated-header",
+    "capec/272/220"
+   ]
+  },
+  {
+   "id": 922130,
+   "file": "REQUEST-922-MULTIPART-ATTACK.conf",
+   "category": "Multipart",
+   "msg": "Multipart header contains characters outside of valid range",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-multipart-header",
+    "capec/272/220"
+   ]
+  },
+  {
+   "id": 930100,
+   "file": "REQUEST-930-APPLICATION-ATTACK-LFI.conf",
+   "category": "LFI (lokale Dateien)",
+   "msg": "Path Traversal Attack (/../) or (/.../)",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-lfi",
+    "capec/1000/255/153/126"
+   ]
+  },
+  {
+   "id": 930110,
+   "file": "REQUEST-930-APPLICATION-ATTACK-LFI.conf",
+   "category": "LFI (lokale Dateien)",
+   "msg": "Path Traversal Attack (/../) or (/.../)",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-lfi",
+    "capec/1000/255/153/126"
+   ]
+  },
+  {
+   "id": 930120,
+   "file": "REQUEST-930-APPLICATION-ATTACK-LFI.conf",
+   "category": "LFI (lokale Dateien)",
+   "msg": "OS File Access Attempt",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-lfi",
+    "capec/1000/255/153/126"
+   ]
+  },
+  {
+   "id": 930121,
+   "file": "REQUEST-930-APPLICATION-ATTACK-LFI.conf",
+   "category": "LFI (lokale Dateien)",
+   "msg": "OS File Access Attempt in REQUEST_HEADERS",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-lfi",
+    "capec/1000/255/153/126"
+   ]
+  },
+  {
+   "id": 930130,
+   "file": "REQUEST-930-APPLICATION-ATTACK-LFI.conf",
+   "category": "LFI (lokale Dateien)",
+   "msg": "Restricted File Access Attempt",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-lfi",
+    "capec/1000/255/153/126"
+   ]
+  },
+  {
+   "id": 930140,
+   "file": "REQUEST-930-APPLICATION-ATTACK-LFI.conf",
+   "category": "LFI (lokale Dateien)",
+   "msg": "Restricted File Access Attempt: AI Coding Assistant Artifact",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-lfi",
+    "capec/1000/255/153/126"
+   ]
+  },
+  {
+   "id": 931100,
+   "file": "REQUEST-931-APPLICATION-ATTACK-RFI.conf",
+   "category": "RFI (fremde Dateien)",
+   "msg": "Possible Remote File Inclusion (RFI) Attack: URL Parameter using IP Address",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-rfi",
+    "capec/1000/152/175/253"
+   ]
+  },
+  {
+   "id": 931110,
+   "file": "REQUEST-931-APPLICATION-ATTACK-RFI.conf",
+   "category": "RFI (fremde Dateien)",
+   "msg": "Possible Remote File Inclusion (RFI) Attack: Common RFI Vulnerable Parameter Name used w/URL Payload",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-rfi",
+    "capec/1000/152/175/253"
+   ]
+  },
+  {
+   "id": 931120,
+   "file": "REQUEST-931-APPLICATION-ATTACK-RFI.conf",
+   "category": "RFI (fremde Dateien)",
+   "msg": "Possible Remote File Inclusion (RFI) Attack: URL Payload Used w/Trailing Question Mark Character (?)",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-rfi",
+    "capec/1000/152/175/253"
+   ]
+  },
+  {
+   "id": 931130,
+   "file": "REQUEST-931-APPLICATION-ATTACK-RFI.conf",
+   "category": "RFI (fremde Dateien)",
+   "msg": "Possible Remote File Inclusion (RFI) Attack: Off-Domain Reference/Link",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-rfi",
+    "capec/1000/152/175/253"
+   ]
+  },
+  {
+   "id": 931131,
+   "file": "REQUEST-931-APPLICATION-ATTACK-RFI.conf",
+   "category": "RFI (fremde Dateien)",
+   "msg": "Possible Remote File Inclusion (RFI) Attack",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-rfi",
+    "capec/1000/152/175/253"
+   ]
+  },
+  {
+   "id": 932120,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Windows PowerShell Command Found",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "language-powershell",
+    "platform-windows",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932125,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Windows Powershell Alias Command Injection",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-windows",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932130,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Unix Shell Expression Found",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-unix",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932131,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Unix Shell Expression Found",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-unix",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932140,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Windows FOR/IF Command Found",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-windows",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932160,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Unix Shell Code Found",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-unix",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932161,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Unix Shell Code Found in REQUEST_HEADERS",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-unix",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932170,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Shellshock (CVE-2014-6271)",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-unix",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932171,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Shellshock (CVE-2014-6271)",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-unix",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932175,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Unix shell alias invocation",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-unix",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932180,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Restricted File Upload Attempt",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932190,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Wildcard bypass technique attempt",
+   "paranoia": 3,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-unix",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932200,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "RCE Bypass Technique",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932205,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "RCE Bypass Technique",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932206,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "RCE Bypass Technique",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932207,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "RCE Bypass Technique",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932210,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: SQLite System Command Execution",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-unix",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932220,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Unix Command Injection with pipe",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-unix",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932230,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Unix Command Injection (2-3 chars)",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-unix",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932231,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Unix Command Injection",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-unix",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932232,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Unix Command Injection",
+   "paranoia": 3,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-unix",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932235,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Unix Command Injection (command without evasion)",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-unix",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932236,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Unix Command Injection (command without evasion)",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-unix",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932237,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Unix Shell Code Found in REQUEST_HEADERS",
+   "paranoia": 3,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-unix",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932238,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Unix Shell Code Found in REQUEST_HEADERS",
+   "paranoia": 3,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-unix",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932239,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Unix Command Injection found in user-agent or referer header",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-unix",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932240,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Unix Command Injection evasion attempt detected",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-unix",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932250,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Direct Unix Command Execution",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-unix",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932260,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Direct Unix Command Execution",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-unix",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932270,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Unix Shell Expression Found",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-unix",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932271,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Unix Shell Expression Found",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-unix",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932280,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Brace Expansion Found",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-unix",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932281,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Brace Expansion Found",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-unix",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932300,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: SMTP Command Execution",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "platform-multi",
+    "attack-rce",
+    "capec/137/134"
+   ]
+  },
+  {
+   "id": 932301,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: SMTP Command Execution",
+   "paranoia": 3,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "platform-multi",
+    "attack-rce",
+    "capec/137/134"
+   ]
+  },
+  {
+   "id": 932310,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: IMAP Command Execution",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "platform-multi",
+    "attack-rce",
+    "capec/137/134"
+   ]
+  },
+  {
+   "id": 932311,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: IMAP Command Execution",
+   "paranoia": 3,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "platform-multi",
+    "attack-rce",
+    "capec/137/134"
+   ]
+  },
+  {
+   "id": 932320,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: POP3 Command Execution",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "platform-multi",
+    "attack-rce",
+    "capec/137/134"
+   ]
+  },
+  {
+   "id": 932321,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: POP3 Command Execution",
+   "paranoia": 3,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "platform-multi",
+    "attack-rce",
+    "capec/137/134"
+   ]
+  },
+  {
+   "id": 932330,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Unix shell history invocation",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-unix",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932331,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Unix shell history invocation",
+   "paranoia": 3,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-unix",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932340,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Direct Unix Command Execution (No Arguments)",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-unix",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932350,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Direct Unix Command Execution (No Arguments)",
+   "paranoia": 3,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-unix",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932370,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Windows Command Injection",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-windows",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932371,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Windows Command Injection",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-windows",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932380,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Windows Command Injection",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-windows",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 932390,
+   "file": "REQUEST-932-APPLICATION-ATTACK-RCE.conf",
+   "category": "RCE (Befehle)",
+   "msg": "Remote Command Execution: Shell Fork Bomb",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-shell",
+    "platform-unix",
+    "attack-rce",
+    "capec/1000/152/248/88"
+   ]
+  },
+  {
+   "id": 933100,
+   "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+   "category": "PHP",
+   "msg": "PHP Injection Attack: PHP Open Tag Found",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-php",
+    "platform-multi",
+    "attack-injection-php",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 933110,
+   "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+   "category": "PHP",
+   "msg": "PHP Injection Attack: PHP Script File Upload Found",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-php",
+    "platform-multi",
+    "attack-injection-php",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 933111,
+   "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+   "category": "PHP",
+   "msg": "PHP Injection Attack: PHP Script File Upload Found",
+   "paranoia": 3,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-php",
+    "platform-multi",
+    "attack-injection-php",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 933120,
+   "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+   "category": "PHP",
+   "msg": "PHP Injection Attack: Configuration Directive Found",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-php",
+    "platform-multi",
+    "attack-injection-php",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 933130,
+   "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+   "category": "PHP",
+   "msg": "PHP Injection Attack: Variables Found",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-php",
+    "platform-multi",
+    "attack-injection-php",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 933131,
+   "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+   "category": "PHP",
+   "msg": "PHP Injection Attack: Variables Found",
+   "paranoia": 3,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-php",
+    "platform-multi",
+    "attack-injection-php",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 933135,
+   "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+   "category": "PHP",
+   "msg": "PHP Injection Attack: Variable Access Found",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-php",
+    "platform-multi",
+    "attack-injection-php",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 933140,
+   "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+   "category": "PHP",
+   "msg": "PHP Injection Attack: I/O Stream Found",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-php",
+    "platform-multi",
+    "attack-injection-php",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 933150,
+   "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+   "category": "PHP",
+   "msg": "PHP Injection Attack: High-Risk PHP Function Name Found",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-php",
+    "platform-multi",
+    "attack-injection-php",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 933151,
+   "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+   "category": "PHP",
+   "msg": "PHP Injection Attack: Medium-Risk PHP Function Name Found",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-php",
+    "platform-multi",
+    "attack-injection-php",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 933152,
+   "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+   "category": "PHP",
+   "msg": "PHP Injection Attack: Medium-Risk PHP Function Name Found",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-php",
+    "platform-multi",
+    "attack-injection-php",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 933153,
+   "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+   "category": "PHP",
+   "msg": "PHP Injection Attack: Medium-Risk PHP Function Name Found",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-php",
+    "platform-multi",
+    "attack-injection-php",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 933160,
+   "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+   "category": "PHP",
+   "msg": "PHP Injection Attack: High-Risk PHP Function Call Found",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-php",
+    "platform-multi",
+    "attack-injection-php",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 933161,
+   "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+   "category": "PHP",
+   "msg": "PHP Injection Attack: Low-Value PHP Function Call Found",
+   "paranoia": 3,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-php",
+    "platform-multi",
+    "attack-injection-php",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 933170,
+   "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+   "category": "PHP",
+   "msg": "PHP Injection Attack: Serialized Object Injection",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-php",
+    "platform-multi",
+    "attack-injection-php",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 933180,
+   "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+   "category": "PHP",
+   "msg": "PHP Injection Attack: Variable Function Call Found",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-php",
+    "platform-multi",
+    "attack-injection-php",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 933190,
+   "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+   "category": "PHP",
+   "msg": "PHP Injection Attack: PHP Closing Tag Found",
+   "paranoia": 3,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-php",
+    "platform-multi",
+    "attack-injection-php",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 933200,
+   "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+   "category": "PHP",
+   "msg": "PHP Injection Attack: Wrapper scheme detected",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-php",
+    "platform-multi",
+    "attack-injection-php",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 933210,
+   "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+   "category": "PHP",
+   "msg": "PHP Injection Attack: Variable Function Call Found",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-php",
+    "platform-multi",
+    "attack-injection-php",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 933211,
+   "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+   "category": "PHP",
+   "msg": "PHP Injection Attack: Variable Function Call Found",
+   "paranoia": 3,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-php",
+    "platform-multi",
+    "attack-injection-php",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 933220,
+   "file": "REQUEST-933-APPLICATION-ATTACK-PHP.conf",
+   "category": "PHP",
+   "msg": "PHP Injection Attack: PHP Session File Upload Attempt",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-php",
+    "platform-multi",
+    "attack-injection-php",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 934100,
+   "file": "REQUEST-934-APPLICATION-ATTACK-GENERIC.conf",
+   "category": "Generisch (Node.js, Ruby …)",
+   "msg": "Node.js Injection Attack 1/2",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-javascript",
+    "platform-multi",
+    "platform-nodejs",
+    "attack-rce",
+    "attack-injection-generic",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 934101,
+   "file": "REQUEST-934-APPLICATION-ATTACK-GENERIC.conf",
+   "category": "Generisch (Node.js, Ruby …)",
+   "msg": "Node.js Injection Attack 2/2",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-javascript",
+    "platform-nodejs",
+    "attack-rce",
+    "attack-injection-generic",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 934110,
+   "file": "REQUEST-934-APPLICATION-ATTACK-GENERIC.conf",
+   "category": "Generisch (Node.js, Ruby …)",
+   "msg": "Possible Server Side Request Forgery (SSRF) Attack: Cloud provider metadata URL in Parameter",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-ssrf",
+    "capec/1000/225/664"
+   ]
+  },
+  {
+   "id": 934120,
+   "file": "REQUEST-934-APPLICATION-ATTACK-GENERIC.conf",
+   "category": "Generisch (Node.js, Ruby …)",
+   "msg": "Possible Server Side Request Forgery (SSRF) Attack: URL Parameter using IP Address",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-ssrf",
+    "capec/1000/225/664"
+   ]
+  },
+  {
+   "id": 934130,
+   "file": "REQUEST-934-APPLICATION-ATTACK-GENERIC.conf",
+   "category": "Generisch (Node.js, Ruby …)",
+   "msg": "JavaScript Prototype Pollution",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-javascript",
+    "platform-multi",
+    "attack-rce",
+    "attack-injection-generic",
+    "capec/1/180/77"
+   ]
+  },
+  {
+   "id": 934140,
+   "file": "REQUEST-934-APPLICATION-ATTACK-GENERIC.conf",
+   "category": "Generisch (Node.js, Ruby …)",
+   "msg": "Perl Injection Attack",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-perl",
+    "platform-multi",
+    "attack-rce",
+    "attack-injection-generic",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 934150,
+   "file": "REQUEST-934-APPLICATION-ATTACK-GENERIC.conf",
+   "category": "Generisch (Node.js, Ruby …)",
+   "msg": "Ruby Injection Attack",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-ruby",
+    "platform-multi",
+    "attack-rce",
+    "attack-injection-generic",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 934160,
+   "file": "REQUEST-934-APPLICATION-ATTACK-GENERIC.conf",
+   "category": "Generisch (Node.js, Ruby …)",
+   "msg": "Node.js DoS attack",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-javascript",
+    "platform-nodejs",
+    "attack-rce",
+    "attack-injection-generic",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 934170,
+   "file": "REQUEST-934-APPLICATION-ATTACK-GENERIC.conf",
+   "category": "Generisch (Node.js, Ruby …)",
+   "msg": "PHP data scheme attack",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-php",
+    "platform-multi",
+    "attack-ssrf",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 934180,
+   "file": "REQUEST-934-APPLICATION-ATTACK-GENERIC.conf",
+   "category": "Generisch (Node.js, Ruby …)",
+   "msg": "SSTI Attack",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "platform-multi",
+    "attack-ssti",
+    "attack-injection-generic",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 934190,
+   "file": "REQUEST-934-APPLICATION-ATTACK-GENERIC.conf",
+   "category": "Generisch (Node.js, Ruby …)",
+   "msg": "Possible Server Side Request Forgery (SSRF) Attack: Scheme-less localhost or internal hostname detected",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-ssrf",
+    "capec/1000/225/664"
+   ]
+  },
+  {
+   "id": 941100,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "XSS Attack Detected via libinjection",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 941101,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "XSS Attack Detected via libinjection",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 941110,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "XSS Filter - Category 1: Script Tag Vector",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 941120,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "XSS Filter - Category 2: Event Handler Vector",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 941130,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "XSS Filter - Category 3: Attribute Vector",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 941140,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "XSS Filter - Category 4: Javascript URI Vector",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 941150,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "XSS Filter - Category 5: Disallowed HTML Attributes",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 941160,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "NoScript XSS InjectionChecker: HTML Injection",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 941170,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "NoScript XSS InjectionChecker: Attribute Injection",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 941180,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "Node-Validator Deny List Keywords",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-nodejs",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 941181,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "Node-Validator Deny List Keywords",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 941190,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "IE XSS Filters - Attack Detected",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-internet-explorer",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 941200,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "IE XSS Filters - Attack Detected",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-internet-explorer",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 941210,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "Javascript Word Detected",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-internet-explorer",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 941220,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "IE XSS Filters - Attack Detected",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-internet-explorer",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 941230,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "IE XSS Filters - Attack Detected",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-internet-explorer",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 941240,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "IE XSS Filters - Attack Detected",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-internet-explorer",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 941250,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "IE XSS Filters - Attack Detected",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-internet-explorer",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 941260,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "IE XSS Filters - Attack Detected",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-internet-explorer",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 941270,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "IE XSS Filters - Attack Detected",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-internet-explorer",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 941280,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "IE XSS Filters - Attack Detected",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-internet-explorer",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 941290,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "IE XSS Filters - Attack Detected",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-internet-explorer",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 941300,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "IE XSS Filters - Attack Detected",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-internet-explorer",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 941310,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "US-ASCII Malformed Encoding XSS Filter - Attack Detected",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-tomcat",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 941320,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "Possible XSS Attack Detected - HTML Tag Handler",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242/63"
+   ]
+  },
+  {
+   "id": 941330,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "IE XSS Filters - Attack Detected",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 941340,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "IE XSS Filters - Attack Detected",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 941350,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "UTF-7 Encoding IE XSS - Attack Detected",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-internet-explorer",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 941360,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "JSFuck / Hieroglyphy obfuscation detected",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242/63"
+   ]
+  },
+  {
+   "id": 941370,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "JavaScript global variable found",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242/63"
+   ]
+  },
+  {
+   "id": 941380,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "AngularJS client side template injection detected",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242/63"
+   ]
+  },
+  {
+   "id": 941390,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "Javascript method detected",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-nodejs",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 941400,
+   "file": "REQUEST-941-APPLICATION-ATTACK-XSS.conf",
+   "category": "XSS",
+   "msg": "XSS JavaScript function without parentheses",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "attack-xss",
+    "xss-perf-disable",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 942100,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "SQL Injection Attack Detected via libinjection",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942101,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "SQL Injection Attack Detected via libinjection",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942120,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "SQL Injection Attack: SQL Operator Detected",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942130,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "SQL Injection Attack: SQL Boolean-based attack detected",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942131,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "SQL Injection Attack: SQL Boolean-based attack detected",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942140,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "SQL Injection Attack: Common DB Names Detected",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942150,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "SQL Injection Attack: SQL function name detected",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942151,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "SQL Injection Attack: SQL function name detected",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942152,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "SQL Injection Attack: SQL function name detected",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942160,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Detects blind sqli tests using sleep() or benchmark()",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942170,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Detects SQL benchmark and sleep injection attempts including conditional queries",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942180,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Detects basic SQL authentication bypass attempts 1/3",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942190,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Detects MSSQL code execution and information gathering attempts",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942200,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Detects MySQL comment-/space-obfuscated injections and backtick termination",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942210,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Detects chained SQL injection attempts 1/2",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942220,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Looking for integer overflow attacks, these are taken from skipfish, except 2.2.2250738585072011e-308 is the \\\"magic number\\\" crash",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942230,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Detects conditional SQL injection attempts",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942240,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Detects MySQL charset switch and MSSQL DoS attempts",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942250,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Detects MATCH AGAINST, MERGE and EXECUTE IMMEDIATE injections",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942251,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Detects HAVING injections",
+   "paranoia": 3,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942260,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Detects basic SQL authentication bypass attempts 2/3",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942270,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Looking for basic sql injection. Common attack string for mysql, oracle and others",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942280,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Detects Postgres pg_sleep injection, waitfor delay attacks and database shutdown attempts",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942290,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Finds basic MongoDB SQL injection attempts",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942300,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Detects MySQL comments, conditions and ch(a)r injections",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942310,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Detects chained SQL injection attempts 2/2",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942320,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Detects MySQL and PostgreSQL stored procedure/function injections",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942321,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Detects MySQL and PostgreSQL stored procedure/function injections",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942330,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Detects classic SQL injection probings 1/3",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942340,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Detects basic SQL authentication bypass attempts 3/3",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942350,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Detects MySQL UDF injection and other data/structure manipulation attempts",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942360,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Detects concatenated basic SQL injection and SQLLFI attempts",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942361,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Detects basic SQL injection based on keyword alter or union",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942362,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Detects concatenated basic SQL injection and SQLLFI attempts",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942370,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Detects classic SQL injection probings 2/3",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942380,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "SQL Injection Attack",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942390,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "SQL Injection Attack",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942400,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "SQL Injection Attack",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942410,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "SQL Injection Attack",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942420,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Restricted SQL Character Anomaly Detection (cookies): # of special characters exceeded (8)",
+   "paranoia": 3,
+   "severity": "WARNING",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942421,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Restricted SQL Character Anomaly Detection (cookies): # of special characters exceeded (3)",
+   "paranoia": 4,
+   "severity": "WARNING",
+   "phase": 1,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942430,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Restricted SQL Character Anomaly Detection (args): # of special characters exceeded (12)",
+   "paranoia": 2,
+   "severity": "WARNING",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942431,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Restricted SQL Character Anomaly Detection (args): # of special characters exceeded (6)",
+   "paranoia": 3,
+   "severity": "WARNING",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942432,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Restricted SQL Character Anomaly Detection (args): # of special characters exceeded (2)",
+   "paranoia": 4,
+   "severity": "WARNING",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942440,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "SQL Comment Sequence Detected",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942450,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "SQL Bin or Hex Encoding Identified",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942460,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Meta-Character Anomaly Detection Alert - Repetitive Non-Word Characters",
+   "paranoia": 3,
+   "severity": "WARNING",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942470,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "SQL Injection Attack",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942480,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "SQL Injection Attack",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942490,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Detects classic SQL injection probings 3/3",
+   "paranoia": 3,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942500,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "MySQL in-line comment detected",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942510,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "SQLi bypass attempt by ticks or backticks detected",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942511,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "SQLi bypass attempt by ticks detected",
+   "paranoia": 3,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942520,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Detects basic SQL authentication bypass attempts 4.0/4",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942521,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Detects basic SQL authentication bypass attempts 4.1/4",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942522,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "Detects basic SQL authentication bypass attempts 4.1/4",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942530,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "SQLi query termination detected",
+   "paranoia": 3,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942540,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "SQL Authentication bypass (split query)",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942550,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "JSON-Based SQL Injection",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 942560,
+   "file": "REQUEST-942-APPLICATION-ATTACK-SQLI.conf",
+   "category": "SQL-Injection",
+   "msg": "MySQL Scientific Notation payload detected",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-sqli",
+    "capec/1000/152/248/66"
+   ]
+  },
+  {
+   "id": 943100,
+   "file": "REQUEST-943-APPLICATION-ATTACK-SESSION-FIXATION.conf",
+   "category": "Session-Fixation",
+   "msg": "Possible Session Fixation Attack: Setting Cookie Values in HTML",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-fixation",
+    "capec/1000/225/21/593/61"
+   ]
+  },
+  {
+   "id": 943110,
+   "file": "REQUEST-943-APPLICATION-ATTACK-SESSION-FIXATION.conf",
+   "category": "Session-Fixation",
+   "msg": "Possible Session Fixation Attack: SessionID Parameter Name with Off-Domain Referer",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-fixation",
+    "capec/1000/225/21/593/61"
+   ]
+  },
+  {
+   "id": 943120,
+   "file": "REQUEST-943-APPLICATION-ATTACK-SESSION-FIXATION.conf",
+   "category": "Session-Fixation",
+   "msg": "Possible Session Fixation Attack: SessionID Parameter Name with No Referer",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-fixation",
+    "capec/1000/225/21/593/61"
+   ]
+  },
+  {
+   "id": 944100,
+   "file": "REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+   "category": "Java",
+   "msg": "Remote Command Execution: Suspicious Java class detected",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-java",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/152/137/6"
+   ]
+  },
+  {
+   "id": 944110,
+   "file": "REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+   "category": "Java",
+   "msg": "Remote Command Execution: Java process spawn (CVE-2017-9805)",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-java",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/152/248"
+   ]
+  },
+  {
+   "id": 944120,
+   "file": "REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+   "category": "Java",
+   "msg": "Remote Command Execution: Java serialization (CVE-2015-4852)",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-java",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/152/248"
+   ]
+  },
+  {
+   "id": 944130,
+   "file": "REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+   "category": "Java",
+   "msg": "Suspicious Java class detected",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-java",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/152/248"
+   ]
+  },
+  {
+   "id": 944140,
+   "file": "REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+   "category": "Java",
+   "msg": "Java Injection Attack: Java Script File Upload Found",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-java",
+    "platform-multi",
+    "attack-injection-java",
+    "capec/1000/152/242"
+   ]
+  },
+  {
+   "id": 944150,
+   "file": "REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+   "category": "Java",
+   "msg": "Potential Remote Command Execution: Log4j / Log4shell",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-java",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/152/137/6"
+   ]
+  },
+  {
+   "id": 944151,
+   "file": "REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+   "category": "Java",
+   "msg": "Potential Remote Command Execution: Log4j / Log4shell",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-java",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/152/137/6"
+   ]
+  },
+  {
+   "id": 944152,
+   "file": "REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+   "category": "Java",
+   "msg": "Potential Remote Command Execution: Log4j / Log4shell",
+   "paranoia": 4,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-java",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/152/137/6"
+   ]
+  },
+  {
+   "id": 944200,
+   "file": "REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+   "category": "Java",
+   "msg": "Magic bytes Detected, probable java serialization in use",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-java",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/152/248"
+   ]
+  },
+  {
+   "id": 944210,
+   "file": "REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+   "category": "Java",
+   "msg": "Magic bytes Detected Base64 Encoded, probable java serialization in use",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-java",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/152/248"
+   ]
+  },
+  {
+   "id": 944240,
+   "file": "REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+   "category": "Java",
+   "msg": "Remote Command Execution: Java serialization (CVE-2015-4852)",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-java",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/152/248"
+   ]
+  },
+  {
+   "id": 944250,
+   "file": "REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+   "category": "Java",
+   "msg": "Remote Command Execution: Suspicious Java method detected",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-java",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/152/248"
+   ]
+  },
+  {
+   "id": 944260,
+   "file": "REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+   "category": "Java",
+   "msg": "Remote Command Execution: Malicious class-loading payload",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-java",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/152/248"
+   ]
+  },
+  {
+   "id": 944300,
+   "file": "REQUEST-944-APPLICATION-ATTACK-JAVA.conf",
+   "category": "Java",
+   "msg": "Base64 encoded string matched suspicious keyword",
+   "paranoia": 3,
+   "severity": "CRITICAL",
+   "phase": 2,
+   "tags": [
+    "application-multi",
+    "language-java",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/152/248"
+   ]
+  },
+  {
+   "id": 949110,
+   "file": "REQUEST-949-BLOCKING-EVALUATION.conf",
+   "category": "Auswertung",
+   "msg": "Inbound Anomaly Score Exceeded (Total Score: %{TX.BLOCKING_INBOUND_ANOMALY_SCORE})",
+   "paranoia": null,
+   "severity": null,
+   "phase": 2,
+   "tags": [
+    "anomaly-evaluation"
+   ]
+  },
+  {
+   "id": 949111,
+   "file": "REQUEST-949-BLOCKING-EVALUATION.conf",
+   "category": "Auswertung",
+   "msg": "Inbound Anomaly Score Exceeded in phase 1 (Total Score: %{TX.BLOCKING_INBOUND_ANOMALY_SCORE})",
+   "paranoia": null,
+   "severity": null,
+   "phase": 1,
+   "tags": [
+    "anomaly-evaluation"
+   ]
+  },
+  {
+   "id": 950100,
+   "file": "RESPONSE-950-DATA-LEAKAGES.conf",
+   "category": "Datenleck",
+   "msg": "The Application Returned a 500-Level Status Code",
+   "paranoia": 2,
+   "severity": "ERROR",
+   "phase": 3,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-disclosure",
+    "capec/1000/152"
+   ]
+  },
+  {
+   "id": 950130,
+   "file": "RESPONSE-950-DATA-LEAKAGES.conf",
+   "category": "Datenleck",
+   "msg": "Directory Listing",
+   "paranoia": 1,
+   "severity": "ERROR",
+   "phase": 4,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-disclosure",
+    "capec/1000/118/116/54/127"
+   ]
+  },
+  {
+   "id": 950140,
+   "file": "RESPONSE-950-DATA-LEAKAGES.conf",
+   "category": "Datenleck",
+   "msg": "CGI source code leakage",
+   "paranoia": 1,
+   "severity": "ERROR",
+   "phase": 4,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-multi",
+    "attack-disclosure",
+    "capec/1000/118/116"
+   ]
+  },
+  {
+   "id": 950150,
+   "file": "RESPONSE-950-DATA-LEAKAGES.conf",
+   "category": "Datenleck",
+   "msg": "ASP.NET exception leakage",
+   "paranoia": 1,
+   "severity": "ERROR",
+   "phase": 4,
+   "tags": [
+    "application-multi",
+    "language-aspnet",
+    "platform-multi",
+    "attack-disclosure",
+    "capec/1000/118/116/54/127"
+   ]
+  },
+  {
+   "id": 951110,
+   "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+   "category": "Datenleck (SQL)",
+   "msg": "Microsoft Access SQL Information Leakage",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-msaccess",
+    "attack-disclosure",
+    "capec/1000/118/116/54"
+   ]
+  },
+  {
+   "id": 951120,
+   "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+   "category": "Datenleck (SQL)",
+   "msg": "Oracle SQL Information Leakage",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-oracle",
+    "attack-disclosure",
+    "capec/1000/118/116/54"
+   ]
+  },
+  {
+   "id": 951130,
+   "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+   "category": "Datenleck (SQL)",
+   "msg": "DB2 SQL Information Leakage",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-db2",
+    "attack-disclosure",
+    "capec/1000/118/116/54"
+   ]
+  },
+  {
+   "id": 951140,
+   "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+   "category": "Datenleck (SQL)",
+   "msg": "EMC SQL Information Leakage",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-emc",
+    "attack-disclosure",
+    "capec/1000/118/116/54"
+   ]
+  },
+  {
+   "id": 951150,
+   "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+   "category": "Datenleck (SQL)",
+   "msg": "firebird SQL Information Leakage",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-firebird",
+    "attack-disclosure",
+    "capec/1000/118/116/54"
+   ]
+  },
+  {
+   "id": 951160,
+   "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+   "category": "Datenleck (SQL)",
+   "msg": "Frontbase SQL Information Leakage",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-frontbase",
+    "attack-disclosure",
+    "capec/1000/118/116/54"
+   ]
+  },
+  {
+   "id": 951170,
+   "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+   "category": "Datenleck (SQL)",
+   "msg": "hsqldb SQL Information Leakage",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-hsqldb",
+    "attack-disclosure",
+    "capec/1000/118/116/54"
+   ]
+  },
+  {
+   "id": 951180,
+   "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+   "category": "Datenleck (SQL)",
+   "msg": "informix SQL Information Leakage",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-informix",
+    "attack-disclosure",
+    "capec/1000/118/116/54"
+   ]
+  },
+  {
+   "id": 951190,
+   "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+   "category": "Datenleck (SQL)",
+   "msg": "ingres SQL Information Leakage",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-ingres",
+    "attack-disclosure",
+    "capec/1000/118/116/54"
+   ]
+  },
+  {
+   "id": 951200,
+   "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+   "category": "Datenleck (SQL)",
+   "msg": "interbase SQL Information Leakage",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-interbase",
+    "attack-disclosure",
+    "capec/1000/118/116/54"
+   ]
+  },
+  {
+   "id": 951210,
+   "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+   "category": "Datenleck (SQL)",
+   "msg": "maxDB SQL Information Leakage",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-maxdb",
+    "attack-disclosure",
+    "capec/1000/118/116/54"
+   ]
+  },
+  {
+   "id": 951220,
+   "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+   "category": "Datenleck (SQL)",
+   "msg": "mssql SQL Information Leakage",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-mssql",
+    "attack-disclosure",
+    "capec/1000/118/116/54"
+   ]
+  },
+  {
+   "id": 951230,
+   "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+   "category": "Datenleck (SQL)",
+   "msg": "mysql SQL Information Leakage",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-mysql",
+    "attack-disclosure",
+    "capec/1000/118/116/54"
+   ]
+  },
+  {
+   "id": 951240,
+   "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+   "category": "Datenleck (SQL)",
+   "msg": "postgres SQL Information Leakage",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-pgsql",
+    "attack-disclosure",
+    "capec/1000/118/116/54"
+   ]
+  },
+  {
+   "id": 951250,
+   "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+   "category": "Datenleck (SQL)",
+   "msg": "sqlite SQL Information Leakage",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-sqlite",
+    "attack-disclosure",
+    "capec/1000/118/116/54"
+   ]
+  },
+  {
+   "id": 951260,
+   "file": "RESPONSE-951-DATA-LEAKAGES-SQL.conf",
+   "category": "Datenleck (SQL)",
+   "msg": "Sybase SQL Information Leakage",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-sybase",
+    "attack-disclosure",
+    "capec/1000/118/116/54"
+   ]
+  },
+  {
+   "id": 952110,
+   "file": "RESPONSE-952-DATA-LEAKAGES-JAVA.conf",
+   "category": "Datenleck (Java)",
+   "msg": "Java Errors",
+   "paranoia": 1,
+   "severity": "ERROR",
+   "phase": 4,
+   "tags": [
+    "application-multi",
+    "language-java",
+    "platform-multi",
+    "attack-disclosure",
+    "capec/1000/118/116"
+   ]
+  },
+  {
+   "id": 953100,
+   "file": "RESPONSE-953-DATA-LEAKAGES-PHP.conf",
+   "category": "Datenleck (PHP)",
+   "msg": "PHP Information Leakage",
+   "paranoia": 1,
+   "severity": "ERROR",
+   "phase": 4,
+   "tags": [
+    "application-multi",
+    "language-php",
+    "platform-multi",
+    "attack-disclosure",
+    "capec/1000/118/116"
+   ]
+  },
+  {
+   "id": 953101,
+   "file": "RESPONSE-953-DATA-LEAKAGES-PHP.conf",
+   "category": "Datenleck (PHP)",
+   "msg": "PHP Information Leakage",
+   "paranoia": 2,
+   "severity": "ERROR",
+   "phase": 4,
+   "tags": [
+    "application-multi",
+    "language-php",
+    "platform-multi",
+    "attack-disclosure",
+    "capec/1000/118/116"
+   ]
+  },
+  {
+   "id": 953110,
+   "file": "RESPONSE-953-DATA-LEAKAGES-PHP.conf",
+   "category": "Datenleck (PHP)",
+   "msg": "PHP source code leakage",
+   "paranoia": 1,
+   "severity": "ERROR",
+   "phase": 4,
+   "tags": [
+    "application-multi",
+    "language-php",
+    "platform-multi",
+    "attack-disclosure",
+    "capec/1000/118/116"
+   ]
+  },
+  {
+   "id": 953120,
+   "file": "RESPONSE-953-DATA-LEAKAGES-PHP.conf",
+   "category": "Datenleck (PHP)",
+   "msg": "PHP source code leakage",
+   "paranoia": 1,
+   "severity": "ERROR",
+   "phase": 4,
+   "tags": [
+    "application-multi",
+    "language-php",
+    "platform-multi",
+    "attack-disclosure",
+    "capec/1000/118/116"
+   ]
+  },
+  {
+   "id": 954100,
+   "file": "RESPONSE-954-DATA-LEAKAGES-IIS.conf",
+   "category": "Datenleck (IIS)",
+   "msg": "Disclosure of IIS install location",
+   "paranoia": 1,
+   "severity": "ERROR",
+   "phase": 4,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-iis",
+    "platform-windows",
+    "attack-disclosure",
+    "capec/1000/118/116"
+   ]
+  },
+  {
+   "id": 954101,
+   "file": "RESPONSE-954-DATA-LEAKAGES-IIS.conf",
+   "category": "Datenleck (IIS)",
+   "msg": "Disclosure of IIS install location",
+   "paranoia": 2,
+   "severity": "ERROR",
+   "phase": 4,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-iis",
+    "platform-windows",
+    "attack-disclosure",
+    "capec/1000/118/116"
+   ]
+  },
+  {
+   "id": 954110,
+   "file": "RESPONSE-954-DATA-LEAKAGES-IIS.conf",
+   "category": "Datenleck (IIS)",
+   "msg": "Application Availability Error",
+   "paranoia": 1,
+   "severity": "ERROR",
+   "phase": 4,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-iis",
+    "platform-windows",
+    "attack-disclosure",
+    "capec/1000/118/116"
+   ]
+  },
+  {
+   "id": 954120,
+   "file": "RESPONSE-954-DATA-LEAKAGES-IIS.conf",
+   "category": "Datenleck (IIS)",
+   "msg": "IIS Information Leakage",
+   "paranoia": 1,
+   "severity": "ERROR",
+   "phase": 4,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-iis",
+    "platform-windows",
+    "attack-disclosure",
+    "capec/1000/118/116"
+   ]
+  },
+  {
+   "id": 954130,
+   "file": "RESPONSE-954-DATA-LEAKAGES-IIS.conf",
+   "category": "Datenleck (IIS)",
+   "msg": "IIS Information Leakage",
+   "paranoia": 1,
+   "severity": "ERROR",
+   "phase": 4,
+   "tags": [
+    "application-multi",
+    "language-multi",
+    "platform-iis",
+    "platform-windows",
+    "attack-disclosure",
+    "capec/1000/118/116"
+   ]
+  },
+  {
+   "id": 955100,
+   "file": "RESPONSE-955-WEB-SHELLS.conf",
+   "category": "Web-Shell",
+   "msg": "PHP Web shell detected",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "language-php",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/225/122/17/650"
+   ]
+  },
+  {
+   "id": 955110,
+   "file": "RESPONSE-955-WEB-SHELLS.conf",
+   "category": "Web-Shell",
+   "msg": "r57 web shell",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "language-php",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/225/122/17/650"
+   ]
+  },
+  {
+   "id": 955120,
+   "file": "RESPONSE-955-WEB-SHELLS.conf",
+   "category": "Web-Shell",
+   "msg": "WSO web shell",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "language-php",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/225/122/17/650"
+   ]
+  },
+  {
+   "id": 955130,
+   "file": "RESPONSE-955-WEB-SHELLS.conf",
+   "category": "Web-Shell",
+   "msg": "b4tm4n web shell",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "language-php",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/225/122/17/650"
+   ]
+  },
+  {
+   "id": 955140,
+   "file": "RESPONSE-955-WEB-SHELLS.conf",
+   "category": "Web-Shell",
+   "msg": "Mini Shell web shell",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "language-php",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/225/122/17/650"
+   ]
+  },
+  {
+   "id": 955150,
+   "file": "RESPONSE-955-WEB-SHELLS.conf",
+   "category": "Web-Shell",
+   "msg": "Ashiyane web shell",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "language-php",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/225/122/17/650"
+   ]
+  },
+  {
+   "id": 955160,
+   "file": "RESPONSE-955-WEB-SHELLS.conf",
+   "category": "Web-Shell",
+   "msg": "Symlink_Sa web shell",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "language-php",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/225/122/17/650"
+   ]
+  },
+  {
+   "id": 955170,
+   "file": "RESPONSE-955-WEB-SHELLS.conf",
+   "category": "Web-Shell",
+   "msg": "CasuS web shell",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "language-php",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/225/122/17/650"
+   ]
+  },
+  {
+   "id": 955180,
+   "file": "RESPONSE-955-WEB-SHELLS.conf",
+   "category": "Web-Shell",
+   "msg": "GRP WebShell",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "language-php",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/225/122/17/650"
+   ]
+  },
+  {
+   "id": 955190,
+   "file": "RESPONSE-955-WEB-SHELLS.conf",
+   "category": "Web-Shell",
+   "msg": "NGHshell web shell",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "language-php",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/225/122/17/650"
+   ]
+  },
+  {
+   "id": 955200,
+   "file": "RESPONSE-955-WEB-SHELLS.conf",
+   "category": "Web-Shell",
+   "msg": "SimAttacker web shell",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "language-php",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/225/122/17/650"
+   ]
+  },
+  {
+   "id": 955210,
+   "file": "RESPONSE-955-WEB-SHELLS.conf",
+   "category": "Web-Shell",
+   "msg": "Unknown web shell",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "language-php",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/225/122/17/650"
+   ]
+  },
+  {
+   "id": 955220,
+   "file": "RESPONSE-955-WEB-SHELLS.conf",
+   "category": "Web-Shell",
+   "msg": "lama\\'s\\'hell web shell",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "language-php",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/225/122/17/650"
+   ]
+  },
+  {
+   "id": 955230,
+   "file": "RESPONSE-955-WEB-SHELLS.conf",
+   "category": "Web-Shell",
+   "msg": "lostDC web shell",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "language-php",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/225/122/17/650"
+   ]
+  },
+  {
+   "id": 955240,
+   "file": "RESPONSE-955-WEB-SHELLS.conf",
+   "category": "Web-Shell",
+   "msg": "Unknown web shell",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "language-php",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/225/122/17/650"
+   ]
+  },
+  {
+   "id": 955250,
+   "file": "RESPONSE-955-WEB-SHELLS.conf",
+   "category": "Web-Shell",
+   "msg": "Unknown web shell",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "language-php",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/225/122/17/650"
+   ]
+  },
+  {
+   "id": 955260,
+   "file": "RESPONSE-955-WEB-SHELLS.conf",
+   "category": "Web-Shell",
+   "msg": "Ru24PostWebShell web shell",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "language-php",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/225/122/17/650"
+   ]
+  },
+  {
+   "id": 955270,
+   "file": "RESPONSE-955-WEB-SHELLS.conf",
+   "category": "Web-Shell",
+   "msg": "s72 Shell web shell",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "language-php",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/225/122/17/650"
+   ]
+  },
+  {
+   "id": 955280,
+   "file": "RESPONSE-955-WEB-SHELLS.conf",
+   "category": "Web-Shell",
+   "msg": "PhpSpy web shell",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "language-php",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/225/122/17/650"
+   ]
+  },
+  {
+   "id": 955290,
+   "file": "RESPONSE-955-WEB-SHELLS.conf",
+   "category": "Web-Shell",
+   "msg": "g00nshell web shell",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "language-php",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/225/122/17/650"
+   ]
+  },
+  {
+   "id": 955300,
+   "file": "RESPONSE-955-WEB-SHELLS.conf",
+   "category": "Web-Shell",
+   "msg": "PuNkHoLic shell web shell",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "language-php",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/225/122/17/650"
+   ]
+  },
+  {
+   "id": 955310,
+   "file": "RESPONSE-955-WEB-SHELLS.conf",
+   "category": "Web-Shell",
+   "msg": "azrail web shell",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "language-php",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/225/122/17/650"
+   ]
+  },
+  {
+   "id": 955320,
+   "file": "RESPONSE-955-WEB-SHELLS.conf",
+   "category": "Web-Shell",
+   "msg": "SmEvK_PaThAn Shell web shell",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "language-php",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/225/122/17/650"
+   ]
+  },
+  {
+   "id": 955330,
+   "file": "RESPONSE-955-WEB-SHELLS.conf",
+   "category": "Web-Shell",
+   "msg": "Shell I web shell",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "language-php",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/225/122/17/650"
+   ]
+  },
+  {
+   "id": 955340,
+   "file": "RESPONSE-955-WEB-SHELLS.conf",
+   "category": "Web-Shell",
+   "msg": "b374k m1n1 web shell",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "language-php",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/225/122/17/650"
+   ]
+  },
+  {
+   "id": 955350,
+   "file": "RESPONSE-955-WEB-SHELLS.conf",
+   "category": "Web-Shell",
+   "msg": "webadmin.php file manager",
+   "paranoia": 2,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "language-php",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/225/122/17/650"
+   ]
+  },
+  {
+   "id": 955400,
+   "file": "RESPONSE-955-WEB-SHELLS.conf",
+   "category": "Web-Shell",
+   "msg": "ASP Web shell detected",
+   "paranoia": 1,
+   "severity": "CRITICAL",
+   "phase": 4,
+   "tags": [
+    "language-php",
+    "platform-multi",
+    "attack-rce",
+    "capec/1000/225/122/17/650"
+   ]
+  },
+  {
+   "id": 956100,
+   "file": "RESPONSE-956-DATA-LEAKAGES-RUBY.conf",
+   "category": "Datenleck (Ruby)",
+   "msg": "RUBY Information Leakage",
+   "paranoia": 1,
+   "severity": "ERROR",
+   "phase": 4,
+   "tags": [
+    "application-multi",
+    "language-ruby",
+    "platform-multi",
+    "attack-disclosure",
+    "capec/1000/118/116"
+   ]
+  },
+  {
+   "id": 956110,
+   "file": "RESPONSE-956-DATA-LEAKAGES-RUBY.conf",
+   "category": "Datenleck (Ruby)",
+   "msg": "Ruby source code leakage",
+   "paranoia": 2,
+   "severity": "ERROR",
+   "phase": 4,
+   "tags": [
+    "application-multi",
+    "language-ruby",
+    "platform-multi",
+    "attack-disclosure",
+    "capec/1000/118/116"
+   ]
+  },
+  {
+   "id": 959100,
+   "file": "RESPONSE-959-BLOCKING-EVALUATION.conf",
+   "category": "Auswertung",
+   "msg": "Outbound Anomaly Score Exceeded (Total Score: %{tx.blocking_outbound_anomaly_score})",
+   "paranoia": null,
+   "severity": null,
+   "phase": 4,
+   "tags": [
+    "anomaly-evaluation"
+   ]
+  },
+  {
+   "id": 959101,
+   "file": "RESPONSE-959-BLOCKING-EVALUATION.conf",
+   "category": "Auswertung",
+   "msg": "Outbound Anomaly Score Exceeded in phase 3 (Total Score: %{tx.blocking_outbound_anomaly_score})",
+   "paranoia": null,
+   "severity": null,
+   "phase": 3,
+   "tags": [
+    "anomaly-evaluation"
+   ]
+  },
+  {
+   "id": 980170,
+   "file": "RESPONSE-980-CORRELATION.conf",
+   "category": "Korrelation",
+   "msg": "Anomaly Scores:  (Inbound Scores: blocking=%{tx.blocking_inbound_anomaly_score}, detection=%{tx.detection_inbound_anomaly_score}, per_pl=%{tx.inbound_anomaly_score_pl1}-%{tx.inbound_anomaly_score_pl2}-%{tx.inbound_anomaly_score_pl3}-%{tx.inbound_anomaly_score_pl4}, threshold=%{tx.inbound_anomaly_score_threshold}) -  (Outbound Scores: blocking=%{tx.blocking_outbound_anomaly_score}, detection=%{tx.detection_outbound_anomaly_score}, per_pl=%{tx.outbound_anomaly_score_pl1}-%{tx.outbound_anomaly_score_pl2}-%{tx.outbound_anomaly_score_pl3}-%{tx.outbound_anomaly_score_pl4}, threshold=%{tx.outbound_anomaly_score_threshold}) -  (SQLI=%{tx.sql_injection_score}, XSS=%{tx.xss_score}, RFI=%{tx.rfi_score}, LFI=%{tx.lfi_score}, RCE=%{tx.rce_score}, PHPI=%{tx.php_injection_score}, HTTP=%{tx.http_violation_score}, SESS=%{tx.session_fixation_score}, COMBINED_SCORE=%{tx.anomaly_score})",
+   "paranoia": null,
+   "severity": null,
+   "phase": 5,
+   "tags": [
+    "reporting"
+   ]
+  }
+ ]
+}

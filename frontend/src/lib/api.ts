@@ -692,6 +692,10 @@ export const ACTION_LABELS: Record<string, string> = {
   device_issued: t('Gerätezertifikat ausgestellt'),
   device_revoked: t('Gerät gesperrt'),
   device_unrevoked: t('Gerät entsperrt'),
+  waf_exception_created: t('WAF-Ausnahme angelegt'),
+  waf_exception_updated: t('WAF-Ausnahme geändert'),
+  waf_exception_deleted: t('WAF-Ausnahme entfernt'),
+  waf_exception_expired: t('WAF-Ausnahme abgelaufen'),
   device_deleted: t('Gerät gelöscht'),
   access_changed: t('Zugriff geändert'),
   invite_created: t('Einladung erstellt'),
@@ -942,7 +946,63 @@ export interface LogEntry {
   user_agent: string | null;
   /** HTTP-Version: "1.1", "2", "3" */
   proto?: string | null;
+  /** betroffenes Feld je Regel, z. B. {"942100": "ARGS:q"} */
+  waf_targets?: Record<string, string> | null;
 }
+
+// ---------- WAF-Regeln und Ausnahmen ----------
+
+export type WafWindow = '24h' | '7d' | '30d';
+
+export interface WafRule {
+  id: number;
+  file: string;
+  category: string;
+  msg: string;
+  paranoia: number | null;
+  severity: string | null;
+  phase: number | null;
+  tags: string[];
+  hits: Record<WafWindow, number>;
+  exceptions: number;
+}
+
+export interface WafCatalog {
+  crs: string;
+  coraza_caddy: string;
+  rules: WafRule[];
+}
+
+export interface WafException {
+  /** null = direkt am Host gesetzt (ohne Kommentar/Ablauf) */
+  id: number | null;
+  host_id: number;
+  host: string;
+  /** Name des Bereichs, wenn die Ausnahme dort gilt (dann nur am Host bearbeitbar) */
+  area: string | null;
+  rule_id: number;
+  target: string;
+  path: string;
+  comment: string;
+  created_by: string;
+  created_at: string | null;
+  expires_at: string | null;
+  /** Treffer seit Anlage – nur bei gezielten Ausnahmen (ganze protokolliert Coraza nicht mehr) */
+  hits_since: number | null;
+}
+
+export interface WafRuleDetail {
+  rule: Partial<WafRule> & { id: number; msg: string; category: string; tags: string[] };
+  hits: Record<WafWindow, number>;
+  last_hit: string | null;
+  hosts: { host: string; count: number }[];
+  paths: { host: string; path: string; count: number }[];
+  targets: { target: string; count: number }[];
+  exceptions: WafException[];
+}
+
+/** Link zur Regel in der WAF-Übersicht */
+export const wafRuleHref = (id: number) => `#/waf?rule=${id}`;
 
 export interface LogSource {
   node: string;

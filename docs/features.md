@@ -75,6 +75,8 @@ Abgeleitet aus dem Design-Prototyp „Caddy Control“ (`frontend/src/screens`).
 |---|---|---|
 | Coraza WAF | Aus / Nur protokollieren / Blockieren; OWASP Core Rule Set; Paranoia-Level | 3 |
 | Regel-Ausnahmen | Pro Host für Fehlalarme, direkt aus einem Log-Eintrag anlegbar | 3 |
+| WAF-Regeln | Katalog aller OWASP-CRS-Regeln (passend zur Version im Caddy-Image, beim Build erzeugt) mit Kategorie, Paranoia-Level, Schweregrad und Treffern (24 h / 7 / 30 Tage); je Regel Hosts, Pfade, betroffene Felder; Regel-IDs überall verlinkt | 1.28 |
+| Zentrale und gezielte Ausnahmen | Übersicht aller Ausnahmen mit Kommentar, Urheber und Ablaufdatum; Ausnahme nur für ein Feld (Argument, Header, Cookie) und/oder einen Pfad statt der ganzen Regel; aus dem Log mit Vorschlag | 1.28 |
 | Host-Bereiche | Pfade mit abweichenden Regeln (z. B. `/api/*`, `/.well-known/*`): Zugriff mit eigenen Freigaben, WAF, IP-Filter, Authelia – baut auf „Zugriff pro Pfad“ (2.) auf | 3 |
 | IP-Filter | Modus Sperren / Nur erlauben; IP, CIDR oder benannte IP-Liste | 3 |
 | Auto-Sperre | z. B. IP für 24 h sperren nach 20 WAF-Treffern in 10 Min. | 3 |

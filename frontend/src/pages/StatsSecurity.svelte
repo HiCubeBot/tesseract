@@ -10,7 +10,14 @@
   import WorldMap from '../lib/components/WorldMap.svelte';
   import KpiCard from '../lib/components/KpiCard.svelte';
   import Alert from '../lib/components/Alert.svelte';
-  import { api, countryName, LOG_REASONS, type LogReason, type NodeInfo } from '../lib/api';
+  import {
+    api,
+    countryName,
+    LOG_REASONS,
+    type LogReason,
+    type NodeInfo,
+    wafRuleHref
+  } from '../lib/api';
   import { bucketize, fmt, SERIES, type Range } from '../lib/stats';
   import { toasts } from '../lib/toast.svelte';
 
@@ -271,7 +278,7 @@
         {#if data.top_rules.length}
           <p class="muted small">
             {t('Häufigste Regeln:')}
-            {#each data.top_rules.slice(0, 5) as r, i (r.rule)}{i ? ', ' : ''}<a class="mono" href={`#/logs?q=rule:${r.rule}`}>{r.rule}</a> ({fmt(r.count)}){/each}
+            {#each data.top_rules.slice(0, 5) as r, i (r.rule)}{i ? ', ' : ''}<a class="mono" href={wafRuleHref(r.rule)}>{r.rule}</a> ({fmt(r.count)}){/each}
           </p>
         {/if}
       </section>

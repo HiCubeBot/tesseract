@@ -19,6 +19,12 @@ COPY backend/pyproject.toml backend/uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-install-project --no-dev
 COPY backend/ ./
+# WAF-Regel-Katalog passend zur coraza-caddy-Version des Caddy-Images neu erzeugen; ohne Netz
+# bleibt der Katalog aus dem Repository (gleiche Version, per Test abgesichert)
+COPY docker/caddy/Dockerfile /tmp/caddy.Dockerfile
+RUN python scripts/crs_catalog.py --dockerfile /tmp/caddy.Dockerfile \
+        --out src/tesseract/data/crs_catalog.json \
+    || echo "CRS-Katalog: nicht erreichbar, nutze den aus dem Repository"
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev
 

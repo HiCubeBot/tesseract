@@ -93,6 +93,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             from tesseract.dockerlabels import watch as docker_watch
 
             tasks.append(asyncio.create_task(docker_watch(app)))
+            from tesseract.wafrules import watch as waf_watch
+
+            tasks.append(asyncio.create_task(waf_watch(app)))
         yield
         for task in tasks:
             task.cancel()

@@ -611,7 +611,31 @@ class LogEntry(Base):
     waf_rules: Mapped[list[int]] = mapped_column(JSON, default=list)
     waf_msg: Mapped[str | None] = mapped_column(String(255))
     waf_score: Mapped[int | None]
+    # je Regel das betroffene Feld laut Coraza („found within ARGS:q“), z. B. {"942100": "ARGS:q"}
+    waf_targets: Mapped[dict[str, str] | None] = mapped_column(JSON)
     user_agent: Mapped[str | None] = mapped_column(String(255))
+
+
+class WafException(Base):
+    """Ausnahme von einer CRS-Regel für einen Host – mit Kommentar und optionalem Ablaufdatum.
+
+    Ohne Ziel und Pfad entspricht sie einem Eintrag in `Host.waf_exclusions` (Regel ganz aus) und
+    ergänzt ihn nur um Kommentar, Urheber und Ablauf. Mit Ziel (`ARGS:q`, `REQUEST_HEADERS:x`,
+    `REQUEST_COOKIES:y` …) und/oder Pfad wird die Regel nur dort ausgenommen (wafrules.py)."""
+
+    __tablename__ = "waf_exceptions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    host_id: Mapped[int] = mapped_column(ForeignKey("hosts.id", ondelete="CASCADE"), index=True)
+    rule_id: Mapped[int]
+    target: Mapped[str] = mapped_column(String(200), default="", server_default="")
+    path: Mapped[str] = mapped_column(String(255), default="", server_default="")
+    comment: Mapped[str] = mapped_column(String(255), default="", server_default="")
+    created_by: Mapped[str] = mapped_column(String(128), default="", server_default="")
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+    expires_at: Mapped[datetime | None]
+
+    host: Mapped["Host"] = relationship()
 
 
 class StatsDaily(Base):

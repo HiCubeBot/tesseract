@@ -22,7 +22,8 @@
     | 'audit'
     | 'settings'
     | 'me'
-    | 'profile';
+    | 'profile'
+    | 'waf';
 
   interface Props {
     active?: NavId;
@@ -58,6 +59,7 @@
     { id: 'access', label: t('Zugriff'), href: '#/access', d: icons.lock },
     { id: 'nodes', label: t('Nodes'), href: '#/nodes', d: icons.server },
     { id: 'stats', label: t('Statistik'), href: '#/stats', d: icons.chart },
+    { id: 'waf', label: t('WAF-Regeln'), href: '#/waf', d: icons.shield },
     { id: 'audit', label: t('Audit-Log'), href: '#/audit', d: icons.clipboard },
     { id: 'settings', label: t('Einstellungen'), href: '#/settings', d: icons.sliders },
     { id: 'me', label: t('Mein Zugang'), href: '#/me', d: icons.device }

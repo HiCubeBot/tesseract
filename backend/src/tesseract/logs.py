@@ -33,6 +33,8 @@ VIOLATION = "WAF rule violation detected"
 CRS_SCORE_RULES = {949110, 949111, 959100, 980130, 980140, 980170}
 REASONS = ("ok", "waf", "ip", "ban", "mtls", "internal", "websocket", "authelia")
 _FIELD_RE = re.compile(r'\[(\w+) "((?:[^"\\]|\\.)*)"\]')
+# „Matched Data: … found within ARGS:q: …“ → ARGS:q
+_TARGET_RE = re.compile(r"found within ([A-Z_]+(?::[^:\s]{1,128})?)")
 _CLIENT_RE = re.compile(r'^\[client "([^"]+)"\]')
 _SCORE_RE = re.compile(r"Total Score: (\d+)")
 # WAF-Zeilen so lange vorhalten, bis der passende Zugriffs-Eintrag kommt
@@ -50,6 +52,8 @@ class WafEvent:
     uri: str
     rules: list[int] = field(default_factory=list)
     msgs: list[str] = field(default_factory=list)
+    # betroffenes Feld je Regel („found within ARGS:q“)
+    targets: dict[str, str] = field(default_factory=dict)
     score: int | None = None
     blocked: bool = False
     host: str = ""
@@ -116,6 +120,9 @@ class WafTracker:
             if rule not in ev.rules:
                 ev.rules.append(rule)
                 ev.msgs.append(fields.get("msg", "")[:200])
+                target = _TARGET_RE.search(fields.get("data", ""))
+                if target:
+                    ev.targets[str(rule)] = target.group(1)[:200]
         self._prune()
         return violations
 
@@ -350,6 +357,7 @@ def ingest(
                 waf_rules=ev.rules if ev else [],
                 waf_msg=(ev.msgs[0] if ev and ev.msgs else None),
                 waf_score=ev.score if ev else None,
+                waf_targets=(ev.targets or None) if ev else None,
                 user_agent=p["user_agent"],
             )
         )
@@ -375,6 +383,7 @@ def ingest(
                     "waf_rules": ev.rules if ev else [],
                     "waf_msg": ev.msgs[0] if ev and ev.msgs else None,
                     "waf_score": ev.score if ev else None,
+                    "waf_targets": (ev.targets or None) if ev else None,
                     "user_agent": p["user_agent"],
                 }
             )

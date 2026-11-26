@@ -98,6 +98,8 @@ class HostSpec:
     waf_mode: str = "off"
     waf_paranoia: int = 1
     waf_exclusions: tuple[int, ...] = ()
+    # gezielte Ausnahmen (id, Regel, Ziel, Pfad) – siehe wafrules.py
+    waf_exceptions: tuple[tuple[int, int, str, str], ...] = ()
     # IP-Filter: "off" | "block" | "allow", aufgelöste Netze (CIDR)
     ip_mode: str = "off"
     ip_ranges: tuple[str, ...] = ()
@@ -452,8 +454,16 @@ def gate_route(host: HostSpec) -> JSON | None:
     return {"match": [matcher], "handle": [_tagged(_deny(host), "mtls")], "terminal": True}
 
 
-def waf_directives(mode: str, paranoia: int, exclusions: tuple[int, ...] | list[int]) -> str:
-    """Coraza-Konfiguration: empfohlene Basis + OWASP CRS, Paranoia-Level, Ausnahmen."""
+def waf_directives(
+    mode: str,
+    paranoia: int,
+    exclusions: tuple[int, ...] | list[int],
+    exceptions: tuple[tuple[int, int, str, str], ...] | list = (),
+) -> str:
+    """Coraza-Konfiguration: empfohlene Basis + OWASP CRS, Paranoia-Level, Ausnahmen.
+    Gezielte Ausnahmen (Feld/Pfad) stehen als ctl-Regeln vor dem CRS, ganze danach."""
+    from tesseract.wafrules import exception_directives
+
     level = min(max(int(paranoia), 1), 4)
     lines = [
         "Include @coraza.conf-recommended",
@@ -462,6 +472,7 @@ def waf_directives(mode: str, paranoia: int, exclusions: tuple[int, ...] | list[
         "Include @crs-setup.conf.example",
         'SecAction "id:900000,phase:1,pass,t:none,nolog,'
         f'setvar:tx.blocking_paranoia_level={level}"',
+        *exception_directives(list(exceptions)),
         "Include @owasp_crs/*.conf",
         f"SecRuleEngine {'On' if mode == 'block' else 'DetectionOnly'}",
     ]
@@ -473,7 +484,9 @@ def waf_handler(host: HostSpec) -> JSON:
     return {
         "handler": "waf",
         "load_owasp_crs": True,
-        "directives": waf_directives(host.waf_mode, host.waf_paranoia, host.waf_exclusions),
+        "directives": waf_directives(
+            host.waf_mode, host.waf_paranoia, host.waf_exclusions, host.waf_exceptions
+        ),
     }
 
 

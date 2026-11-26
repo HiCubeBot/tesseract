@@ -416,6 +416,7 @@ def host_spec(
     internal_networks: list[str] | tuple[str, ...] | None = None,
     controller: tuple[str, str] | None = None,
     robots: str | None = None,
+    waf_exceptions: list[tuple[int, int, str, str]] | None = None,
 ) -> HostSpec:
     """`controller`: (Fingerabdruck, PEM) des Controller-Zertifikats, falls der Host es zulässt.
     `robots`: fertiger Inhalt der robots.txt (None = aus den Host-Feldern, ohne Einstellungen)."""
@@ -443,6 +444,7 @@ def host_spec(
         waf_mode=getattr(host, "waf_mode", "off"),
         waf_paranoia=getattr(host, "waf_paranoia", 1),
         waf_exclusions=tuple(getattr(host, "waf_exclusions", None) or ()),
+        waf_exceptions=tuple(waf_exceptions or ()),
         ip_mode=getattr(host, "ip_mode", "off"),
         ip_ranges=tuple(ip_ranges or ()),
         authelia=bool(getattr(host, "authelia", False)),
@@ -546,6 +548,7 @@ def node_config(db: Session, node: Node, settings: Settings, bans: bool = True) 
     from tesseract.controllercert import allowed_entry
     from tesseract.robots import host_body as robots_body
     from tesseract.uiaccess import ui_devices
+    from tesseract.wafrules import host_exceptions
 
     ctl = allowed_entry(db)
     spec = NodeSpec(
@@ -559,6 +562,7 @@ def node_config(db: Session, node: Node, settings: Settings, bans: bool = True) 
                 internal_networks=internal_nets,
                 controller=ctl if h.allow_controller else None,
                 robots=robots_body(h, general),
+                waf_exceptions=host_exceptions(db, h.id),
             )
             for h in hosts
         ],

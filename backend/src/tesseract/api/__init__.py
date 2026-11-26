@@ -29,6 +29,7 @@ from tesseract.api import (
     settings,
     stats,
     summary,
+    waf,
 )
 
 api_router = APIRouter()
@@ -62,3 +63,4 @@ api_router.include_router(monitor.router)
 api_router.include_router(monitor.public)
 api_router.include_router(notify.router)
 api_router.include_router(backups.router)
+api_router.include_router(waf.router)

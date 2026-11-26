@@ -4,6 +4,25 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.28.0] – 2026-11-26
+
+### Hinzugefügt
+- **WAF-Regeln** ([#36](https://github.com/HiCubeBot/tesseract/issues/36)): neue Seite mit allen
+  Regeln des OWASP CRS – Kategorie, Meldung, Paranoia-Level, Schweregrad, Tags – und ihren
+  Treffern der letzten 24 h, 7 und 30 Tage; Suche und Filter (Kategorie, Level, „nur mit
+  Treffern“). Je Regel: betroffene Hosts, Pfade und Felder, aktive Ausnahmen.
+- Der Katalog wird beim Image-Build aus den CRS-Dateien der coraza-caddy-Version im Caddy-Image
+  erzeugt (`backend/scripts/crs_catalog.py`); coraza-caddy ist dafür fest gepinnt (v2.6.2, CRS
+  4.25.0). Ein Test prüft, dass Katalog und Caddy-Image zusammenpassen.
+- **Zentrale Ausnahmen:** Übersicht über alle Hosts und Bereiche, mit Kommentar, Urheber, Datum
+  und optionalem Ablauf (danach greift die Regel wieder, mit Audit-Eintrag).
+- **Gezielte Ausnahmen:** Regel nur für ein Feld (`ARGS:content`, `REQUEST_HEADERS:User-Agent`,
+  `REQUEST_COOKIES:sid` …) und/oder nur unter einem Pfad statt ganz abschalten – als
+  `ctl:ruleRemoveTargetById`/`ruleRemoveById` vor dem CRS, Ziel und Pfad streng geprüft.
+- Log-Einträge merken sich das betroffene Feld („found within ARGS:q“); „Fehlalarm: gezielte
+  Ausnahme …“ schlägt Feld und Pfad vor. Regel-IDs in Logs, Statistik und Host › Sicherheit
+  führen zur Regel. Migration 0031
+
 ## [1.27.0] – 2026-11-26
 
 ### Hinzugefügt

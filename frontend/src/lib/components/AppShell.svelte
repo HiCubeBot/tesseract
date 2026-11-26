@@ -14,7 +14,8 @@
     | 'audit'
     | 'settings'
     | 'me'
-    | 'profile';
+    | 'profile'
+    | 'waf';
 
   interface Props {
     active: NavId;

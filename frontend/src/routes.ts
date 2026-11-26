@@ -61,6 +61,7 @@ import SettingsAuthPage from "./pages/SettingsAuth.svelte";
 import SettingsLdapPage from "./pages/SettingsLdap.svelte";
 import MePage from "./pages/Me.svelte";
 import ProfilePage from "./pages/Profile.svelte";
+import WafPage from "./pages/Waf.svelte";
 
 export interface Page {
   /** Muster ohne "#/", Parameter mit ":" – z. B. "hosts/:id/history" */
@@ -105,6 +106,7 @@ export const pages: Page[] = [
   { pattern: "settings-ca", title: "Einstellungen · Zertifizierungsstelle", component: SettingsCAPage },
   { pattern: "me", title: "Mein Zugang", component: MePage },
   { pattern: "profile", title: "Profil", component: ProfilePage },
+  { pattern: "waf", title: "WAF-Regeln", component: WafPage },
 ];
 
 export function matchPage(path: string): { page: Page; params: Record<string, string> } | null {

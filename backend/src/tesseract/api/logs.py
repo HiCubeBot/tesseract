@@ -41,6 +41,8 @@ class LogOut(BaseModel):
     user_agent: str | None
     # HTTP-Version: "1.1", "2", "3"
     proto: str | None = None
+    # betroffenes Feld je Regel, z. B. {"942100": "ARGS:q"}
+    waf_targets: dict[str, str] | None = None
 
 
 class Source(BaseModel):
@@ -90,6 +92,7 @@ def _out(e: LogEntry, nodes: dict[int, str], devices: dict[int, Device]) -> LogO
         waf_score=e.waf_score,
         user_agent=e.user_agent,
         proto=e.proto,
+        waf_targets=e.waf_targets,
     )
 
 

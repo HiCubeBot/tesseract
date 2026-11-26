@@ -12,17 +12,18 @@
   import RobotsEditor from '../lib/components/RobotsEditor.svelte';
   import {
     api,
-    IP_MODES,
-    WAF_MODES,
-    type Host,
-    type HostInput,
     type GeneralSettings,
     type Group,
-    type Person,
+    type Host,
+    type HostInput,
     type HostSaved,
+    IP_MODES,
     type IpList,
     type IpMode,
-    type WafMode
+    type Person,
+    WAF_MODES,
+    type WafMode,
+    wafRuleHref
   } from '../lib/api';
   import { toInput } from '../lib/hosts';
   import { reportApply } from '../lib/nodes';
@@ -195,7 +196,7 @@
           <ul class="rules">
             {#each form.waf_exclusions as id (id)}
               <li>
-                <code class="mono">{id}</code>
+                <a class="mono" href={wafRuleHref(id)}><code>{id}</code></a>
                 <button
                   type="button"
                   aria-label={t('Ausnahme {0} entfernen', id)}

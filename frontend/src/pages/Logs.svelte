@@ -18,7 +18,8 @@
     type LogDetail,
     type LogEntry,
     type LogPage,
-    type LogSource
+    type LogSource,
+    wafRuleHref
   } from '../lib/api';
   import { toasts } from '../lib/toast.svelte';
 
@@ -273,7 +274,10 @@
         <dl>
           {#if d.waf_rules.length}
             <dt>{t('Regel')}</dt>
-            <dd><span class="mono strong">{rules.join(', ') || d.waf_rules.join(', ')}</span>{#if d.waf_msg} · {d.waf_msg}{/if}</dd>
+            <dd>
+              {#each rules.length ? rules : d.waf_rules as r, i (r)}{i ? ', ' : ''}<a class="mono strong" href={wafRuleHref(r)}>{r}</a>{#if d.waf_targets?.[String(r)]}<span class="muted small"> ({d.waf_targets[String(r)]})</span>{/if}{/each}
+              {#if d.waf_msg} · {d.waf_msg}{/if}
+            </dd>
           {/if}
           {#if d.waf_score !== null}<dt>{t('Anomalie-Score')}</dt><dd>{d.waf_score}</dd>{/if}
           <dt>{t('Antwort')}</dt>
@@ -297,7 +301,13 @@
             {#if rules.every((r) => d.waf_exclusions.includes(r))}
               <span class="muted small">{t('Regel {0} ist für diesen Host bereits ausgenommen.', rules.join(', '))}</span>
             {:else}
-              <Button variant="secondary" size="sm" label={t('Fehlalarm: Ausnahme für {0} anlegen', short(d.host))} disabled={busy} onClick={() => exclude(d)} />
+              <Button
+                variant="secondary"
+                size="sm"
+                label={t('Fehlalarm: gezielte Ausnahme …')}
+                href={`#/waf?tab=exceptions&new=1&host_id=${d.host_id}&rule_id=${rules[0]}&target=${encodeURIComponent(d.waf_targets?.[String(rules[0])] ?? '')}&path=${encodeURIComponent(d.uri.split('?')[0])}`}
+              />
+              <Button variant="ghost" size="sm" label={t('Regel für {0} ganz ausnehmen', short(d.host))} disabled={busy} onClick={() => exclude(d)} />
             {/if}
           {/if}
           <Button variant="ghost" size="sm" label={t('Alle Einträge dieser IP')} onClick={() => showIp(d.ip)} />
