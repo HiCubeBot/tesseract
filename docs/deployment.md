@@ -70,8 +70,23 @@ nicht auf dem Server; den hast du beim Einrichten heruntergeladen.
 ### Umgebungsvariablen (`.env`)
 
 Vorlage mit allen Einstellungen: [`.env.example`](../.env.example) → `cp .env.example .env`.
-Der Controller bekommt alle `TESSERACT_*`-Variablen aus der `.env` (`env_file` in
-`compose.yaml`); was unter `environment:` steht, gehört zum Stack und hat Vorrang.
+Die Kommentare darin sind englisch und reines ASCII – Umlaute machen in manchen Editoren
+(z. B. nano im Terminal) Probleme. Der Controller bekommt alle `TESSERACT_*`-Variablen aus der
+`.env` (`env_file` in `compose.yaml`); was unter `environment:` steht, gehört zum Stack und hat
+Vorrang.
+
+**Compose-Profile** – zusätzliche Dienste, festgelegt in der `.env` über `COMPOSE_PROFILES`
+(Standard der Vorlage: `anubis,victorialogs`). Dann reicht immer `docker compose up -d`:
+
+| Profil | Dienst |
+|---|---|
+| `anubis` | Bot-Schutz (Proof-of-Work gegen KI-Crawler und Scraper), siehe unten |
+| `victorialogs` | Log-Speicher für lange Aufbewahrung (weniger RAM als Loki) – in der Vorlage schon angebunden |
+| `loki` | Log-Speicher für Grafana (statt `victorialogs`) |
+| `docker` | Socket-Proxy (nur lesen) für Hosts aus Docker-Labels |
+
+Leer lassen = nur Tesseract und Caddy. Einmalig zusätzlich geht auch
+`docker compose --profile loki up -d`.
 
 | Variable | Bedeutung |
 |---|---|
@@ -110,9 +125,12 @@ Proof-of-Work-Aufgabe. Besucher merken davon kaum etwas, KI-Crawler und Scraper 
 abgewiesen. Ein Anubis-Container je Node prüft für alle Hosts dieses Nodes (Subrequest-Modus,
 Caddy fragt per `forward_auth`).
 
+Im Controller-Stack ist das Profil `anubis` in der Vorlage schon eingeschaltet
+(`COMPOSE_PROFILES=anubis,victorialogs` in der `.env`). Auf weiteren Nodes mit geschützten Hosts
+in deren `.env` `COMPOSE_PROFILES=anubis` setzen – oder einmalig:
+
 ```bash
-docker compose --profile anubis up -d          # Controller-Stack
-docker compose --profile anubis up -d          # auf jedem weiteren Node mit geschützten Hosts
+docker compose --profile anubis up -d
 ```
 
 1. Unter Einstellungen › Integrationen › Bot-Schutz die Adresse eintragen: `http://anubis:8923`

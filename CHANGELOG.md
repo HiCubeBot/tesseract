@@ -4,6 +4,19 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.29.1] – 2026-11-26
+
+### Geändert
+- **`.env.example` auf Englisch und reines ASCII** – Umlaute und Sonderzeichen machten in nano
+  & Co. Probleme. Eigene `.env`-Dateien bleiben, wie sie sind; `tesseract env migrate` übernimmt
+  alle Werte in die neue Vorlage.
+- **Compose-Profile als Standard:** `COMPOSE_PROFILES=anubis,victorialogs` steht in der Vorlage,
+  dazu ein kurzer Überblick über alle Profile (`anubis`, `victorialogs`, `loki`, `docker`).
+  VictoriaLogs ist dort schon angebunden (`TESSERACT_LOKI_URL`, `TESSERACT_LOKI_KIND`), damit der
+  Container auch Einträge bekommt. Wer migriert, bekommt beides als neue Einträge – vorher den
+  Probelauf ansehen.
+- Doku: „.env migrieren“ Schritt für Schritt mit Erklärung des Docker-Befehls.
+
 ## [1.29.0] – 2026-11-26
 
 ### Hinzugefügt
