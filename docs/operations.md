@@ -35,22 +35,66 @@ dabei **alle eigenen Werte** – exakt, auch mit Anführungszeichen, `#` oder Le
 - Vorher wird gesichert: `.env.bak-JJJJMMTT-HHMMSS`. Geheimnisse erscheinen in der Ausgabe nie
   im Klartext.
 
-Mit Docker – die passende `.env.example` liegt im Image des Controllers:
+Der Befehl steckt im Image des Controllers, zusammen mit der passenden `.env.example` (ab
+Version 1.27). Nichts muss installiert werden – die Schritte genau so auf dem Server ausführen:
+
+**1. In den Ordner wechseln**, in dem `compose.yaml` und `.env` liegen:
 
 ```bash
+cd /opt/tesseract          # dein Ordner – dort, wo du sonst „docker compose up -d“ ausführst
+```
+
+**2. Neue Version holen** – je nachdem, wie du Tesseract betreibst:
+
+```bash
+# fertige Images (Quick start):
 docker compose pull
-# erst ansehen, was sich ändert …
-docker compose run --rm --no-deps --user "$(id -u):$(id -g)" -v "$PWD:/work" tesseract \
-  tesseract env migrate /work/.env --dry-run
-# … dann schreiben
-docker compose run --rm --no-deps --user "$(id -u):$(id -g)" -v "$PWD:/work" tesseract \
-  tesseract env migrate /work/.env
+# selbst gebaut aus dem Repository:
+git pull && docker compose build tesseract
+```
+
+**3. Probelauf** – zeigt, welche Werte übernommen werden, was neu und was veraltet ist.
+Schreibt nichts:
+
+```bash
+docker compose run --rm --no-deps --user "$(id -u):$(id -g)" -v "$PWD:/work" \
+  tesseract tesseract env migrate /work/.env --dry-run
+```
+
+**4. Schreiben** – legt vorher die Sicherung `.env.bak-…` an:
+
+```bash
+docker compose run --rm --no-deps --user "$(id -u):$(id -g)" -v "$PWD:/work" \
+  tesseract tesseract env migrate /work/.env
+```
+
+**5. Starten** mit der neuen `.env`:
+
+```bash
 docker compose up -d
 ```
 
-`--user` sorgt dafür, dass die neue `.env` und die Sicherung dir gehören. Im Checkout geht es
-auch ohne Docker: `cd backend && uv run tesseract env migrate ../.env --dry-run`. Eine andere
-Vorlage gibt `--example PFAD` an.
+Was der lange Befehl macht – nichts davon musst du anpassen:
+
+| Teil | Bedeutung |
+|---|---|
+| `docker compose run --rm` | startet einmalig einen Container aus dem Tesseract-Image und löscht ihn danach wieder |
+| `--no-deps` | ohne Caddy & Co. – der laufende Stack bleibt unberührt |
+| `--user "$(id -u):$(id -g)"` | läuft als du, damit die neue `.env` und die Sicherung dir gehören |
+| `-v "$PWD:/work"` | dein aktueller Ordner (`$PWD`) ist im Container unter `/work` zu sehen. `/work` ist **kein** Ordner auf dem Server, nur der Name im Container – deshalb heißt deine `.env` dort `/work/.env` |
+| `tesseract tesseract` | erst der Dienst aus `compose.yaml`, dann der Befehl im Container |
+| `env migrate /work/.env` | die `.env` migrieren; `--dry-run` = nur anzeigen |
+
+Ohne Docker, direkt im Repository (mit installiertem [uv](https://docs.astral.sh/uv/)):
+
+```bash
+cd backend
+uv run tesseract env migrate ../.env --dry-run   # Probelauf
+uv run tesseract env migrate ../.env             # schreiben
+```
+
+Eine andere Vorlage gibt `--example PFAD` an. Mit einer älteren Version als 1.27 kennt das Image
+den Befehl noch nicht – erst Schritt 2, dann weiter.
 
 ## Sichern und Wiederherstellen
 

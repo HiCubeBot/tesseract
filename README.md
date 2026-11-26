@@ -154,14 +154,19 @@ Prefer building yourself? Clone the repository and run `docker compose up -d --b
 
 **Upgrading:** new versions may add settings to `.env.example`. Bring your `.env` up to date –
 all your values are kept, unknown entries move to a section at the end, a backup is written
-first:
+first. Run this in the folder with `compose.yaml` and `.env` (`/work` is just the name of that
+folder inside the container – nothing to create):
 
 ```bash
-docker compose pull
-docker compose run --rm --no-deps --user "$(id -u):$(id -g)" -v "$PWD:/work" tesseract \
-  tesseract env migrate /work/.env --dry-run   # drop --dry-run to write
+docker compose pull            # or, when building yourself: git pull && docker compose build tesseract
+docker compose run --rm --no-deps --user "$(id -u):$(id -g)" -v "$PWD:/work" \
+  tesseract tesseract env migrate /work/.env --dry-run   # preview, writes nothing
+docker compose run --rm --no-deps --user "$(id -u):$(id -g)" -v "$PWD:/work" \
+  tesseract tesseract env migrate /work/.env             # write (backup .env.bak-… first)
 docker compose up -d
 ```
+
+Step by step: [docs/operations.md](docs/operations.md#env-nach-einem-update-migrieren).
 
 Further nodes are added from the web interface (*Nodes › Neuen Node verbinden*) with a one-line
 installer and a join token. Details: [docs/installation.md](docs/installation.md),
