@@ -4,6 +4,14 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.29.2] – 2026-11-26
+
+### Behoben
+- **Anubis startete nicht:** `cannot create config "tesseract_anubis-policy" in read-only
+  service anubis`. Compose schreibt die mitgelieferte Policy (`configs: content`) beim Anlegen
+  in den Container – das geht nicht, wenn er nur lesbar ist. `read_only` ist beim Anubis-Dienst
+  raus (Controller-Stack und Node-Vorlage); keine neuen Rechte und keine Capabilities bleiben.
+
 ## [1.29.1] – 2026-11-26
 
 ### Geändert

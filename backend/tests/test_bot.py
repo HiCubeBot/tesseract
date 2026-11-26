@@ -187,3 +187,6 @@ def test_compose_has_anubis_with_deny_403() -> None:
         text = f.read_text(encoding="utf-8")
         assert "ghcr.io/techarohq/anubis:" in text and 'TARGET: " "' in text
         assert "DENY: 403" in text and "DENY: 200" not in text
+        # Inline-Config (configs: content) geht nicht in einen read_only-Container
+        service = text.split("  anubis:\n", 1)[1].split("    configs:", 1)[0]
+        assert "read_only: true" not in service

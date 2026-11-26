@@ -130,7 +130,7 @@ services:
     image: ghcr.io/techarohq/anubis:${ANUBIS_VERSION:-v1.28.2}
     profiles: [anubis]
     restart: unless-stopped
-    read_only: true
+    # Kein read_only: Compose schreibt die Policy (configs: content) beim Start in den Container
     security_opt:
       - no-new-privileges:true
     cap_drop:
