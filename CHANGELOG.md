@@ -4,6 +4,16 @@ Alle wichtigen Änderungen. Format nach [Keep a Changelog](https://keepachangelo
 Versionen nach [Semantic Versioning](https://semver.org/lang/de/). Upgrade-Hinweise:
 [docs/operations.md](docs/operations.md#aktualisieren-upgrade-pfad).
 
+## [1.30.2] – 2026-11-26
+
+### Behoben
+- **Oberfläche von unterwegs per Zertifikat – „Empty Response“ ohne Zertifikatsabfrage:** Mit
+  `TESSERACT_ADMIN_NETWORKS` brach Caddy auch die HTTP-Umleitung (Port 80) der Oberfläche für
+  Anfragen von außen ab. Wer die Adresse ohne `https://` aufrief (oder aus dem Verlauf mit
+  `http://`), kam nie bis zur Zertifikatsabfrage – über HTTP gibt es kein Zertifikat. Gibt es
+  Personen mit Zugriff per Gerätezertifikat, leitet Port 80 jetzt immer auf HTTPS um; dort
+  bricht Caddy für Fremde ohne Zertifikat weiter ab.
+
 ## [1.30.1] – 2026-11-26
 
 ### Behoben

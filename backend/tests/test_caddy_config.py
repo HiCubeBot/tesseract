@@ -168,3 +168,27 @@ def test_cert_users_pass_admin_networks() -> None:
     spec = replace(spec, controller_cert_users=(fp,))
     gate = _servers(build_config(spec))["https"]["routes"][0]["handle"][0]["routes"][0]
     assert gate["match"][0]["not"][2] == {"vars": {FINGERPRINT: [fp]}}
+
+
+def test_cert_users_get_https_redirect_on_port_80() -> None:
+    """Über HTTP gibt es kein Zertifikat – mit Zertifikats-Personen leitet Port 80 immer um."""
+    from dataclasses import replace
+
+    spec = NodeSpec(
+        admin_listen="x",
+        controller_domain="tesseract.example.org",
+        controller_upstream="tesseract:8000",
+        controller_networks=("192.168.178.0/24",),
+    )
+
+    def port80(s: NodeSpec) -> str:
+        routes = _servers(build_config(s))["http"]["routes"]
+        r = next(r for r in routes if r["match"][0]["host"] == ["tesseract.example.org"])
+        return json.dumps(r)
+
+    assert '"abort": true' in port80(spec)  # ohne Personen: von außen keine Antwort
+    with_users = port80(replace(spec, controller_cert_users=("ab" * 32,)))
+    assert '"abort": true' not in with_users and '"status_code": 308' in with_users
+    # HTTPS bricht für Fremde ohne Zertifikat weiter ab
+    https = _servers(build_config(replace(spec, controller_cert_users=("ab" * 32,))))["https"]
+    assert '"abort": true' in json.dumps(https["routes"][0])

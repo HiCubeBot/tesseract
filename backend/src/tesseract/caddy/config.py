@@ -1039,8 +1039,11 @@ def build_config(spec: NodeSpec) -> JSON:
     if spec.controller_domain and spec.controller_upstream:
         https_routes.append(_controller_route(spec))
         redirect = _redirect_route(spec.controller_domain)
-        if spec.controller_networks:
-            # auch die Umleitung verrät von außen nichts
+        # Gibt es Personen mit Zugriff per Gerätezertifikat, muss Port 80 immer auf HTTPS
+        # umleiten: Über HTTP gibt es kein Zertifikat, ein Abbruch hier ließe sie von unterwegs
+        # nie bis zur Zertifikatsabfrage kommen. Ohne Zertifikat bricht HTTPS danach ab.
+        if spec.controller_networks and not spec.controller_cert_users:
+            # sonst verrät auch die Umleitung von außen nichts
             redirect["handle"] = [
                 {
                     "handler": "subroute",

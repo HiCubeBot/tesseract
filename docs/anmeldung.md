@@ -78,7 +78,9 @@ Login-Formular (Standard: kein Zugriff).
   die Passwort-Anmeldung bleibt dann weiter dem Admin-Gerät vorbehalten.
 - `TESSERACT_ADMIN_NETWORKS` gilt für diese Geräte nicht: Sie erreichen die Oberfläche auch von
   unterwegs (z. B. mobile Daten), erkannt am Fingerabdruck ihres Zertifikats. Alle anderen –
-  auch die Passwort-Anmeldung – bleiben auf die Admin-Netze beschränkt.
+  auch die Passwort-Anmeldung – bleiben auf die Admin-Netze beschränkt. Damit das auch beim
+  Aufruf ohne `https://` klappt, leitet Port 80 der Oberfläche dann für alle auf HTTPS um
+  (über HTTP gibt es kein Zertifikat); erst HTTPS weist Fremde ohne Zertifikat ab.
 - Die Gruppe „Admin“ bleibt, was sie war: Ihre Geräte sind der zweite Faktor für Admin-Konten
   (Passwort/Passkey/SSO), sie melden niemanden ohne Passwort an.
 - Notausgang: Passwort-Anmeldung als Admin bleibt immer möglich; `tesseract admin mtls off`
