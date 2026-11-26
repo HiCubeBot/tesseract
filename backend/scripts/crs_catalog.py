@@ -166,7 +166,9 @@ def main(argv: list[str] | None = None) -> int:
     data = build(version)
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(data, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    out.write_text(
+        json.dumps(data, ensure_ascii=False, indent=1) + "\n", encoding="utf-8", newline="\n"
+    )
     print(f"{len(data['rules'])} Regeln aus CRS {data['crs']} (coraza-caddy {version}) -> {out}")
     return 0
 
